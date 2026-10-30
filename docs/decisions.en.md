@@ -168,6 +168,9 @@ Public datasets have no answer key, so they only prove "it loads and it runs". T
 ## 13b. Waiting for the maintainer
 
 - **The licence.** Not chosen yet; the README says "to be decided".
+
+  Decided 2026-10-30 by the maintainer: Apache-2.0, chosen over MIT for its explicit patent grant. The
+  public dataset keeps its own CC BY 4.0 licence.
 - **When to publish to the public internet or a public repository.** Before that, confirm that the design
   ideas borrowed from the earlier internal project may be shared; that is a question of company policy, not
   of technology.

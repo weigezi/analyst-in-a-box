@@ -70,4 +70,5 @@ uv run python tools/bilingual_check.py          # every document has both langua
 
 ## Status
 
-Version 0.1. Not yet tried by someone outside the project. License: to be decided by the maintainer.
+Version 0.1. Not yet tried by someone outside the project. Licence: [Apache-2.0](LICENSE). The data in
+`demo/public` keeps its own licence (CC BY 4.0, see [demo/public](demo/public/README.md)).

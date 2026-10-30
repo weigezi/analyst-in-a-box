@@ -63,4 +63,5 @@ uv run python tools/bilingual_check.py          # 每份文档都有中英两份
 
 ## 现状
 
-版本 0.1。还没有项目以外的人试用过。许可证：待维护者决定。
+版本 0.1。还没有项目以外的人试用过。许可证：[Apache-2.0](LICENSE)。`demo/public` 里的数据沿用它自己的授权
+（CC BY 4.0，见 [demo/public](demo/public/README.zh.md)）。
