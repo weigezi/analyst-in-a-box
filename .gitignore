@@ -14,3 +14,4 @@ demo/public/raw/
 node_modules/
 # lockfiles record the registry they were installed from; a private mirror must not end up here
 tools/browser-check/package-lock.json
+tools/browser-check/shots/

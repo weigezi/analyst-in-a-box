@@ -32,7 +32,7 @@
 
 演示店「花果篮」是虚构的。它的数据是程序生成的，事先埋好了原因：电商平台改了条款、某个大区连下三天暴雨、
 一次促销把结构拉低、某个渠道首页改版打到了一个品类。skill 从头到尾不读答案；`tests/test_demo_store.py`
-检查它每一个原因都找到了。另有一份真实的公开数据（UCI Online Retail II，CC BY 4.0），用来证明真实数据接得进、
+检查它每一个原因都找到了。另有一份真实的公开数据（UCI Online Retail，CC BY 4.0），用来证明真实数据接得进、
 跑得出，见 [demo/public](demo/public/README.zh.md)。
 
 ## 和其他系统的区别

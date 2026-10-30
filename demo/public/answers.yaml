@@ -1,0 +1,15 @@
+# Answers to the getting-started questions for the public dataset, as a user would give them.
+# Column meanings come from the UCI variable description (see README.md), never from column names.
+# Answered by the project maintainer for the public demo.
+date_column: invoice_date            # UCI: "the day and time when a transaction was generated"
+role:revenue: amount                 # quantity × unit price, summed per invoice (prepare.py)
+role:items: quantity                 # UCI: "the quantities of each product per transaction"
+role:lines: skip                     # number of product lines on an invoice: a count of rows, not a business metric
+role:invoice: skip                   # the invoice number is an identifier
+role:customer_id: skip               # an identifier
+order_id: invoice                    # UCI: "a 6-digit integral number uniquely assigned to each transaction"
+template: orders
+north_star: revenue
+dimensions: [market, country_group, customer_status]
+belongs:country_group>market: "yes"  # the 8 largest countries include the UK, so "Other" is international only
+single_point_share: 0.5

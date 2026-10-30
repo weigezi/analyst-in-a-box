@@ -38,7 +38,7 @@ regression case, so it does not make the same mistake twice.
 The demo shop, Bloom & Basket, is fictional. Its data is generated with known causes planted in it: a marketplace
 that changed its terms, three days of heavy rain in one region, a promotion that shifted the mix, a home-page
 change that hit one category on one channel. The skill never reads the answer key; `tests/test_demo_store.py`
-checks that it finds every cause. A real public dataset (UCI Online Retail II, CC BY 4.0) shows that real
+checks that it finds every cause. A real public dataset (UCI Online Retail, CC BY 4.0) shows that real
 data loads and runs; see [demo/public](demo/public/README.md).
 
 ## How it differs from other systems

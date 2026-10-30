@@ -1,0 +1,14 @@
+{
+  "title": "Online Retail",
+  "uci_id": 352,
+  "citation": "Chen, D. (2015). Online Retail [Dataset]. UCI Machine Learning Repository.",
+  "doi": "https://doi.org/10.24432/C5BW33",
+  "licence": "CC BY 4.0",
+  "page": "https://archive.ics.uci.edu/dataset/352/online+retail",
+  "raw_file": "online_retail.xlsx",
+  "raw_lines": 541909,
+  "sales_lines": 530104,
+  "invoices": 19960,
+  "first_day": "2010-12-01",
+  "last_day": "2011-12-09"
+}

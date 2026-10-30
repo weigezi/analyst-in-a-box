@@ -127,6 +127,7 @@ def step_vertical(ws, s):
     pr = (ws.model.get("priorities") or {}).get(m, {})
     order = s["config"].get("dimensions") or pr.get("order") or sorted(ws.metric_dimensions(m))
     mode = s["config"].get("mode") or pr.get("mode", "drill")
+    s["vertical_mode"] = mode
     allowed, op = ws.metric_dimensions(m), _op(ws, m)
     filters, path = dict(s["filters"]), []
     for dim in order:

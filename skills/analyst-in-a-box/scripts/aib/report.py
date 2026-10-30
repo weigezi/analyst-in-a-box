@@ -21,7 +21,7 @@ T = {
         "larger_structure": "结构主导：变化主要来自各组占比变了，而不是各组自己的水平变了。",
         "larger_rate": "指标主导：变化主要来自各组自己的水平变了，而不是占比变了。",
         "larger_mix": "结构差异主导：两边卖的组合不一样。", "larger_performance": "表现差异主导：同一组在两边长得不一样。",
-        "spread": "这一刀切下去变化分散在各组，没有单点，停在这一层。", "drill": "单点集中，往下钻：",
+        "spread": "这一刀切下去变化分散在各组，没有单点，停在这一层。", "drill": "单点集中，往下钻：", "single": "单点集中：",
         "qualify_scope": "这一节看的是整体{m}，不是两边的差。",
         "unusual_low": "和自己过去 {n} 期比，这一期明显偏低（稳健 z 值 {z}，低于门槛 {t}）。",
         "unusual_high": "和自己过去 {n} 期比，这一期明显偏高（稳健 z 值 {z}，高于门槛 {t}）。",
@@ -62,7 +62,7 @@ T = {
         "larger_rate": "Rate-led: the change comes mainly from each group's own level, not from the mix.",
         "larger_mix": "Mix-led: the two sides sell a different mix.", "larger_performance": "Performance-led: the same group grew differently on the two sides.",
         "spread": "This cut spreads the change across groups; no single point, so the analysis stops here.",
-        "drill": "Single point; drilling into: ",
+        "drill": "Single point; drilling into: ", "single": "Single point: ",
         "qualify_scope": "This section is about {m} as a whole, not the gap between the two sides.",
         "unusual_low": "Against its own last {n} periods this one is clearly low (robust z {z}, below the threshold {t}).",
         "unusual_high": "Against its own last {n} periods this one is clearly high (robust z {z}, above the threshold {t}).",
@@ -177,6 +177,9 @@ def _cut_table(ws, world, cut, unit, lang):
     op, d = r["operator"], cut["dimension"]
     sl = lambda k: seg_label(ws, world, d, k, lang)  # noqa: E731
     if op == "additive":
+        # one number format per table: once any value reaches thousands, decimals are noise
+        if unit not in ("ratio", "count") and any(abs(x[k]) >= 1000 for x in r["segments"] for k in ("base", "cur", "delta")):
+            unit = "count"
         return _table([t["segment"], t["base"], t["cur"], t["delta"], t["share"]],
                       [[sl(x["key"]), fmt(x["base"], unit), fmt(x["cur"], unit), fmt(x["delta"], unit, True), pct(x["share"])]
                        for x in r["segments"]])
@@ -336,7 +339,8 @@ def render(ws, s, lang="zh", out_dir: Path | None = None) -> str:
         L += [f"### {i + 1}. {dl}" + (f"{p['open']}{scope}{p['close']}" if scope else ""), ""]
         L += _cut_table(ws, world, cut, unit, lang)
         act = cut["decision"]["then"].get("action")
-        L += ["", (t["drill"] + f"**{seg_label(ws, world, cut['dimension'], cut['result']['top1_key'], lang)}**") if act == "drill" else t["spread"]]
+        lead = t["drill"] if s.get("vertical_mode", "drill") == "drill" else t["single"]
+        L += ["", (lead + f"**{seg_label(ws, world, cut['dimension'], cut['result']['top1_key'], lang)}**") if act == "drill" else t["spread"]]
         if out_dir is not None:
             vf = _cut_value(cut)
             rows = [(seg_label(ws, world, cut["dimension"], x["key"], lang), x[vf], x.get("share")) for x in cut["result"]["segments"]]
