@@ -1,0 +1,18 @@
+# Formula starter for data recorded as subscriptions or memberships.
+# Same arithmetic as the orders starter, different names: revenue = subscribers × revenue per subscriber.
+# Churn and retention need a stock of subscribers at the start of each period; version 1 does not draft those.
+id: subscription
+status: proposed
+names:
+  id_count: {en: Paying subscribers, zh: 付费用户数}
+  per_id: {en: Revenue per subscriber, zh: 每用户收入}
+  margin: {en: Margin rate, zh: 毛利率}
+formulas:
+  - needs: [amount, id_column]
+    metric: per_id
+    ratio: [amount, id_count]
+    identity: {left: amount, factors: [id_count, per_id]}
+  - needs: [profit, amount]
+    metric: margin
+    ratio: [profit, amount]
+    identity: {left: profit, factors: [amount, margin]}

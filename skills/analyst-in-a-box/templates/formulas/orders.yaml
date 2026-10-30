@@ -1,0 +1,18 @@
+# Formula starter for data recorded as orders (e-commerce, retail, restaurants).
+# Formulas only: they are arithmetic and hold for any business. Priorities and thresholds are
+# business judgement and are never in a starter; they come from the user.
+id: orders
+status: proposed
+names:
+  id_count: {en: Orders, zh: 订单数}
+  per_id: {en: Average order value, zh: 客单价}
+  margin: {en: Margin rate, zh: 毛利率}
+formulas:
+  - needs: [amount, id_column]
+    metric: per_id
+    ratio: [amount, id_count]
+    identity: {left: amount, factors: [id_count, per_id]}
+  - needs: [profit, amount]
+    metric: margin
+    ratio: [profit, amount]
+    identity: {left: profit, factors: [amount, margin]}

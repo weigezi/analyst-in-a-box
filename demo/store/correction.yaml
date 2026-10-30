@@ -1,0 +1,14 @@
+# The correction the demo user makes after the first average-order-value run reports a gap.
+# Used by the demo page and by tests/test_demo_store.py, so both show the same thing.
+after_case: aov_last_week
+correction:
+  type: add_mechanism
+  slot: customer_type=new
+  quote: {en: "New customers usually buy a small first order to try us out.", zh: "新客第一单一般买小份，先试试。"}
+  entry:
+    hint: new customer first order
+    entities: [cust_new]
+    metrics: [aov]
+    direction: lower
+    claim: {en: "New customers buy a smaller first order to try the shop, so more new customers pull the average order value down.",
+            zh: "新客第一单通常买小份先试试，新客占比一高，客单价就被拉低。"}

@@ -1,0 +1,35 @@
+name: {en: "Bloom & Basket (fictional demo shop)", zh: "花果篮（虚构演示店）"}
+language: zh
+
+sources:
+  orders:
+    type: csv
+    path: data/orders.csv.gz
+    date_columns: [order_date]
+  traffic:
+    type: csv
+    path: data/traffic.csv.gz
+    date_columns: [date]
+
+external:
+  calendar:
+    type: csv
+    path: external/calendar.csv
+    role: calendar
+  market:
+    type: csv
+    path: external/market.csv
+    date_columns: [date]
+    role: market
+    value: market_sales
+    date: date
+    compares_with: revenue
+    note: {en: "A fictional online-gifting market index.", zh: "虚构的线上礼品市场大盘。"}
+  weather:
+    type: csv
+    path: external/weather.csv
+    date_columns: [date]
+    role: series
+    value: rainfall_mm
+    date: date
+    unit: mm

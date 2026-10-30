@@ -1,0 +1,8 @@
+{
+  "name": "aib-browser-check",
+  "private": true,
+  "description": "Loads the built demo site in a headless browser: errors, missing files, story lighting, motion timings.",
+  "type": "module",
+  "scripts": { "check": "node check.mjs" },
+  "dependencies": { "playwright-core": "^1.49.0" }
+}

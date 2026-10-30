@@ -1,0 +1,63 @@
+# Named thresholds and the decision tables that use them.
+# Every threshold says where it came from. "demo_setting" means: chosen for this fictional shop, set your own.
+
+params:
+  unusual_z:
+    value: 3.5
+    source: {kind: document, ref: "B. Iglewicz & D. Hoaglin (1993), How to Detect and Handle Outliers: modified z-scores beyond 3.5 are labelled potential outliers"}
+    status: confirmed
+  unusual_z_low:
+    value: -3.5
+    source: {kind: document, ref: "Same source as unusual_z, applied to the low side"}
+    status: confirmed
+  single_point_min_share:
+    value: 0.5
+    source: {kind: demo_setting, note: "A segment carrying at least half of all movement counts as a single point."}
+    status: confirmed
+  own_share_min:
+    value: 0.5
+    source: {kind: demo_setting, note: "If at least half of the change is our own, break it down internally."}
+    status: confirmed
+  external_slice_min_share:
+    value: 0.5
+    source: {kind: demo_setting, note: "An outside event must touch the slice that carries at least half of the change."}
+    status: confirmed
+  external_size_min_share:
+    value: 0.6
+    source: {kind: demo_setting, note: "At least 60% of that slice's change must fall on the event's days."}
+    status: confirmed
+
+tables:
+  - id: qualify.unusual
+    question: {en: "Is this period unusual against its own history?", zh: "这一期和自己的历史比，算不算异常？"}
+    inputs: {robust_z: qualify.robust_z}
+    hit_policy: FIRST
+    rows:
+      - when: {robust_z: {gte: "param:unusual_z"}}
+        then: {verdict: unusual_high}
+      - when: {robust_z: {lte: "param:unusual_z_low"}}
+        then: {verdict: unusual_low}
+      - when: {}
+        then: {verdict: within_usual_range}
+
+  - id: qualify.market
+    question: {en: "Did the market move us, or did we move ourselves?", zh: "是大盘带着走，还是自己的问题？"}
+    inputs: {own_share: qualify.own_share}
+    hit_policy: FIRST
+    rows:
+      - when: {own_share: {gte: "param:own_share_min"}}
+        then: {verdict: own, next: break_down_internally}
+      - when: {own_share: {not_null: true}}
+        then: {verdict: market, next: report_market_first}
+      - when: {}
+        then: {verdict: no_market_data}
+
+  - id: stop.cut
+    question: {en: "After a cut, drill into the top segment or stop here?", zh: "切完这一刀，往第一名下钻，还是停在这一层？"}
+    inputs: {top1_abs_share: result.top1_abs_share}
+    hit_policy: FIRST
+    rows:
+      - when: {top1_abs_share: {gte: "param:single_point_min_share"}}
+        then: {action: drill, reason: single_point}
+      - when: {}
+        then: {action: stop, reason: spread}

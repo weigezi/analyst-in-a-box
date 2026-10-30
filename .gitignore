@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.DS_Store
+
+# generated outputs
+site/dist/
+demo/**/runs/
+demo/public/raw/
+*.log
+
+# tools
+node_modules/
+# lockfiles record the registry they were installed from; a private mirror must not end up here
+tools/browser-check/package-lock.json

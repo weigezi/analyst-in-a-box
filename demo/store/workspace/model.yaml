@@ -1,0 +1,79 @@
+# Method layer of the demo shop: what the numbers are and how they break down.
+north_star: gross_profit
+
+measures:
+  revenue_m: {source: orders, agg: sum, column: revenue, date: order_date,
+              dimensions: [channel, category, region, city, delivery, customer_type]}
+  orders_m: {source: orders, agg: count_distinct, column: order_id, date: order_date,
+             dimensions: [channel, category, region, city, delivery, customer_type],
+             additive_over: [channel, category, region, city, delivery, customer_type],
+             note: "Each order has exactly one value on every dimension, so distinct order counts add up."}
+  gross_profit_m: {source: orders, agg: sum, column: gross_profit, date: order_date,
+                   dimensions: [channel, category, region, city, delivery, customer_type]}
+  visits_m: {source: traffic, agg: sum, column: visits, date: date, dimensions: [channel]}
+
+metrics:
+  gross_profit: {label: {en: Gross profit, zh: 毛利}, measure: gross_profit_m, unit: currency}
+  revenue: {label: {en: Revenue, zh: 营收}, measure: revenue_m, unit: currency}
+  orders: {label: {en: Orders, zh: 订单数}, measure: orders_m, unit: count}
+  visits: {label: {en: Visits, zh: 访问量}, measure: visits_m, unit: count}
+  aov: {label: {en: Average order value, zh: 客单价}, kind: ratio, numerator: revenue, denominator: orders, unit: currency}
+  cr: {label: {en: Conversion rate, zh: 转化率}, kind: ratio, numerator: orders, denominator: visits, unit: ratio}
+  margin_rate: {label: {en: Margin rate, zh: 毛利率}, kind: ratio, numerator: gross_profit, denominator: revenue, unit: ratio}
+
+identities:
+  - id: profit_by_margin
+    left: gross_profit
+    factors: [revenue, margin_rate]
+    operator: multiply
+    source: {kind: formula}
+    status: confirmed
+  - id: revenue_by_orders
+    left: revenue
+    factors: [orders, aov]
+    operator: multiply
+    source: {kind: formula}
+    status: confirmed
+  - id: orders_by_traffic
+    left: orders
+    factors: [visits, cr]
+    operator: multiply
+    source: {kind: formula}
+    status: confirmed
+
+dimensions:
+  channel: {label: {en: Channel, zh: 渠道}, column: channel}
+  category: {label: {en: Category, zh: 品类}, column: category}
+  region: {label: {en: Region, zh: 大区}, column: region}
+  city: {label: {en: City, zh: 城市}, column: city}
+  delivery: {label: {en: Delivery, zh: 配送方式}, column: delivery}
+  customer_type: {label: {en: Customer type, zh: 新老客}, column: customer_type}
+
+priorities:
+  revenue:
+    order: [channel, region, category, delivery, customer_type]
+    mode: drill
+    source: {kind: demo_setting, note: "The maintainer's order for the fictional shop."}
+    status: confirmed
+  gross_profit:
+    order: [channel, category, region]
+    mode: drill
+    source: {kind: demo_setting}
+    status: confirmed
+  aov:
+    order: [category, customer_type]
+    mode: each
+    source: {kind: demo_setting}
+    status: confirmed
+  margin_rate:
+    order: [channel, category]
+    mode: each
+    source: {kind: demo_setting}
+    status: confirmed
+
+comparisons:
+  - id: app_vs_web
+    label: {en: App vs web, zh: App 对比网页}
+    dimension: channel
+    sides: [app, web]
+    segment_by: category

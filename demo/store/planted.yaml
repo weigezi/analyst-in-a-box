@@ -1,0 +1,85 @@
+# The answer key for the demo shop. The skill never reads this file.
+#
+# "Bloom & Basket" is a fictional online shop selling flowers, fruit baskets, plants and gift boxes.
+# generate.py builds its data from the baseline below and plants every effect listed here,
+# so the demo can end by putting "what the skill found" next to "what was planted".
+
+shop: {en: "Bloom & Basket (fictional)", zh: "花果篮（虚构）"}
+seed: 20261030
+start: 2025-01-01
+end: 2026-10-25
+
+effects:
+  - id: marketplace_fee_change
+    note: {en: "The marketplace changed its fee terms; the shop lost its placement and 70% of its marketplace orders.",
+           zh: "电商平台改了费用条款，店铺失去推荐位，平台订单少了七成。"}
+    start: 2026-10-12
+    where: {channel: marketplace}
+    orders_multiplier: 0.3
+
+  - id: east_rainstorm
+    note: {en: "Three days of heavy rain in the east region; same-day courier orders there collapsed.",
+           zh: "华东连续三天暴雨，当地的当日达订单大幅下滑。"}
+    start: 2026-10-21
+    end: 2026-10-23
+    where: {region: east, delivery: same_day}
+    orders_multiplier: 0.3
+    rainfall_mm: {region: east, value: 85}
+
+  - id: fruit_basket_promo
+    note: {en: "From 1 October new customers get a free greeting card with a fruit basket. Fruit baskets are the cheapest category, so the mix shifts down; prices do not change.",
+           zh: "10 月 1 日起新客买果篮送贺卡。果篮是最便宜的品类，结构往下走；价格没变。"}
+    start: 2026-10-01
+    where: {category: fruit_basket, customer_type: new}
+    orders_multiplier: 3.0
+
+  - id: new_customer_first_order
+    note: {en: "New customers always buy smaller first orders. This is the mechanism the demo leaves out of world.yaml on purpose.",
+           zh: "新客第一单总是买得小。演示故意没把这条机制写进 world.yaml。"}
+    where: {customer_type: new}
+    price_multiplier: 0.85
+
+  - id: app_homepage_change
+    note: {en: "From 1 September the app home page dropped its plants slot; app plant orders fell 60%, web was untouched.",
+           zh: "9 月 1 日起 App 首页撤掉了绿植推荐位，App 的绿植订单少了六成，网页不受影响。"}
+    start: 2026-09-01
+    where: {channel: app, category: plant}
+    orders_multiplier: 0.4
+
+# What a correct analysis must find. tests/test_demo_store.py runs each case and checks every line.
+expected:
+  - case: revenue_last_week
+    question: {en: "Revenue fell year on year last week. Why?", zh: "上周营收同比下滑，为什么？"}
+    run: {metric: revenue, current: [2026-10-19, 2026-10-25], base: yoy}
+    first_cut: channel
+    top1: marketplace
+    cites: [ev_marketplace_fee_change]
+    planted: marketplace_fee_change
+
+  - case: east_last_week
+    question: {en: "Why did the east region fall more than the rest last week?", zh: "上周华东为什么比其他地区跌得多？"}
+    run: {metric: revenue, current: [2026-10-19, 2026-10-25], base: yoy, filters: {region: east}, dimensions: [delivery]}
+    first_cut: delivery
+    top1: same_day
+    cites: [ev_east_rainstorm]
+    external_checks: supported
+    planted: east_rainstorm
+
+  - case: aov_last_week
+    question: {en: "Average order value dropped last week. Why?", zh: "上周客单价下降，为什么？"}
+    run: {metric: aov, current: [2026-10-19, 2026-10-25], base: yoy}
+    cuts:
+      category: {top1: fruit_basket, larger_effect: structure}
+      customer_type: {top1: new}
+    cites: [mech_fruit_basket_cheaper, ev_fruit_basket_promo]
+    gap_before_correction: {dimension: customer_type, value: new}
+    planted: [fruit_basket_promo, new_customer_first_order]
+
+  - case: app_vs_web
+    question: {en: "Over the last four weeks, why did the app grow more slowly than the web?", zh: "近四周 App 为什么比网页长得慢？"}
+    run: {metric: revenue, current: [2026-09-28, 2026-10-25], base: yoy, compare: app_vs_web}
+    order: second
+    top1: plant
+    larger_effect: performance
+    cites: [ev_app_homepage_change]
+    planted: app_homepage_change

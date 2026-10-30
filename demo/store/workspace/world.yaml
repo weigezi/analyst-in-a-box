@@ -1,0 +1,118 @@
+# The part of the shop's world that explains its numbers. Every entry has a source and a status.
+# One mechanism is left out on purpose (why new customers' orders are smaller): the demo shows the
+# gap being reported, the user filling it in, and coverage rising.
+
+entities:
+  - {id: ch_app, type: channel, dimension: channel, key: app, label: {en: App, zh: App}, source: {kind: data}, status: confirmed}
+  - {id: ch_web, type: channel, dimension: channel, key: web, label: {en: Website, zh: 网页}, aliases: [web], source: {kind: data}, status: confirmed}
+  - {id: ch_marketplace, type: channel, dimension: channel, key: marketplace, label: {en: Marketplace, zh: 电商平台}, source: {kind: data}, status: confirmed}
+  - {id: cat_bouquet, type: category, dimension: category, key: bouquet, label: {en: Bouquets, zh: 花束}, source: {kind: data}, status: confirmed}
+  - {id: cat_fruit_basket, type: category, dimension: category, key: fruit_basket, label: {en: Fruit baskets, zh: 果篮}, source: {kind: data}, status: confirmed}
+  - {id: cat_plant, type: category, dimension: category, key: plant, label: {en: Plants, zh: 绿植}, source: {kind: data}, status: confirmed}
+  - {id: cat_gift_box, type: category, dimension: category, key: gift_box, label: {en: Gift boxes, zh: 礼盒}, source: {kind: data}, status: confirmed}
+  - {id: region_north, type: region, dimension: region, key: north, label: {en: North, zh: 华北}, source: {kind: data}, status: confirmed}
+  - {id: region_east, type: region, dimension: region, key: east, label: {en: East, zh: 华东}, source: {kind: data}, status: confirmed}
+  - {id: region_south, type: region, dimension: region, key: south, label: {en: South, zh: 华南}, source: {kind: data}, status: confirmed}
+  - {id: region_west, type: region, dimension: region, key: west, label: {en: West, zh: 西部}, source: {kind: data}, status: confirmed}
+  - {id: city_beijing, type: city, dimension: city, key: Beijing, label: {en: Beijing, zh: 北京}, source: {kind: data}, status: confirmed}
+  - {id: city_tianjin, type: city, dimension: city, key: Tianjin, label: {en: Tianjin, zh: 天津}, source: {kind: data}, status: confirmed}
+  - {id: city_shanghai, type: city, dimension: city, key: Shanghai, label: {en: Shanghai, zh: 上海}, source: {kind: data}, status: confirmed}
+  - {id: city_hangzhou, type: city, dimension: city, key: Hangzhou, label: {en: Hangzhou, zh: 杭州}, source: {kind: data}, status: confirmed}
+  - {id: city_guangzhou, type: city, dimension: city, key: Guangzhou, label: {en: Guangzhou, zh: 广州}, source: {kind: data}, status: confirmed}
+  - {id: city_shenzhen, type: city, dimension: city, key: Shenzhen, label: {en: Shenzhen, zh: 深圳}, source: {kind: data}, status: confirmed}
+  - {id: city_chengdu, type: city, dimension: city, key: Chengdu, label: {en: Chengdu, zh: 成都}, source: {kind: data}, status: confirmed}
+  - {id: city_chongqing, type: city, dimension: city, key: Chongqing, label: {en: Chongqing, zh: 重庆}, source: {kind: data}, status: confirmed}
+  - {id: deliv_same_day, type: delivery, dimension: delivery, key: same_day, label: {en: Same-day courier, zh: 当日达}, source: {kind: data}, status: confirmed}
+  - {id: deliv_scheduled, type: delivery, dimension: delivery, key: scheduled, label: {en: Scheduled delivery, zh: 预约配送}, source: {kind: data}, status: confirmed}
+  - {id: deliv_pickup, type: delivery, dimension: delivery, key: pickup, label: {en: Store pickup, zh: 到店自提}, source: {kind: data}, status: confirmed}
+  - {id: cust_new, type: customer_type, dimension: customer_type, key: new, label: {en: New customers, zh: 新客}, source: {kind: data}, status: confirmed}
+  - {id: cust_returning, type: customer_type, dimension: customer_type, key: returning, label: {en: Returning customers, zh: 老客}, source: {kind: data}, status: confirmed}
+  - {id: ext_marketplace_operator, type: partner, external: true, label: {en: Marketplace operator, zh: 电商平台方}, source: {kind: demo_setting}, status: confirmed}
+  - {id: ext_weather, type: environment, external: true, label: {en: Weather, zh: 天气}, source: {kind: general_knowledge}, status: confirmed}
+
+relations:
+  - {id: rel_beijing_north, subject: city_beijing, predicate: belongs_to, object: region_north, source: {kind: data, note: "Every Beijing order is in the north region"}, status: confirmed}
+  - {id: rel_tianjin_north, subject: city_tianjin, predicate: belongs_to, object: region_north, source: {kind: data}, status: confirmed}
+  - {id: rel_shanghai_east, subject: city_shanghai, predicate: belongs_to, object: region_east, source: {kind: data}, status: confirmed}
+  - {id: rel_hangzhou_east, subject: city_hangzhou, predicate: belongs_to, object: region_east, source: {kind: data}, status: confirmed}
+  - {id: rel_guangzhou_south, subject: city_guangzhou, predicate: belongs_to, object: region_south, source: {kind: data}, status: confirmed}
+  - {id: rel_shenzhen_south, subject: city_shenzhen, predicate: belongs_to, object: region_south, source: {kind: data}, status: confirmed}
+  - {id: rel_chengdu_west, subject: city_chengdu, predicate: belongs_to, object: region_west, source: {kind: data}, status: confirmed}
+  - {id: rel_chongqing_west, subject: city_chongqing, predicate: belongs_to, object: region_west, source: {kind: data}, status: confirmed}
+  - {id: rel_marketplace_via_operator, subject: ch_marketplace, predicate: goes_through, object: ext_marketplace_operator, source: {kind: demo_setting}, status: confirmed}
+
+mechanisms:
+  - id: mech_marketplace_commission
+    entities: [ch_marketplace]
+    metrics: [margin_rate, gross_profit]
+    direction: lower
+    claim: {en: "Marketplace orders pay the operator a commission, so their margin is lower.", zh: "电商平台的订单要给平台方付佣金，所以毛利率低。"}
+    source: {kind: demo_setting}
+    status: confirmed
+  - id: mech_fruit_basket_cheaper
+    entities: [cat_fruit_basket]
+    metrics: [aov]
+    direction: lower
+    claim: {en: "Fruit baskets are the cheapest category; more of them pulls the average order value down.", zh: "果篮是最便宜的品类，果篮占比一高，客单价就被拉低。"}
+    source: {kind: demo_setting}
+    status: confirmed
+  - id: mech_same_day_weather
+    entities: [deliv_same_day]
+    metrics: [revenue, orders]
+    direction: sensitive
+    claim: {en: "Same-day courier orders need riders on the road; heavy rain cuts them.", zh: "当日达要骑手上路，大雨会让当日达订单下滑。"}
+    source: {kind: demo_setting}
+    status: confirmed
+
+events:
+  - id: ev_marketplace_fee_change
+    kind: internal
+    start: 2026-10-12
+    entities: [ch_marketplace]
+    what: {en: "The marketplace changed its fee terms and our listing lost its placement.", zh: "电商平台调整了费用条款，我们的商品失去了推荐位。"}
+    source: {kind: system_record, ref: "partner contract log"}
+    status: confirmed
+  - id: ev_fruit_basket_promo
+    kind: internal
+    start: 2026-10-01
+    end: 2026-10-31
+    entities: [cat_fruit_basket]
+    what: {en: "New customers get a free greeting card with a fruit basket.", zh: "新客买果篮送贺卡。"}
+    source: {kind: system_record, ref: "campaign calendar"}
+    status: confirmed
+  - id: ev_east_rainstorm
+    kind: external
+    start: 2026-10-21
+    end: 2026-10-23
+    entities: [region_east, deliv_same_day]
+    what: {en: "Three days of heavy rain in the east region.", zh: "华东连续三天暴雨。"}
+    evidence: {source: weather, filters: {region: east}}
+    source: {kind: general_knowledge, note: "Reported by the weather source; the link to our orders is a hypothesis until it passes the three checks."}
+    status: proposed
+  - id: ev_app_homepage_change
+    kind: internal
+    start: 2026-09-01
+    entities: [ch_app, cat_plant]
+    what: {en: "The app home page dropped its plants slot.", zh: "App 首页撤掉了绿植的推荐位。"}
+    source: {kind: system_record, ref: "app release notes"}
+    status: confirmed
+
+actions:
+  - id: act_marketplace_terms
+    entities: [ch_marketplace]
+    action: {en: "Renegotiate placement with the marketplace operator, or shift budget to channels we own.", zh: "和平台方重谈推荐位，或者把预算挪到自有渠道。"}
+    owner: {en: Channel manager, zh: 渠道负责人}
+    source: {kind: demo_setting}
+    status: confirmed
+  - id: act_rain_backup
+    entities: [region_east, deliv_same_day]
+    action: {en: "Set up a backup courier for rainy days in the east region; offer scheduled delivery when rain is forecast.", zh: "华东建雨天备用运力；有暴雨预报时引导改约预约配送。"}
+    owner: {en: Logistics lead, zh: 物流负责人}
+    source: {kind: demo_setting}
+    status: confirmed
+  - id: act_app_plants_slot
+    entities: [ch_app, cat_plant]
+    action: {en: "Put the plants slot back on the app home page, or test a replacement entry.", zh: "把绿植推荐位放回 App 首页，或者测一个替代入口。"}
+    owner: {en: App product owner, zh: App 产品负责人}
+    source: {kind: demo_setting}
+    status: confirmed
