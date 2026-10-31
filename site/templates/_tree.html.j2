@@ -52,13 +52,12 @@
 {% endmacro %}
 
 {% macro group_note(op, g, v) %}
-{% if op == "additive" %}{{ "自身" if zh else "itself" }} {{ g.growth | pct }} · {{ "占全部变动" if zh else "share of all movement" }} {{ g.abs_share | pct(0, false) }}
-{% elif op == "divisive" %}{{ "结构" if zh else "mix" }} {{ g.structure | delta(v.unit, v.dp) }} · {{ "各组自身" if zh else "own level" }} {{ g.rate | delta(v.unit, v.dp) }}
+{% if op == "additive" %}{{ "自身" if zh else "itself" }} {{ g.growth | pct }} · {{ "占各组变化合计（不看正负）" if zh else "share of the groups' movement added without signs" }} {{ g.abs_share | pct(0, false) }}
+{% elif op == "divisive" %}{{ "结构" if zh else "mix" }} {{ g.structure | delta(v.unit, v.dp) }} · {{ "各组自身" if zh else "own level" }} {{ g.rate | delta(v.unit, v.dp) }} · {{ "交叉" if zh else "overlap" }} {{ g.interaction | delta(v.unit, v.dp) }}
 {% else %}{{ v.cuts.sides[0] | t }} {{ g.growth_a | pct }} · {{ v.cuts.sides[1] | t }} {{ g.growth_b | pct }}{% endif %}
 {% endmacro %}
 
-{% macro cut_level(L, v) %}
-<p class="tr-how">{% if zh %}按{{ L.dimension | t }}拆，{{ L.n_groups }} 组。{% else %}By {{ L.dimension | t | lower }}, {{ L.n_groups }} groups. {% endif %}{% if L.larger %}<b>{{ pick(LARGER[L.larger]) }}</b>{{ "。" if zh else ". " }}{% endif %}<span class="tr-why">{{ pick(REASON[L.reason]) if L.reason in REASON else "" }}</span></p>
+{% macro cut_rows(L, v) %}
 <ul class="tr">
   {% for g in L.groups %}
   <li class="tr-node on"><div class="tr-box"><span class="tr-lab">{{ g.label | t }}</span>{{ amount(g.amount, v) }}
@@ -72,6 +71,17 @@
 </ul>
 {% endmacro %}
 
+{% macro cut_level(L, v) %}
+<p class="tr-how">{% if zh %}按{{ L.dimension | t }}拆，{{ L.n_groups }} 组。{% else %}By {{ L.dimension | t | lower }}, {{ L.n_groups }} groups. {% endif %}{% if L.larger %}<b>{{ pick(LARGER[L.larger]) }}</b>{{ "。" if zh else ". " }}{% endif %}<span class="tr-why">{{ pick(REASON[L.reason]) if L.reason in REASON else "" }}</span></p>
+{{ cut_rows(L, v) }}
+{% for sp in L.separate %}
+<div class="tr-branch sep">
+  <p class="tr-how">{{ "另一笔账：上面说的是「" ~ (sp.label | t) ~ "」对全店客单价的贡献；下面只看它自己的客单价，变化 " if zh else "A second account: above is what " ~ (sp.label | t) ~ " added to the whole order value; below is its own order value, which moved " }}<b>{{ sp.total | delta(v.unit, v.dp) }}</b>{{ "，按" if zh else ", by " }}{{ sp.level.dimension | t }}{{ "拆。" if zh else ":" }}</p>
+  {{ cut_rows(sp.level, v) }}
+</div>
+{% endfor %}
+{% endmacro %}
+
 {% macro pvm_branch(p, v) %}
 <div class="tr-branch"><p class="tr-how strong">{% if zh %}按{{ p.dimension_label | t }}拆量、价、结构{% else %}Volume, price and mix by {{ p.dimension_label | t | lower }}{% endif %}</p>
 <ul class="tr">
@@ -83,7 +93,7 @@
 {% endmacro %}
 
 {% macro whole(v) %}
-{% set unit_word = ("单位：元" if zh else "¥") if v.unit == "currency" else ("单位：个百分点" if zh else "percentage points") %}
+{% set unit_word = ((("单位：英镑" if zh else "£") if v.currency == "GBP" else ("单位：元" if zh else "¥")) if v.unit == "currency" else ("单位：个百分点" if zh else "percentage points")) %}
 <figure class="r-fig wide tree-fig" aria-label="{{ '这道题的拆解树' if zh else 'Breakdown tree for this question' }}">
   <figcaption class="r-figtitle">{{ "这道题的拆解树：从总变化拆到原因" if zh else "Breakdown tree: from the total change down to the cause" }}{{ "（" if zh else " (" }}{{ unit_word }}{{ "）" if zh else ")" }}</figcaption>
   <div class="tree">

@@ -760,10 +760,12 @@ def intake_context(data, lang) -> dict:
     first = w["first_body"].format(
         m=(f"<code>{_e(fr['metric'])}</code>" if ml(fr["metric"]) == fr["metric"] else _e(ml(fr["metric"]))), cur=_e(span(*fr["current"], lang)), base=_e(span(*fr["base"], lang)),
         d=_e(money(fr["total_cur"] - fr["total_base"], lang)), g=_e(_sgn(fr["total_cur"] / fr["total_base"] - 1)),
-        n=fr["history_n"], dim=_e(fr["main"]["dimension"]), key=_e(fr["main"]["key"]), v=_e(money(fr["main"]["value"], lang)),
+        n=fr["history_n"], dim=_e(M["dimension_labels"].get(fr["main"]["dimension"], {}).get(lang, fr["main"]["dimension"])),
+        key=_e(fr["main"]["key"]), v=_e(money(fr["main"]["value"], lang)),
         rc=_e(_sgn(fr["rest_change"])), ru=_e(_sgn(fr["rest_usual"])), onset=_e(day(fr["onset"], lang)), ev=_e(ev))
     if fr["offsets"]:
-        first += w["first_off"].format(items=_e(join((f"{o['key']} {money(o['value'], lang)}" for o in fr["offsets"]), lang)))
+        first += w["first_off"].format(items=_e(join((f"{M['dimension_labels'].get(o.get('dimension'), {}).get(lang, '')} {o['key']} {money(o['value'], lang)}".strip()
+                                  for o in fr["offsets"]), lang)))
     return {
         "w": w, "page_title": w["title"], "description": ("" if zh else " ").join(w["h1"]), "lede": w["lede"].format(n=len(tables)),
         "tables": tables, "featured": featured, "rest": rest, "left_out": left_out,
@@ -788,13 +790,13 @@ def intake_context(data, lang) -> dict:
 LW = {
     "zh": {
         "title": "它怎么学", "eyebrow": "它怎么学", "colon": "：",
-        "h1": ["被纠正一次，", "同类的错就不再犯；", "忘了，会被抓到。"],
+        "h1": ["纠正一次，", "这道题下次会引用这条记录；", "忘掉它，回归题会抓到。"],
         "lede": "同一道题「{q}」跑两次，中间用户说了一句话。下面三栏：两份报告里讲原因的那一段原样摘出，中间是用户的原话。",
         "s_cmp": "纠正前、用户原话、纠正后", "before": "纠正前", "said": "用户原话", "after": "纠正后",
         "excerpt": "报告原文摘录：去掉了记录的内部编号，维度和值之间的等号换成了冒号，其余一字未改。",
         "rec_h": "记成了一条事件", "rec_when": "生效时间", "rec_src": "出处", "rec_status": "状态",
-        "share_h": "需要业务解释的地方，有几处引得到记录", "share_b": "纠正前", "share_a": "纠正后",
-        "share_why": "这次上涨是真的：新记下的是 10 月 1 日起的活动，两期里生效的天数不同，所以能解释今年和去年为什么不一样。"
+        "share_h": "这一处为什么变了，有没有记录能解释", "share_b": "纠正前", "share_a": "纠正后",
+        "share_why": "这次下跌是真的：新记下的是 10 月 1 日起的活动，两期里生效的天数不同，所以能解释今年和去年为什么不一样。"
                      "原来那条「果篮最便宜」两期都成立，只能说明占比一变客单价就跟着变，解释不了占比为什么变，所以纠正前不算。",
         "s_forget": "忘掉一条，会被回归题抓到", "forget_sub": "每次纠正都会变成一道回归题：这道题、这一处，必须引到这条记录。",
         "f_steps": ["记住之后，跑回归题", "把这条记录从工作区删掉，再跑一次"],
@@ -809,14 +811,14 @@ LW = {
     },
     "en": {
         "title": "How it learns", "eyebrow": "How it learns", "colon": ": ",
-        "h1": ["Corrected once,", "it stops making the same mistake;", "if it forgets, that is caught."],
+        "h1": ["Corrected once,", "this question cites that record next time;", "drop it and a regression case catches you."],
         "lede": "The same question, \u201c{q}\u201d, run twice; in between, the user said one sentence. Below: the paragraph about the cause "
                 "from each report, taken as it is, with the user's words in the middle.",
         "s_cmp": "Before, the user's words, after", "before": "Before", "said": "The user said", "after": "After",
         "excerpt": "Taken from the reports: record ids are left out and the equals sign between a dimension and its value is written as a colon; nothing else is changed.",
         "rec_h": "Recorded as an event", "rec_when": "In force", "rec_src": "Source", "rec_status": "Status",
         "share_h": "Places needing a business explanation that can cite a record", "share_b": "Before", "share_a": "After",
-        "share_why": "This rise is real: the new record is a campaign that started on 1 October, in force on a different number of days in the "
+        "share_why": "This fall is real: the new record is a campaign that started on 1 October, in force on a different number of days in the "
                      "two periods, so it can explain why this year differs from last. The old record (\u201cfruit baskets are the cheapest\u201d) is "
                      "true in both years: it explains why a shift in mix moves the average, not why the mix shifted, so it did not count before.",
         "s_forget": "Forget one, and a regression case catches it",

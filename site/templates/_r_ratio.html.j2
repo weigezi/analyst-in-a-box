@@ -1,6 +1,6 @@
 {#- Body of the order-value report: a ratio, so every cut splits into mix (who buys what) and each group's own level. -#}
 {% set L0 = v.cuts %}
-{% set L1 = L0.groups[0].next %}
+{% set L1 = L0.separate[0].level %}
 {% set g0 = L0.groups[0] %}
 {% set g1 = L1.groups[0] %}
 {% set c = g1.cause %}

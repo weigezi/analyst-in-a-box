@@ -247,17 +247,28 @@ def cut_tree(s, lab: Labels, entries):
         shown = [g for g in segs if path + ((c["dimension"], g["key"]),) in by_path or (path, c["dimension"], g["key"]) in slots]
         if not shown and dec["action"] == "stop":
             shown = segs[:2]
-        groups = []
+        groups, separate = [], []
         for g in shown:
             slot = slots.get((path, c["dimension"], g["key"]))
-            groups.append({**seg_view(op, g, lab, c["dimension"]), "cause": cause_of(slot, entries) if slot else None,
-                           "next": level(path + ((c["dimension"], g["key"]),))})
+            nxt = level(path + ((c["dimension"], g["key"]),))
+            item = {**seg_view(op, g, lab, c["dimension"]), "cause": cause_of(slot, entries) if slot else None,
+                    "next": nxt}
+            child_cut = by_path.get(path + ((c["dimension"], g["key"]),))
+            if op == "divisive" and nxt is not None and child_cut is not None:
+                # One account per page: the group's contribution (structure + its own level + overlap) closes on
+                # `total`; the cut inside it closes on the group's OWN level change (rate_delta), which is a
+                # different account. Drawing them nested made a parent that did not add up.
+                item["next"] = None
+                separate.append({"label": lab.value(c["dimension"], g["key"]),
+                                 "total": cut_total(child_cut["result"]) if child_cut else None, "level": nxt})
+            groups.append(item)
         total = cut_total(res)
         rest_n = len(segs) - len(shown)
         # The one sum done here: what the collapsed groups add up to, so the node can carry an amount.
         rest = {"n": rest_n, "amount": total - sum(g["amount"] for g in groups)} if rest_n else None
         out = {"dimension": lab.dim(c["dimension"]), "op": op, "action": dec["action"], "reason": dec["reason"],
-               "total": total, "n_groups": len(segs), "groups": groups, "rest": rest, "larger": None}
+               "total": total, "n_groups": len(segs), "groups": groups, "rest": rest, "larger": None,
+               "separate": separate}
         if op == "divisive":
             out.update(structure=res["structure_total"], rate=res["rate_total"], interaction=res["interaction_total"],
                        larger=res["larger_effect"])
@@ -268,6 +279,20 @@ def cut_tree(s, lab: Labels, entries):
         return out
 
     return level(())
+
+
+def assert_tree_closes(level, where):
+    """Every level of the drawn tree must add up: its groups plus the collapsed rest equal the level's total.
+    A page that shows a parent which does not equal its children would break the promise that scripts do the sums."""
+    if not level:
+        return
+    parts = sum(g["amount"] for g in level["groups"]) + ((level["rest"] or {}).get("amount") or 0.0)
+    if abs(parts - level["total"]) > 1e-6 * max(1.0, abs(level["total"])):
+        raise AssertionError(f"{where}: the drawn groups add to {parts:,.3f} but the level says {level['total']:,.3f}")
+    for g in level["groups"]:
+        assert_tree_closes(g.get("next"), where)
+    for sp in level.get("separate") or []:
+        assert_tree_closes(sp.get("level"), where)
 
 
 def cause_of(slot, entries):
@@ -317,7 +342,10 @@ def chart_specs(cid, s, lab: Labels, unit, dp, tree):
                 {"label": {"zh": "表现差", "en": "Performance gap"}, "value": node["performance"]},
                 {"kind": "total", "value": node["total"]}]}
         k += 1
-        node = next((g["next"] for g in node["groups"] if g["next"]), None)
+        nxt = next((g["next"] for g in node["groups"] if g["next"]), None)
+        if nxt is None and node.get("separate"):
+            nxt = node["separate"][0]["level"]   # a ratio drilled into one group: its own account is the next level
+        node = nxt
     if s.get("pvm"):
         pv = s["pvm"]
         out[f"{cid}.pvm"] = {"kind": "waterfall", "unit": unit, "dp": 0, "rows": [
@@ -363,9 +391,11 @@ def case_view(cid, case, world_params, entries=None):
             x["entry"] = entries[r["id"]]
         ruled.append(x)
     tree = cut_tree(s, lab, entries)
+    assert_tree_closes(tree, cid)
     pv = s.get("pvm")
     view = {
         "id": cid, "kind": case.get("kind"), "question": case.get("question"), "metric": lab.metric(s["metric"]),
+        "currency": "GBP" if cid == "public" else "CNY",
         "metric_id": s["metric"], "unit": unit, "dp": dp, "ratio": ratio, "current": s["current"], "base": s["base"],
         "base_kind": s["config"].get("base"), "filters": [lab.value(k, v) for k, v in s.get("filters", {}).items()],
         # For a ratio (order value) the engine's "change" is the difference in yuan, not a growth rate.
@@ -415,6 +445,24 @@ def intake_summary(d):
     return {"tables": len(d["draft"]["tables"]), "counts": d["formation"]["counts"]}
 
 
+def tone_of(state):
+    """confirmed / pending / none for one case, from the slots' status and the records they cite."""
+    if not state["slots"]:
+        return "none"
+    tones = []
+    for slot in state["slots"]:
+        if slot["status"] != "explained":
+            tones.append("none" if slot["status"] == "gap" else "pending")
+            continue
+        sure = all(not c.get("checks") and c.get("status") == "confirmed" for c in slot.get("citations", []))
+        tones.append("confirmed" if sure else "pending")
+    if all(t == "confirmed" for t in tones):
+        return "confirmed"
+    if any(t in ("confirmed", "pending") for t in tones):
+        return "pending"
+    return "none"
+
+
 def home_view(data, views):
     pub = data["public"]["state"]
     learn = data["learning"]
@@ -424,6 +472,11 @@ def home_view(data, views):
         "world": data["world"],
         "statuses": statuses,
         "explained": sum(1 for v in statuses.values() if v and all(x == "explained" for x in v)),
+        # a cause counts as confirmed only when every record behind it is confirmed and none is an outside event
+        # judged by the three checks; those stay hypotheses, and the home card says so rather than calling them found
+        "confirmed": sum(1 for cid in CASE_IDS if tone_of(data["cases"][cid]["state"]) == "confirmed"),
+        "pending": sum(1 for cid in CASE_IDS if tone_of(data["cases"][cid]["state"]) == "pending"),
+        "none": sum(1 for cid in CASE_IDS if tone_of(data["cases"][cid]["state"]) == "none"),
         "gap_cases": [cid for cid, v in statuses.items() if "gap" in v],
         "public": {"verdict": pub["verdict_unusual"]["then"]["verdict"], "change": pub["qualify"]["current_change"],
                    "invoices": data["public"]["source"]["invoices"], "current": pub["current"]},

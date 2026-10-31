@@ -436,3 +436,9 @@ svg text { font-family: var(--sans); }
   .progress li, :lang(en) .progress li { grid-template-columns: 18px minmax(0, 1fr); }
   .progress li span { grid-column: 2; }
 }
+
+/* which workspace a page is about: the hand-written one or the automatically formed one */
+.ws-badge { display: inline-block; margin: 18px 0 0; padding: 3px 10px; border: 1px solid var(--line);
+  border-radius: 999px; font: 12px/1.6 var(--sans); color: var(--ink-3); }
+
+.ws-note { margin: 6px 0 0; font: 13px/1.7 var(--sans); color: var(--ink-3); max-width: 640px; }

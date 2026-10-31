@@ -21,8 +21,7 @@
     {% endif %}
   </div>
   <div class="hero-try">
-    <div class="install" id="install"><code><span class="p">$ </span><span class="k">{{ "git clone <仓库地址，待公开> aib && cp -r aib/skills/analyst-in-a-box ~/你的工具/skills/" if zh else "git clone <repository, not public yet> aib && cp -r aib/skills/analyst-in-a-box ~/your-tool/skills/" }}</span></code>
-      <button class="copy" type="button" data-copy="install">{{ "复制" if zh else "Copy" }}</button></div>
+    <div class="install pending" id="install"><code><span class="k">{{ "仓库还没公开。先看两份真实报告，或者看它怎么从几张表跑出第一份分析。" if zh else "The repository is not public yet. Read two real reports first, or watch it go from a few tables to a first analysis." }}</span></code></div>
     <p class="install-note">{{ "放进你 AI 工具的 skills 目录，然后直接问「上周营收为什么跌了？」" if zh else "Put it in your AI tool's skills folder, then ask: “Why did revenue fall last week?”" }}</p>
     <div class="ctas">
       <a class="btn" href="reports/revenue_last_week.html">{{ "看完整报告" if zh else "Read the full report" }}</a>
@@ -153,8 +152,8 @@
       <p class="e-num tnum">{{ w.metrics }} · {{ w.dimensions }} · {{ w.entities }}</p>
       <p>{% if zh %}{{ w.metrics }} 个指标怎么按公式拆，能按哪 {{ w.dimensions }} 个方面切；店里的 {{ w.entities }} 样东西、{{ w.mechanisms }} 条机制、{{ w.events }} 个事件和负责人。{% else %}How {{ w.metrics }} metrics split by formula and the {{ w.dimensions }} ways each can be cut; the shop's {{ w.entities }} things, {{ w.mechanisms }} mechanisms, {{ w.events }} events and owners.{% endif %}</p></a>
     <a class="entry" href="reports/revenue_last_week.html"><p class="e-tag">{{ "5 份案例报告" if zh else "Five case reports" }}</p>
-      <p class="e-num tnum">{{ h.explained }} / 5</p>
-      <p>{% if zh %}营收、华东、客单价、6 月量价、App 对比网页。{{ h.explained }} 道找到了有记录的原因，其余的照实写了没核实的地方。{% else %}Revenue, the east region, order value, June price and volume, app against web. {{ h.explained }} find a cause on record; the others say plainly what was not confirmed.{% endif %}</p></a>
+      <p class="e-num tnum">{{ h.confirmed }} · {{ h.pending }} · {{ h.none }}</p>
+      <p>{% if zh %}营收、华东、客单价、6 月量价、App 对比网页：{{ h.confirmed }} 道原因已确认，{{ h.pending }} 道是有记录但还没确认的推测，{{ h.none }} 道没有记录能解释，照实写了。{% else %}Revenue, the east region, order value, June price and volume, app against web: {{ h.confirmed }} with a confirmed cause, {{ h.pending }} with a record that is still a hypothesis, {{ h.none }} with no record that explains it.{% endif %}</p></a>
     <a class="entry" href="reports/public.html"><p class="e-tag">{{ "公开数据" if zh else "Public data" }}</p>
       <p class="e-num tnum">{{ pub.change | pct }}</p>
       <p>{% if zh %}一家英国网店的 {{ pub.invoices | num }} 张真实发票。最后一整周比前一周 {{ pub.change | pct }}，在正常波动内，它就说正常。{% else %}{{ pub.invoices | num }} real invoices from a UK online shop. The last full week is {{ pub.change | pct }} on the week before: within the usual range, and it says so.{% endif %}</p></a>
@@ -194,9 +193,8 @@
 <section class="sec end" id="install-end"><div class="wrap">
   <div class="sec-h"><p class="eyebrow">{{ "安装" if zh else "Install" }}</p><h2>{{ "装上，然后直接问。" if zh else "Install it, then just ask." }}</h2></div>
   <ol class="steps">
-    <li><b>{{ "把 skill 放进你 AI 工具的 skills 目录" if zh else "Put the skill in your AI tool's skills folder" }}</b>
-      <div class="install" id="install2"><code><span class="p">$ </span><span class="k">{{ "git clone <仓库地址，待公开> aib && cp -r aib/skills/analyst-in-a-box ~/你的工具/skills/" if zh else "git clone <repository, not public yet> aib && cp -r aib/skills/analyst-in-a-box ~/your-tool/skills/" }}</span></code>
-        <button class="copy" type="button" data-copy="install2">{{ "复制" if zh else "Copy" }}</button></div></li>
+    <li><b>{{ "等仓库公开后，把 skill 放进你 AI 工具的 skills 目录" if zh else "Once the repository is public, put the skill in your AI tool's skills folder" }}</b>
+      <div class="install pending"><code><span class="k">{{ "仓库还没公开；现在的报告和截图都是本地跑出来的。" if zh else "The repository is not public yet; every report and screenshot here was produced locally." }}</span></code></div></li>
     <li><b>{{ "装依赖（如果还没有）" if zh else "Install the dependencies if you do not have them" }}</b>
       <div class="install" id="install3"><code><span class="p">$ </span><span class="k">pip install -r aib/skills/analyst-in-a-box/scripts/requirements.txt</span></code>
         <button class="copy" type="button" data-copy="install3">{{ "复制" if zh else "Copy" }}</button></div></li>

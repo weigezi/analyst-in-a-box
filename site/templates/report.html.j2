@@ -22,6 +22,8 @@
 {% block description %}{{ DESC[v.id][0] if zh else DESC[v.id][1] }}{% endblock %}
 {% block body_class %}report-page{% endblock %}
 {% block content %}
+<p class="ws-badge">{{ "手写工作区（店主自己整理的那一份）" if zh else "Hand-written workspace (the owner's own)" }}</p>
+<p class="ws-note">{{ "同一个问题，在自动形成的工作区里可能只引得到周报或活动表，答案会更保守。两边的差别见采集页第五节。" if zh else "The same question can come out differently in the workspace formed automatically, which may only have a weekly report or a campaign table behind it. The differences are listed on the intake page." }}</p>
 <article class="report" id="report">
 <p class="r-meta"><a href="../index.html">{{ "首页" if zh else "Home" }}</a> / {{ "案例报告" if zh else "Case report" }} · {{ data.meta.shop | t }}<br>
   <span class="tnum">{% if zh %}本期 {{ v.current | daterange }}，对比{{ base_word[v.base_kind][0] }} {{ v.base | daterange }}{% else %}{{ v.current | daterange }}, against {{ base_word[v.base_kind][1] }}, {{ v.base | daterange }}{% endif %}</span></p>
