@@ -51,7 +51,7 @@
 .gm-canvas { position: relative; width: var(--w); height: var(--h); }
 .gm-world { height: var(--h); }
 .gm-edges { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
-.gm-e { fill: none; stroke: #B9BFC4; stroke-width: 1.25; transition: stroke .15s, opacity .15s; }
+.gm-e { fill: none; stroke: #B9BFC4; stroke-width: 1.25; transition: opacity .15s; }
 .gm-world .gm-e { stroke: #C9CED2; stroke-width: 1; }
 .gm-world .gm-e.k-belongs_to, .gm-world .gm-e.k-goes_through { stroke: var(--r-tick); stroke-width: 1.25; }
 .gm-e.gm-hidden { opacity: 0; }
@@ -322,4 +322,10 @@
   .ar-roles, .ar-cards { grid-template-columns: minmax(0, 1fr); }
   .ar-size { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .ar-base { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+}
+
+/* Moving only opacity keeps the graph off the paint path; with reduced motion the highlight is instant.
+   The dimmed branches stay dimmed: that is information, not animation. */
+@media (prefers-reduced-motion: reduce) {
+  .gm-node, .gm-e, .gm-chip, .gm-hit { transition: none !important; animation: none !important; }
 }
