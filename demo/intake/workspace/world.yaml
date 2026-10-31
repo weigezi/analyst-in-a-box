@@ -1,0 +1,361 @@
+entities:
+- id: channel:app
+  type: channel
+  dimension: channel
+  key: app
+  label: app
+  source:
+    kind: data
+  status: confirmed
+- id: channel:marketplace
+  type: channel
+  dimension: channel
+  key: marketplace
+  label: marketplace
+  source:
+    kind: data
+  status: confirmed
+- id: channel:web
+  type: channel
+  dimension: channel
+  key: web
+  label: web
+  source:
+    kind: data
+  status: confirmed
+- id: category:bouquet
+  type: category
+  dimension: category
+  key: bouquet
+  label: bouquet
+  source:
+    kind: data
+  status: confirmed
+- id: category:fruit_basket
+  type: category
+  dimension: category
+  key: fruit_basket
+  label: fruit_basket
+  source:
+    kind: data
+  status: confirmed
+- id: category:gift_box
+  type: category
+  dimension: category
+  key: gift_box
+  label: gift_box
+  source:
+    kind: data
+  status: confirmed
+- id: category:plant
+  type: category
+  dimension: category
+  key: plant
+  label: plant
+  source:
+    kind: data
+  status: confirmed
+- id: region:east
+  type: region
+  dimension: region
+  key: east
+  label: east
+  source:
+    kind: data
+  status: confirmed
+- id: region:north
+  type: region
+  dimension: region
+  key: north
+  label: north
+  source:
+    kind: data
+  status: confirmed
+- id: region:south
+  type: region
+  dimension: region
+  key: south
+  label: south
+  source:
+    kind: data
+  status: confirmed
+- id: region:west
+  type: region
+  dimension: region
+  key: west
+  label: west
+  source:
+    kind: data
+  status: confirmed
+- id: city:Beijing
+  type: city
+  dimension: city
+  key: Beijing
+  label: Beijing
+  source:
+    kind: data
+  status: confirmed
+- id: city:Chengdu
+  type: city
+  dimension: city
+  key: Chengdu
+  label: Chengdu
+  source:
+    kind: data
+  status: confirmed
+- id: city:Chongqing
+  type: city
+  dimension: city
+  key: Chongqing
+  label: Chongqing
+  source:
+    kind: data
+  status: confirmed
+- id: city:Guangzhou
+  type: city
+  dimension: city
+  key: Guangzhou
+  label: Guangzhou
+  source:
+    kind: data
+  status: confirmed
+- id: city:Hangzhou
+  type: city
+  dimension: city
+  key: Hangzhou
+  label: Hangzhou
+  source:
+    kind: data
+  status: confirmed
+- id: city:Shanghai
+  type: city
+  dimension: city
+  key: Shanghai
+  label: Shanghai
+  source:
+    kind: data
+  status: confirmed
+- id: city:Shenzhen
+  type: city
+  dimension: city
+  key: Shenzhen
+  label: Shenzhen
+  source:
+    kind: data
+  status: confirmed
+- id: city:Tianjin
+  type: city
+  dimension: city
+  key: Tianjin
+  label: Tianjin
+  source:
+    kind: data
+  status: confirmed
+- id: delivery:pickup
+  type: delivery
+  dimension: delivery
+  key: pickup
+  label: pickup
+  source:
+    kind: data
+  status: confirmed
+- id: delivery:same_day
+  type: delivery
+  dimension: delivery
+  key: same_day
+  label: same_day
+  source:
+    kind: data
+  status: confirmed
+- id: delivery:scheduled
+  type: delivery
+  dimension: delivery
+  key: scheduled
+  label: scheduled
+  source:
+    kind: data
+  status: confirmed
+- id: customer_type:new
+  type: customer_type
+  dimension: customer_type
+  key: new
+  label: new
+  source:
+    kind: data
+  status: confirmed
+- id: customer_type:returning
+  type: customer_type
+  dimension: customer_type
+  key: returning
+  label: returning
+  source:
+    kind: data
+  status: confirmed
+relations:
+- id: rel:city:Beijing>region:north
+  subject: city:Beijing
+  predicate: belongs_to
+  object: region:north
+  source:
+    kind: data
+    note: confirmed by the user
+  status: confirmed
+- id: rel:city:Tianjin>region:north
+  subject: city:Tianjin
+  predicate: belongs_to
+  object: region:north
+  source:
+    kind: data
+    note: confirmed by the user
+  status: confirmed
+- id: rel:city:Hangzhou>region:east
+  subject: city:Hangzhou
+  predicate: belongs_to
+  object: region:east
+  source:
+    kind: data
+    note: confirmed by the user
+  status: confirmed
+- id: rel:city:Shanghai>region:east
+  subject: city:Shanghai
+  predicate: belongs_to
+  object: region:east
+  source:
+    kind: data
+    note: confirmed by the user
+  status: confirmed
+- id: rel:city:Guangzhou>region:south
+  subject: city:Guangzhou
+  predicate: belongs_to
+  object: region:south
+  source:
+    kind: data
+    note: confirmed by the user
+  status: confirmed
+- id: rel:city:Shenzhen>region:south
+  subject: city:Shenzhen
+  predicate: belongs_to
+  object: region:south
+  source:
+    kind: data
+    note: confirmed by the user
+  status: confirmed
+- id: rel:city:Chongqing>region:west
+  subject: city:Chongqing
+  predicate: belongs_to
+  object: region:west
+  source:
+    kind: data
+    note: confirmed by the user
+  status: confirmed
+- id: rel:city:Chengdu>region:west
+  subject: city:Chengdu
+  predicate: belongs_to
+  object: region:west
+  source:
+    kind: data
+    note: confirmed by the user
+  status: confirmed
+mechanisms:
+- entities:
+  - delivery:same_day
+  metrics:
+  - revenue
+  period: both
+  claim:
+    zh: 当日达要骑手上路，雨大就送不出去。
+    en: Same-day delivery needs riders on the road; heavy rain stops it.
+  id: mech_same_day_needs_riders
+  source:
+    kind: document
+    ref: ../docs/weekly_report.zh.md
+    quote: 当日达要靠骑手上路，雨一大就送不出去，这在雨季是老问题。
+    date: '2026-10-31'
+    note: proposed by the user's AI tool after reading the document
+  status: proposed
+events:
+- id: ev_price_changes_1
+  kind: internal
+  start: '2026-06-01'
+  end: '2026-06-30'
+  entities:
+  - category:gift_box
+  what:
+    zh: 供应商涨价，礼盒售价上调 15%
+  details:
+    category: gift_box
+    change: 0.15
+  source:
+    kind: system_record
+    ref: ../tables/price_changes.csv row 2
+    note: imported from an event table at intake; the table was confirmed, each row is to confirm
+  status: proposed
+- id: ev_promotions_1
+  kind: internal
+  start: '2026-02-07'
+  end: '2026-02-14'
+  entities:
+  - category:bouquet
+  what:
+    zh: 情人节花束主推
+  details:
+    category: bouquet
+  source:
+    kind: system_record
+    ref: ../tables/promotions.csv row 2
+    note: imported from an event table at intake; the table was confirmed, each row is to confirm
+  status: proposed
+- id: ev_promotions_2
+  kind: internal
+  start: '2026-10-01'
+  end: '2026-10-31'
+  entities:
+  - category:fruit_basket
+  - customer_type:new
+  what:
+    zh: 新客买果篮送贺卡
+  details:
+    category: fruit_basket
+    customer_type: new
+  source:
+    kind: system_record
+    ref: ../tables/promotions.csv row 3
+    note: imported from an event table at intake; the table was confirmed, each row is to confirm
+  status: proposed
+- kind: internal
+  start: 2026-10-12
+  entities:
+  - channel:marketplace
+  what:
+    zh: 电商平台执行新的费用条款，店铺掉出首页推荐位。
+    en: The marketplace applied new fee terms and the shop lost its home-page placement.
+  id: ev_marketplace_fee_terms
+  source:
+    kind: document
+    ref: ../docs/weekly_report.zh.md
+    quote: 电商平台从 10 月 12 日起执行新的费用条款，我们没有接受新的抽成档位，店铺随后掉出了首页推荐位，搜索流量明显变少。
+    date: '2026-10-31'
+    note: proposed by the user's AI tool after reading the document
+  status: proposed
+- kind: external
+  start: 2026-10-21
+  end: 2026-10-23
+  entities:
+  - region:east
+  - delivery:same_day
+  what:
+    zh: 华东连续三天大暴雨。
+    en: Three days of heavy rain in the east.
+  evidence:
+    source: weather
+    filters:
+      region: east
+  id: ev_east_rainstorm
+  source:
+    kind: document
+    ref: ../docs/weekly_report.zh.md
+    quote: 华东 21 日到 23 日连着三天大暴雨，上海、杭州两地的当日达几乎停摆
+    date: '2026-10-31'
+    note: proposed by the user's AI tool after reading the document
+  status: proposed
+actions: []

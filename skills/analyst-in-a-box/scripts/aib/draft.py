@@ -14,13 +14,15 @@ from pathlib import Path
 import pandas as pd
 import yaml
 
+from . import defaults
 from .sources import LOADERS
 
 ROLES = {
     "amount": {"en": "Money in (sales amount)", "zh": "收入金额（卖了多少钱）"},
     "profit": {"en": "Profit amount", "zh": "利润金额"},
     "cost": {"en": "Cost amount", "zh": "成本金额"},
-    "quantity": {"en": "A count or quantity (items, visits)", "zh": "数量（件数、访问量）"},
+    "quantity": {"en": "A count or quantity (items)", "zh": "数量（件数）"},
+    "visits": {"en": "Visits or visitors (people who came, bought or not)", "zh": "访问量（来过的人，不管买没买）"},
     "skip": {"en": "Not a metric, ignore", "zh": "不是指标，忽略"},
 }
 TEMPLATES = Path(__file__).resolve().parents[2] / "templates" / "formulas"
@@ -72,7 +74,7 @@ def belongs_to_candidates(df: pd.DataFrame, cols: list[str]) -> list[dict]:
     return out
 
 
-def questions(prof: list[dict], fds: list[dict], lang: str = "zh") -> list[dict]:
+def questions(prof: list[dict], fds: list[dict], lang: str = "zh", quiet: list[dict] | None = None) -> list[dict]:
     zh = lang == "zh"
     qs = []
     dates = [p["column"] for p in prof if p["shape"] == "date"]
@@ -110,11 +112,38 @@ def questions(prof: list[dict], fds: list[dict], lang: str = "zh") -> list[dict]
                    "ask": (f"数据里每个「{f['child']}」只出现在一个「{f['parent']}」下面。它是不是属于那个「{f['parent']}」？" if zh else
                            f"Every \"{f['child']}\" appears under exactly one \"{f['parent']}\". Does it belong to that \"{f['parent']}\"?"),
                    "options": ["yes", "no"]})
+    if quiet:
+        names = {"zh": ["周一", "周二", "周三", "周四", "周五", "周六", "周日"],
+                 "en": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]}[lang]
+        ev = "，".join(f"{names[q['weekday']]} {q['empty_weeks']}/{q['weeks']} 周没有记录" for q in quiet) if zh else \
+            "; ".join(f"{names[q['weekday']]}: no rows in {q['empty_weeks']} of {q['weeks']} weeks" for q in quiet)
+        qs.append({"id": "closed_weekdays", "multi": True,
+                   "ask": (f"这几天几乎从来没有记录（{ev}）。是不营业吗？勾上的那几天，缺数据不算问题。" if zh else
+                           f"These days almost never have rows ({ev}). Is the business closed then? "
+                           "Days you tick are not reported as missing data."),
+                   "options": [{"value": q["weekday"], "label": names[q["weekday"]]} for q in quiet]})
     qs.append({"id": "single_point_share",
                "ask": "一刀切下去，第一名占全部变动多少才算「单点」、值得往下钻？" if zh else
                       "After a cut, what share of all movement must the top segment carry to count as a single point worth drilling into?",
                "options": [0.5, 0.6, 0.7, "own value"]})
     return qs
+
+
+def quiet_weekdays(df: pd.DataFrame, date_col: str, min_share: float = 0.9) -> list[dict]:
+    """Weekdays with no rows in at least `min_share` of the weeks the data covers (evidence for a closing day).
+    The 0.9 only decides whether to ask; the answer is the user's."""
+    d = pd.to_datetime(df[date_col]).dt.normalize()
+    if d.empty:
+        return []
+    full = pd.date_range(d.min(), d.max(), freq="D")
+    seen = set(d.unique())
+    out = []
+    for wd in range(7):
+        days = [x for x in full if x.weekday() == wd]
+        empty = sum(1 for x in days if x not in seen)
+        if days and empty / len(days) >= min_share:
+            out.append({"weekday": wd, "weeks": len(days), "empty_weeks": empty})
+    return out
 
 
 def load_table(path: Path, sheet=None) -> tuple[pd.DataFrame, dict]:
@@ -136,10 +165,88 @@ def init(data_path, workspace, lang: str = "zh") -> dict:
     prof = profile(df)
     cats = [p["column"] for p in prof if p["shape"] == "category" or (p["shape"] == "number" and p["distinct"] <= MAX_DIM_VALUES)]
     fds = belongs_to_candidates(df, cats)
+    dates = [p["column"] for p in prof if p["shape"] == "date"]
+    quiet = quiet_weekdays(df, dates[0]) if len(dates) == 1 else []
     draft = {"data": str(data_path), "source": spec, "language": lang, "rows": len(df), "profile": prof,
-             "belongs_to": fds, "questions": questions(prof, fds, lang)}
+             "belongs_to": fds, "quiet_weekdays": quiet, "questions": questions(prof, fds, lang, quiet)}
     (ws / "draft.json").write_text(json.dumps(draft, ensure_ascii=False, indent=1), encoding="utf-8")
     return draft
+
+
+def closed_block(answers: dict, quiet: list, said: dict, today: str) -> dict | None:
+    """project.yaml 'quality' block from the closed_weekdays answer, or None."""
+    closed = answers.get("closed_weekdays") or []
+    if isinstance(closed, dict):
+        # {"days": [5], "basis": "inferred_from_data", "note": "..."}: the person answering did not know the opening
+        # days and chose them from the evidence the question showed. Recorded as an inference, waiting to be confirmed.
+        days, basis, note = closed.get("days") or [], closed.get("basis"), closed.get("note", "")
+    else:
+        days, basis, note = closed, None, ""
+    if not days:
+        return None
+    evidence = {q["weekday"]: q for q in quiet}
+    src = ({"kind": "data", "date": today, "note": note or "inferred from rows: " + ", ".join(
+                f"weekday {d}: {evidence[d]['empty_weeks']}/{evidence[d]['weeks']} weeks empty" for d in days if d in evidence)}
+           if basis == "inferred_from_data" else {**said, "note": "answer to the closed_weekdays question"})
+    return {"closed_weekdays": sorted(int(x) for x in days), "source": src,
+            "status": "proposed" if basis == "inferred_from_data" else "confirmed",
+            "evidence": [evidence[d] for d in sorted(int(x) for x in days) if d in evidence]}
+
+
+def proposed_priorities(measures: dict, metrics: dict, dims: list, said: dict) -> dict:
+    """The user's dimension selection, per metric, keeping only the dimensions that metric's data can be cut by."""
+    def cut_by(m):
+        x = metrics[m]
+        parts = [x["numerator"], x["denominator"]] if x.get("kind") == "ratio" else [m]
+        sets = [set(measures[metrics[p]["measure"]].get("dimensions", [])) for p in parts]
+        return set.intersection(*sets) if sets else set()
+    out = {}
+    for m in metrics:
+        order = [d for d in dims if d in cut_by(m)]
+        if order:
+            out[m] = {"order": order, "mode": "drill", "source": {**said, "note": "order of the user's selection; not yet a priority, "
+                                                                  "so every layer is chosen by score until the user confirms one"},
+                      "status": "proposed"}
+    return out
+
+
+def build_metrics(specs: list, id_spec: dict | None, template: str, said: dict):
+    """Measures, metrics and identities from the columns whose meaning the user confirmed.
+
+    specs: [{column, role, source, date, dimensions[, columns]}]; id_spec: the order-id column, if any.
+    The template only names formulas (arithmetic); which columns fill them comes from the user's roles."""
+    measures, metrics, identities, by_role = {}, {}, [], {}
+    for sp in specs:
+        if sp["role"] == "skip":
+            continue
+        col = sp["column"]
+        m = {"source": sp["source"], "agg": "sum", "column": col, "date": sp["date"], "dimensions": list(sp["dimensions"])}
+        if sp.get("columns"):
+            m["columns"] = dict(sp["columns"])
+        measures[f"m_{col}"] = m
+        metrics[col] = {"label": col, "measure": f"m_{col}", "unit": "count" if sp["role"] in ("quantity", "visits") else "currency",
+                        "role": sp["role"], "source": said, "status": "confirmed"}
+        by_role.setdefault(sp["role"], col)
+    tpl = yaml.safe_load((TEMPLATES / f"{template}.yaml").read_text(encoding="utf-8"))
+    names = tpl["names"]
+    if id_spec:
+        d = list(id_spec["dimensions"])
+        measures["m_count"] = {"source": id_spec["source"], "agg": "count_distinct", "column": id_spec["column"],
+                               "date": id_spec["date"], "dimensions": d, "additive_over": d}
+        metrics["id_count"] = {"label": names["id_count"], "measure": "m_count", "unit": "count", "source": said, "status": "confirmed"}
+        by_role["id_column"] = "id_count"
+    for f in tpl["formulas"]:
+        if not all(n in by_role for n in f["needs"]):
+            continue
+        resolve = lambda x: by_role.get(x, x)  # noqa: E731
+        num, den = (resolve(x) for x in f["ratio"])
+        metrics[f["metric"]] = {"label": names[f["metric"]], "kind": "ratio", "numerator": num, "denominator": den,
+                                "unit": f.get("unit", "currency"),
+                                "source": {"kind": "formula", "ref": f"templates/formulas/{tpl['id']}.yaml"}, "status": "confirmed"}
+        identities.append({"id": f"{resolve(f['identity']['left'])}_by_{f['metric']}", "left": resolve(f["identity"]["left"]),
+                           "factors": [resolve(x) for x in f["identity"]["factors"]], "operator": "multiply",
+                           "source": {"kind": "formula"}, "status": "confirmed"})
+    return measures, metrics, identities, by_role
 
 
 def _dump(p: Path, data):
@@ -173,63 +280,32 @@ def confirm(workspace, answers: dict, today: dt.date | None = None) -> dict:
         raise ValueError(f"answer what these columns are first: {', '.join(missing)}")
 
     source = {**draft["source"], "path": draft["data"], "date_columns": [date_col]}
-    _dump(ws / "project.yaml", {"name": Path(draft["data"]).stem, "language": lang, "sources": {"data": source}})
+    if id_col and df[id_col].notna().all() and df[id_col].is_unique:
+        # the user named the column as the order id, and the data confirms one row per value: a key to check
+        source["key"] = id_col
+    project = {"name": Path(draft["data"]).stem, "language": lang, "sources": {"data": source}}
+    q = closed_block(answers, draft.get("quiet_weekdays", []), said, today)
+    if q:
+        project["quality"] = q
+    _dump(ws / "project.yaml", project)
 
-    measures, metrics, identities = {}, {}, []
-    by_role: dict = {}
-    for col, role in roles.items():
-        if role == "skip":
-            continue
-        mid = col
-        measures[f"m_{col}"] = {"source": "data", "agg": "sum", "column": col, "date": date_col, "dimensions": dims}
-        metrics[mid] = {"label": col, "measure": f"m_{col}", "unit": "count" if role == "quantity" else "currency",
-                        "role": role, "source": said, "status": "confirmed"}
-        by_role.setdefault(role, mid)
-    tpl = yaml.safe_load((TEMPLATES / f"{answers.get('template', 'orders')}.yaml").read_text(encoding="utf-8"))
-    names = tpl["names"]
+    specs = [{"column": col, "role": role, "source": "data", "date": date_col, "dimensions": dims}
+             for col, role in roles.items()]
+    id_spec = None
     if id_col:
         add = _additive_dims(df, id_col, dims)
-        measures["m_count"] = {"source": "data", "agg": "count_distinct", "column": id_col, "date": date_col,
-                               "dimensions": add, "additive_over": add}
-        metrics["id_count"] = {"label": names["id_count"], "measure": "m_count", "unit": "count",
-                               "source": said, "status": "confirmed"}
-        by_role["id_column"] = "id_count"
-    for f in tpl["formulas"]:
-        if not all(n in by_role for n in f["needs"]):
-            continue
-        resolve = lambda x: by_role.get(x, x)  # noqa: E731
-        num, den = (resolve(x) for x in f["ratio"])
-        metrics[f["metric"]] = {"label": names[f["metric"]], "kind": "ratio", "numerator": num, "denominator": den,
-                                "unit": "ratio" if f["metric"] == "margin" else "currency",
-                                "source": {"kind": "formula", "ref": f"templates/formulas/{tpl['id']}.yaml"}, "status": "confirmed"}
-        identities.append({"id": f"{resolve(f['identity']['left'])}_by_{f['metric']}", "left": resolve(f["identity"]["left"]),
-                           "factors": [resolve(x) for x in f["identity"]["factors"]], "operator": "multiply",
-                           "source": {"kind": "formula"}, "status": "confirmed"})
+        id_spec = {"column": id_col, "source": "data", "date": date_col, "dimensions": add}
+    measures, metrics, identities, by_role = build_metrics(specs, id_spec, answers.get("template", "orders"), said)
     north = answers.get("north_star") if answers.get("north_star") in metrics else by_role.get("amount") or next(iter(metrics), None)
     model = {"north_star": north, "measures": measures, "metrics": metrics, "identities": identities,
              "dimensions": {d: {"label": d, "column": d} for d in dims},
-             "priorities": {m: {"order": dims, "mode": "each", "source": {**said, "note": "order of the user's selection; not yet a priority"},
-                                "status": "proposed"} for m in metrics},
+             "priorities": proposed_priorities(measures, metrics, dims, said),
              "comparisons": []}
     _dump(ws / "model.yaml", model)
 
     share = answers.get("single_point_share", 0.5)
-    rules = {
-        "params": {
-            "single_point_min_share": {"value": float(share), "source": said, "status": "confirmed"},
-            "unusual_z": {"value": 3.5, "status": "confirmed", "source": {"kind": "document", "ref": "Iglewicz & Hoaglin (1993), modified z-score cut-off"}},
-            "unusual_z_low": {"value": -3.5, "status": "confirmed", "source": {"kind": "document", "ref": "Iglewicz & Hoaglin (1993), low side"}},
-        },
-        "tables": [
-            {"id": "qualify.unusual", "inputs": {"robust_z": "qualify.robust_z"}, "hit_policy": "FIRST", "rows": [
-                {"when": {"robust_z": {"gte": "param:unusual_z"}}, "then": {"verdict": "unusual_high"}},
-                {"when": {"robust_z": {"lte": "param:unusual_z_low"}}, "then": {"verdict": "unusual_low"}},
-                {"when": {}, "then": {"verdict": "within_usual_range"}}]},
-            {"id": "stop.cut", "inputs": {"top1_abs_share": "result.top1_abs_share"}, "hit_policy": "FIRST", "rows": [
-                {"when": {"top1_abs_share": {"gte": "param:single_point_min_share"}}, "then": {"action": "drill", "reason": "single_point"}},
-                {"when": {}, "then": {"action": "stop", "reason": "spread"}}]},
-        ],
-    }
+    rules = defaults.rules()
+    rules["params"]["single_point_min_share"] = {"value": float(share), "source": said, "status": "confirmed"}
     _dump(ws / "rules.yaml", rules)
 
     entities, relations = [], []
@@ -264,5 +340,4 @@ def first_run(workspace, metric) -> dict:
     end = hi - dt.timedelta(days=(hi.weekday() + 1) % 7 or 7)
     cur = (end - dt.timedelta(days=6), end)
     base = "yoy" if cur[0] - dt.timedelta(days=364) >= lo else "pop"
-    mode = {"mode": "each"}
-    return {"metric": metric, "current": [cur[0].isoformat(), cur[1].isoformat()], "base": base, **mode}
+    return {"metric": metric, "current": [cur[0].isoformat(), cur[1].isoformat()], "base": base}

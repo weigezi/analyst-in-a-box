@@ -1,9 +1,12 @@
 """Command line. Every command prints JSON so the AI tool driving it can read the result.
 
-  init      <data> --workspace W          profile a table and write the confirmation questions
+  init      <data...> --workspace W       profile a table, or a folder / several tables, and write the confirmation questions
   confirm   --workspace W --answers A     turn the answers into a workspace and suggest a first run
+  propose   --workspace W --doc D (--quote Q --json E | --file P)   record causes an AI tool read in a document
+  formation --workspace W                 where every part of the workspace came from
   check     --workspace W                 list every problem in the workspace
   run       --workspace W --metric M --current START END [--base yoy|pop|START END] [...]
+  followup  --workspace W --from RUN_DIR --slot ID [--dimensions D1,D2]   ask inside one cause of an earlier run
   correct   --workspace W --json C        record a correction and create its regression case
   regress   --workspace W                 replay every regression case
   docs      --workspace W                 rebuild the readable Markdown pages
@@ -19,7 +22,7 @@ from pathlib import Path
 
 import yaml
 
-from . import docs_gen, draft, evolve
+from . import docs_gen, draft, evolve, followup, intake
 from .run import run
 from .validate import all_problems
 from .workspace import Workspace
@@ -37,12 +40,37 @@ def _load_json_or_yaml(arg: str):
 
 
 def cmd_init(a):
-    d = draft.init(a.data, a.workspace, a.lang)
-    _out({"rows": d["rows"], "questions": d["questions"], "next": "answer the questions, then run confirm"})
+    if len(a.data) == 1 and Path(a.data[0]).is_file() and not a.main:
+        d = draft.init(a.data[0], a.workspace, a.lang)
+        _out({"rows": d["rows"], "questions": d["questions"], "next": "answer the questions, then run confirm"})
+        return
+    d = intake.init(a.data, a.workspace, a.lang, main=a.main)
+    _out({"main": d["main"], "tables": {n: {"rows": t["rows"], "suggested_kind": t["suggested_kind"]} for n, t in d["tables"].items()},
+          "links": d["links"], "questions": d["questions"],
+          "next": "ask every question as multiple choice (show the suggested answer and its evidence), then run confirm"})
 
 
 def cmd_confirm(a):
-    _out({**draft.confirm(a.workspace, _load_json_or_yaml(a.answers)), "problems": all_problems(Workspace(a.workspace))})
+    d = json.loads((Path(a.workspace) / "draft.json").read_text(encoding="utf-8"))
+    fn = intake.confirm if d.get("kind") == "tables" else draft.confirm
+    _out({**fn(a.workspace, _load_json_or_yaml(a.answers)), "problems": all_problems(Workspace(a.workspace))})
+
+
+def cmd_propose(a):
+    if a.file:
+        spec = _load_json_or_yaml(a.file)
+        items, doc = spec["items"], a.doc or str(Path(a.file).parent / spec["doc"])
+    else:
+        if not (a.quote and a.json and a.type):
+            raise SystemExit("give --file, or --type, --quote and --json")
+        items, doc = [{"type": a.type, "quote": a.quote, "entry": _load_json_or_yaml(a.json)}], a.doc
+    r = intake.propose(a.workspace, doc, items)
+    _out(r)
+    return 1 if r["rejected"] else 0
+
+
+def cmd_formation(a):
+    _out(intake.formation(a.workspace))
 
 
 def cmd_check(a):
@@ -76,6 +104,15 @@ def cmd_run(a):
     return 1 if s["blocked"] else 0
 
 
+def cmd_followup(a):
+    cfg = followup.config(a.from_dir, a.slot, a.dimensions.split(",") if a.dimensions else None)
+    s = run(a.workspace, cfg, out_dir=a.out)
+    _out({"run_id": s["run_id"], "followed": cfg["parent_run"], "slot": cfg["parent_slot"], "filters": cfg["filters"],
+          "out_dir": s["out_dir"], "blocked": s["blocked"], "coverage": s["coverage"], "gaps": s["gaps"],
+          "reports": [str(Path(s["out_dir"]) / f"report.{x}.md") for x in ("zh", "en")]})
+    return 1 if s["blocked"] else 0
+
+
 def cmd_correct(a):
     _out(evolve.apply(a.workspace, _load_json_or_yaml(a.json)))
 
@@ -103,10 +140,22 @@ def main(argv=None):
     ap = argparse.ArgumentParser(prog="aib", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     commands = ap.add_subparsers(dest="cmd", required=True)
     p = commands.add_parser("init")
-    p.add_argument("data")
+    p.add_argument("data", nargs="+", help="a table, several tables, or a folder of tables")
     p.add_argument("--workspace", required=True)
     p.add_argument("--lang", default="zh", choices=["zh", "en"])
+    p.add_argument("--main", help="name the main table yourself (file name without extension)")
     p.set_defaults(fn=cmd_init)
+    p = commands.add_parser("propose", help="record mechanisms or events an AI tool read in a document")
+    p.add_argument("--workspace", required=True)
+    p.add_argument("--doc", help="the document the quotes come from")
+    p.add_argument("--file", help="a YAML/JSON file: {doc, items: [{type, quote, entry}]}")
+    p.add_argument("--type", choices=["mechanism", "event"])
+    p.add_argument("--quote", help="the sentence, exactly as it is in the document")
+    p.add_argument("--json", help="the entry (entities, start, what / claim, ...)")
+    p.set_defaults(fn=cmd_propose)
+    p = commands.add_parser("formation")
+    p.add_argument("--workspace", required=True)
+    p.set_defaults(fn=cmd_formation)
     p = commands.add_parser("confirm")
     p.add_argument("--workspace", required=True)
     p.add_argument("--answers", required=True, help="a JSON/YAML file or string")
@@ -132,6 +181,13 @@ def main(argv=None):
     p.add_argument("--question")
     p.add_argument("--out")
     p.set_defaults(fn=cmd_run)
+    p = commands.add_parser("followup", help="ask inside one cause of an earlier run")
+    p.add_argument("--workspace", required=True)
+    p.add_argument("--from", dest="from_dir", required=True, help="the earlier run's folder (it holds record.json)")
+    p.add_argument("--slot", required=True, help="a slot id from that run, e.g. channel=marketplace")
+    p.add_argument("--dimensions", help="comma-separated dimensions to cut next")
+    p.add_argument("--out")
+    p.set_defaults(fn=cmd_followup)
     p = commands.add_parser("correct")
     p.add_argument("--workspace", required=True)
     p.add_argument("--json", required=True, help="a JSON/YAML file or string describing the correction")

@@ -1,0 +1,69 @@
+name: tables
+language: zh
+sources:
+  orders_rows:
+    type: csv
+    path: ../tables/orders.csv.gz
+  products:
+    type: csv
+    path: ../tables/products.csv
+    key: sku
+  cities:
+    type: csv
+    path: ../tables/cities.csv
+    key: city
+  orders:
+    type: join
+    base: orders_rows
+    joins:
+    - source: products
+      'on':
+        sku: sku
+      columns:
+      - category
+      - name
+      - list_price
+    - source: cities
+      'on':
+        city: city
+      columns:
+      - region
+    date_columns:
+    - order_date
+    key: order_id
+  traffic:
+    type: csv
+    path: ../tables/traffic.csv.gz
+    date_columns:
+    - date
+    key:
+    - date
+    - channel
+external:
+  holidays:
+    type: csv
+    path: ../tables/holidays.csv
+    role: calendar
+    rename:
+      name: name
+      start: start
+      end: end
+  market:
+    type: csv
+    path: ../tables/market.csv
+    date_columns:
+    - date
+    value: market_sales
+    date: date
+    role: market
+    compares_with: revenue
+  weather:
+    type: csv
+    path: ../tables/weather.csv
+    date_columns:
+    - date
+    value: rainfall_mm
+    date: date
+    role: series
+    dimension_columns:
+      region: region

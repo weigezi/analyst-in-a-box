@@ -4,7 +4,7 @@ description: Explains why a business number moved (revenue, GMV, orders, average
 license: Apache-2.0 (see LICENSE)
 compatibility: Python 3.10+ with pandas, pyyaml and openpyxl (duckdb optional). Runs locally; data never leaves the machine.
 metadata:
-  version: 0.1.0
+  version: 0.2.0
 ---
 
 # analyst-in-a-box
@@ -46,7 +46,12 @@ user's own folder, never inside this skill; ask where if it is not obvious, defa
 
 Goal: within one conversation the user sees an attribution that is correct and tells them something new.
 
-1. `init <data-file> --workspace <dir> --lang zh|en` reads the table and returns questions.
+1. `init <data-file> --workspace <dir> --lang zh|en` reads the table and returns questions. When the user has
+   several tables (orders, products, a campaign calendar, a price log, traffic, weather...), give a folder or
+   several files. The script finds the main table, the lookups, the links between tables (with coverage), the
+   event records and the outside series, and turns each into a multiple-choice question. Show every question
+   with its suggested answer and its evidence. Nothing enters the workspace until the user confirms.
+   Details: [references/intake.md](references/intake.md).
 2. Ask those questions **as multiple choice**, a few at a time, in the user's language. Do not pre-fill
    answers from column names; show the examples the script gives so the user can recognise the column.
 3. Put the answers in a JSON file keyed by question `id` and run `confirm --workspace <dir> --answers <file>`.
@@ -54,6 +59,12 @@ Goal: within one conversation the user sees an attribution that is correct and t
 4. Run it: `run --workspace <dir> --config '<first_run as JSON>'`, then present the report (section 3).
 5. Offer, do not force: "Which dimension do you usually look at first?" Their answer is a `set_priority`
    correction (section 4). Business knowledge is asked **when an answer needs it**, never as an upfront survey.
+6. If the user gives documents (weekly reports, reviews), **you read them**; the script never does. For every
+   event or mechanism that could explain a number, record it with
+   `propose --workspace <dir> --doc <file> --file <proposals>`, each with the exact sentence it came from,
+   copied as it is. A sentence not in the document is refused. Accepted ones are "from a document, to confirm",
+   and they do not count as explained until the user confirms. Never propose a cause the document does not
+   state, and never reword the sentence.
 
 ## 2. Answering a question
 
@@ -66,9 +77,15 @@ Map the question to a run, then call `run`. Details and edge cases: [references/
 | "Why is Q3 growth lower than Q2?" | second order across time: `--current <Q3> --base yoy --previous` |
 | "Why did offline grow faster than online?" | second order across sides: `--compare <id>`; add the comparison to `model.yaml` first if it is missing |
 | "Visitors went up but conversion fell" | first order; the formula breakdown in the report answers it |
+| "Why did October fall vs September?" (month to date) | `--current <Oct 1> <today> --base pop`: the base is Sep 1 to the same day |
+| "Did we sell more, or charge more?" | first order; add a `pvm` entry to `model.yaml` (price-volume-mix) |
+| "Is it new customers or lost ones?" | add `"growth_accounting": {"customer_column": "<column the user named>"}` to the config |
+| "And inside that, what?" | `followup --from <run_dir> --slot <slot id> [--dimensions d1,d2]` |
 
 If the metric, dimension or comparison does not exist in the workspace, say so and ask; do not approximate
-with a different one.
+with a different one. Windows of different length are blocked unless the user wants daily averages
+(`"per_day": true`); a holiday in one period only is reported with two ways out (`"holiday": "exclude"` or
+`"shift_base"`). `followup` keeps the earlier run's filters, periods and path, and records which run it followed.
 
 ## 3. Presenting the result
 
@@ -83,6 +100,13 @@ Then handle what the run says it is missing:
   "New customers' average order fell; do you know why?" Record the answer (section 4) and re-run.
 - **`to_confirm`**: entries that are only proposed, including outside events. Ask whether to confirm them.
 - **`blocked: true`**: a pre-delivery check failed. Show which one; do not present the conclusions.
+- **Data in doubt / data note** (first lines of the conclusion): say this first. "In doubt" stops the report
+  (missing days, repeated ids); a "note" is worth checking, but the conclusions still stand. Never explain a
+  change the data itself may have made.
+- **"Within the usual range"**: say it is normal and do not hunt for a cause, unless the report names one group
+  that stands far out from its own swings.
+- **A cited record that "cannot explain this change"** (true in both periods): it does not answer the question.
+  Ask what changed in this period.
 
 ## 4. Learning from the user
 
@@ -119,6 +143,7 @@ see [references/workspace.md](references/workspace.md).
 
 | File | Read when |
 |---|---|
+| [references/intake.md](references/intake.md) | the user gives several tables or documents; asking intake questions, recording `propose` |
 | [references/workspace.md](references/workspace.md) | writing or reading any workspace file |
 | [references/questions.md](references/questions.md) | turning an unusual question into a run |
 | [references/operators.md](references/operators.md) | the user asks how a number was computed, or which method is used |

@@ -1,6 +1,8 @@
 # The part of the shop's world that explains its numbers. Every entry has a source and a status.
-# One mechanism is left out on purpose (why new customers' orders are smaller): the demo shows the
-# gap being reported, the user filling it in, and coverage rising.
+# One event is left out on purpose (the October greeting-card offer for new customers buying fruit baskets):
+# the demo shows the gap being reported, the user naming the cause, and the gap closing.
+# 0.1 left out a different entry ("new customers buy smaller first orders"). That one is true in both periods,
+# so it cannot explain a year-on-year change; 0.2 no longer counts it as an explanation (docs/decisions, 0.2).
 
 entities:
   - {id: ch_app, type: channel, dimension: channel, key: app, label: {en: App, zh: App}, source: {kind: data}, status: confirmed}
@@ -71,14 +73,6 @@ events:
     entities: [ch_marketplace]
     what: {en: "The marketplace changed its fee terms and our listing lost its placement.", zh: "电商平台调整了费用条款，我们的商品失去了推荐位。"}
     source: {kind: system_record, ref: "partner contract log"}
-    status: confirmed
-  - id: ev_fruit_basket_promo
-    kind: internal
-    start: 2026-10-01
-    end: 2026-10-31
-    entities: [cat_fruit_basket]
-    what: {en: "New customers get a free greeting card with a fruit basket.", zh: "新客买果篮送贺卡。"}
-    source: {kind: system_record, ref: "campaign calendar"}
     status: confirmed
   - id: ev_east_rainstorm
     kind: external

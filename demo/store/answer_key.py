@@ -38,11 +38,24 @@ def check(exp: dict, s: dict) -> list[tuple[str, bool]]:
     if "external_checks" in exp:
         st = [c["checks"]["status"] for sl in s["slots"] for c in sl["citations"] if c.get("external")]
         rows.append((f"outside event checks: {exp['external_checks']}", bool(st) and all(x == exp["external_checks"] for x in st)))
+    if "pvm" in exp:
+        r = s.get("pvm") or {}
+        for k, want in exp["pvm"].items():
+            rows.append((f"price-volume-mix: {k} is {want}", r.get(k) == want))
+        rows.append(("price-volume-mix closes", bool(r.get("closed"))))
+    if "cell" in exp:
+        want = set(exp["cell"].items())
+        rows.append((f"main cause is the cell {' x '.join(f'{d}={v}' for d, v in exp['cell'].items())}",
+                     any(want <= _pairs(x) for x in s["slots"] if x.get("leaf", True))))
     if "gap_before_correction" in exp:
         g = exp["gap_before_correction"]
         rows.append((f"reports a gap at {g['dimension']}={g['value']}",
                      any(x["dimension"] == g["dimension"] and x["value"] == g["value"] for x in s["gaps"])))
     return rows
+
+
+def _pairs(slot) -> set:
+    return {(d, v) for d, v in slot["path"]} | {(slot["dimension"], slot["value"])}
 
 
 def planted_notes(exp: dict) -> list[str]:

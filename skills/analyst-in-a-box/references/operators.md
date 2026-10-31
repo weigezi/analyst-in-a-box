@@ -10,8 +10,11 @@ total change (`tests/test_ops.py`, including random cases). Code: `scripts/aib/o
 | Question | Method | Source |
 |---|---|---|
 | Is this period unusual for this metric? | robust z-score of this period's change against the last N periods' changes (median and MAD, scale 1.4826), plus percentile rank | Iglewicz & Hoaglin (1993), *How to Detect and Handle Outliers* |
-| Did the market move us? | split our change into base × market growth ("moved with the market") and the rest ("our own") | shift-share analysis, Dunn (1960) |
-| Do the two periods hold the same holidays? | count holiday days inside each window, holiday by holiday | arithmetic |
+| Did the market move us? | expected change = base × (market growth + our usual gap to the market, median over the same past periods); the rest is "our own". An estimate; the plain split (base × market growth) is kept too | shift-share analysis, Dunn (1960); Esteban-Marquillas (1972) for taking the lasting difference out first |
+| Do the two periods hold the same holidays? | count holiday days inside each window, holiday by holiday; past periods that do not line up are left out of the history above | arithmetic |
+| Is the data itself sound? | calendar, declared key, daily row and value jumps against the same weekday's recent median, row ratio, leave-one-out single rows, renamed values; each check `block` or `warn` | `scripts/aib/quality.py`; thresholds in `rules.yaml` |
+| A flat history (MAD = 0) | fall back on the mean absolute deviation × 1.253314; if that is zero too, say the history is flat | Iglewicz & Hoaglin (1993) |
+| When did it start? | the main group's day-by-day gap to the paired base day; the single mean-shift change point by least squares, named only when the shift is ≥ 2 sd | Hinkley (1970), *Biometrika* 57(1) |
 
 ## 2. First order: one comparison
 
@@ -43,4 +46,26 @@ version 1.
 ## 4. Stopping
 
 After every cut the decision table `stop.cut` decides: drill into the top segment, or stop because the change
-is spread out. Its threshold is a named param with a source in `rules.yaml`, never a constant in code.
+is spread out. Its thresholds are named params with a source in `rules.yaml`, never constants in code.
+It reads the noise gate (`scripts/aib/search.py`):
+
+- **Concentration.** The top group's share of all movement beyond moving in step with the others. Amounts use
+  each group's change beyond the growth of all the other groups together (leave-one-out). Ratios compare the
+  group's share of the movement with its base weight. Either way a uniform change scores 0, and a two-value
+  dimension is not biased toward a single point.
+- **Its own history.** A robust z of that residual against the same past periods. A three-day event inside a
+  week is also scored as the strongest run of 2 to 4 days, judged against the same statistic in the past
+  (Naus 1965, *JASA* 60(310); Kulldorff 1997, *Communications in Statistics* 26(6)). The stronger test counts.
+- **Small groups.** Ratio groups are ranked by empirically-Bayes-shrunk rates (Efron & Morris 1975), so a
+  group of three orders does not come first. The exact decomposition is unchanged.
+- **Which dimension.** Each layer scores candidates by explanatory power × Jensen-Shannon surprise (Bhagwan et
+  al. 2014, Adtributor, USENIX NSDI). A confirmed priority fixes the first cut. Depth is at most 3. A drill path
+  is checked from the other side and counts as one cause.
+
+## 5. Other breakdowns
+
+| Question | Method | Output | Source |
+|---|---|---|---|
+| A metric tree several levels deep (profit = revenue × margin; revenue = orders × AOV) | expand to the leaves; LMDI over the leaves (consistent in aggregation, so leaves add up to the top); ratio leaves split by Kitagawa | `tree.leaves`, `tree.ratio_splits` | Ang (2004) |
+| Did we sell more, a different mix, or charge more? | volume = ΔQ × base mix × base price; mix = Q₁ × Δshare × base price; price = q₁ × Δprice; items in one period only are "new" / "gone" | `pvm.volume_total`, `mix_total`, `price_total`, `new_total`, `gone_total` | sales-volume / sales-mix / price variances, Horngren, Datar & Rajan, *Cost Accounting* |
+| New customers, or lost ones? | per customer: new, came back, kept, bought more, bought less, lost; they add up to the change | `growth_accounting.buckets`, `quick_ratio`, `gross_retention` | Hsu, Tribe Capital (2019), [A Quantitative Approach to Product Market Fit](https://tribecap.co/essays/a-quantitative-approach-to-product-market-fit) |

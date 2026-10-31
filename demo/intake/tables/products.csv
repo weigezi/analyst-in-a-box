@@ -1,0 +1,13 @@
+sku,category,name,list_price
+BQ-ROSE,bouquet,红玫瑰花束,249.0
+BQ-LILY,bouquet,百合花束,249.0
+BQ-MIX,bouquet,混搭花束,248.0
+FB-SMALL,fruit_basket,小果篮,115.0
+FB-FAMILY,fruit_basket,家庭果篮,114.0
+FB-DELUXE,fruit_basket,精选果篮,114.0
+PL-SUCC,plant,多肉组合,143.0
+PL-MONST,plant,龟背竹,143.0
+PL-ORCH,plant,蝴蝶兰,143.0
+GB-TEA,gift_box,茶礼盒,306.0
+GB-SWEET,gift_box,糕点礼盒,306.0
+GB-PREM,gift_box,臻选礼盒,305.0

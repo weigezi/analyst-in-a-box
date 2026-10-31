@@ -31,6 +31,7 @@ regression case, so it does not make the same mistake twice.
 | see it work | build the demo site: `uv run python site/build.py`, then open `site/dist/index.html` |
 | use it | copy `skills/analyst-in-a-box/` into your AI tool's skills folder and ask "why did revenue fall last week?" |
 | use it from a terminal | `python3 skills/analyst-in-a-box/scripts/aib_cli.py init your_data.csv --workspace ./aib-workspace` |
+| start from several tables | give `init` a folder: `... init ./my_exports/ --workspace ./aib-workspace` (orders, products, campaign calendar, price log...); it works out how they fit and asks you to confirm |
 | try it on your own business | follow the [trial guide](docs/trial.en.md) |
 
 ## The demo
@@ -70,5 +71,23 @@ uv run python tools/bilingual_check.py          # every document has both langua
 
 ## Status
 
-Version 0.1. Not yet tried by someone outside the project. Licence: [Apache-2.0](LICENSE). The data in
+Version 0.2. Not yet tried by someone outside the project. Licence: [Apache-2.0](LICENSE). The data in
 `demo/public` keeps its own licence (CC BY 4.0, see [demo/public](demo/public/README.md)).
+
+What 0.2 adds, measured on the test data (`tests/`):
+
+- It checks the data first. Two missing days, or a week loaded twice, stop the report with the reason. A
+  sudden jump, a renamed value or one huge order is named at the top, and the conclusions still stand.
+- It tells noise from a cause. In 300 weeks of pure noise (10 seeds) it drilled into a single point in
+  15 weeks for revenue and 7 for average order value; 0.1 drilled in 18 of 30.
+- It starts from a folder of tables: it finds the main table, the lookups, the links (with their coverage), the
+  campaign and price records, and the outside series, and asks before using any of it. Causes read in a document
+  are kept only with the exact sentence they came from, as "to confirm". See [demo/intake](demo/intake/README.md).
+- It chooses which dimension to cut, reports one cause once, and checks it from the other side.
+- A record cited as a cause must be able to explain the change. Something true in both periods no longer counts.
+- The demo shop rebuilt with six unseen seeds: every planted answer found. One (seed 101, the rainstorm) passes
+  only narrowly; see `docs/decisions.en.md` section 15.
+- New breakdowns: the whole formula tree, price-volume-mix, growth accounting by customer, and `followup`.
+
+Not done: a third-order question; news sources other than the user's own web search; trying it with someone
+outside the project.

@@ -38,6 +38,17 @@ external:                        # 外部数据，同样的读取方式；role �
 
 要加一种新来源（在线表格、数仓），只需在 `scripts/aib/sources.py` 里加一个读取函数。
 
+0.2 起，来源可以声明 `key: order_id`（或者一组列，比如 `[date, channel]`），表示每个值只对应一行，数据检查会核它。
+只有用户指认这一列是编号、而且数据里确实一行一个值时，`confirm` 才会写上。不营业日写在 `quality` 一段里，这几天没有数据不算缺数据：
+
+```yaml
+quality:
+  closed_weekdays: [5]                 # 0 = 周一
+  closed_dates: [2026-12-25]
+  source: {kind: data, note: "53 个周六全都没有记录"}   # 从数据推断……
+  status: proposed                                      # ……所以是待确认，不是事实
+```
+
 ## 3. model.yaml
 
 ```yaml
@@ -63,6 +74,10 @@ comparisons:         # 二阶，比维度两侧
 - `unit`：`currency`、`count` 或 `ratio`。比率的变化用百分点报告。
 - `count_distinct` 一般不能直接相加。`additive_over` 里只列「每个编号在这个维度上只有一个值」的维度；`confirm` 会拿数据核。
 - 一个度量只能按它自己的 `dimensions` 切；比率只能按分子分母都有的维度切。
+- `priorities.<指标>.mode`（0.2）：`drill`（默认）每层都给候选维度打分，确认过的 `order` 决定第一刀；
+  `each` 每个维度都从头切一遍，再把是同一个原因的槽位合并；`fixed` 照 `order` 原样切，不打分。`proposed` 状态的顺序只当候选清单。
+- `pvm`（0.2）：`[{metric: revenue, quantity: orders, dimension: category}]`，给这个指标的每道一阶题加一份量、结构、价格的拆解。
+- 公式会一直展开到叶子（`revenue` → `orders × aov`，`orders` → `visits × cr`）。某个因子没法按题目的过滤条件切时，就停在那一层。
 
 ## 4. rules.yaml
 
@@ -82,6 +97,18 @@ tables:              # 第三层：一行一条规则，从上往下第一条命
 
 skill 会读的表：`qualify.unusual`、`qualify.market`、`stop.cut`。外部事件可选的门槛：
 `external_slice_min_share`、`external_size_min_share`（没有就报「未判断」）。
+
+0.2 起，`confirm` 会把 `scripts/aib/defaults.py` 里的全套默认参数写进来，每个都带出处；老工作目录缺的参数按默认值算。
+0.2 的 `stop.cut` 读噪音门的输入（`cut.overall_quiet`、`cut.top1_beats_quiet`、`cut.context_unusual`、`cut.top1_excess`、
+`cut.top1_abs_z`、`cut.top1_n`、`cut.has_history`、`cut.order`）。0.1 只读 `result.top1_abs_share` 的表照样能跑，但没有噪音门；
+从 `defaults.py` 抄一份新表过来。参数分组如下：
+
+| 组 | 参数 |
+|---|---|
+| 噪音门 | `single_point_min_excess`、`segment_z_min`、`segment_z_min_when_unusual`、`segment_min_n`、`drill_when_usual`、`drill_quiet_total_when_group_stands_out`、`group_stands_out_z` |
+| 选维度 | `search_max_depth`、`search_top_k`、`same_cause_min_share`、`shrink_ratio_segments` |
+| 数据检查 | `quality_check_levels`（每项 `block` 或 `warn`）、`quality_jump_high` / `_low`、`quality_value_jump`、`quality_row_ratio_max` / `_block`、`quality_single_row_max_share` / `_fail_share`、`quality_extreme_row_times`、`quality_new_value_min_share` |
+| 历史 | `history_skip_misaligned_holidays`、`onset_lookback_weeks`、`onset_min_shift_sd` |
 比较符：`gte gt lte lt eq ne in not_null`，可用 `all` / `any` 组合。最后一行不是兜底、有永远命中不了的行、
 引用了不存在的输入或门槛，`check` 都会报出来。
 

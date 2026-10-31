@@ -62,7 +62,7 @@ priorities:
     status: confirmed
   aov:
     order: [category, customer_type]
-    mode: each
+    mode: drill
     source: {kind: demo_setting}
     status: confirmed
   margin_rate:
@@ -70,6 +70,10 @@ priorities:
     mode: each
     source: {kind: demo_setting}
     status: confirmed
+
+# 0.2: price-volume-mix of revenue across categories (orders are the quantity). Run for every first-order revenue question.
+pvm:
+  - {metric: revenue, quantity: orders, dimension: category, source: {kind: formula}, status: confirmed}
 
 comparisons:
   - id: app_vs_web

@@ -60,3 +60,11 @@ resume interrupted transfers; if the size is short, download again.
 `answers.yaml` holds the answers to the getting-started questions, as a user would give them; the meaning of
 each column comes from the dataset's variable description, not from its name. `tests/test_public.py` and the
 demo site run `init` → `confirm` → the first run, exactly as a new user would.
+
+**Saturdays are treated as closed. This is an assumption drawn from the data, not a known fact.** None of the
+53 Saturdays in the data has an invoice, and UCI does not say which days the retailer traded. Since 0.2 the
+getting-started questions show that evidence and ask whether the business is closed on those days. The
+maintainer answered "closed" on that evidence alone (2026-10-31). The workspace records the answer with source
+"inferred from data" and status "to confirm", and every report repeats it. Other days with no invoice
+(Christmas, some bank holidays) are not assumed closed, so a window that includes them is reported as missing
+data.

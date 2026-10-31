@@ -65,8 +65,12 @@ def test_correction_closes_the_gap_and_is_remembered(tmp_path):
     case = CASES[spec["after_case"]]
     config = {**case["run"], "id": case["case"]}
 
+    # 0.2: 0.1 asserted 0.5 -> 1.0 here. Its 0.5 counted two slots (fruit baskets, new customers) for one cause, and
+    # its 1.0 came from a record true in both years ("new customers buy small first orders"), which cannot explain
+    # a year-on-year change. Now: one cause (new customers x fruit baskets), unexplained before, explained by an
+    # event the user names. tests/test_explain_fit.py checks that the old record no longer raises coverage.
     before = run(root, config, write=False)
-    assert before["coverage"]["share"] == 0.5
+    assert before["coverage"]["share"] == 0.0
 
     result = evolve.apply(root, {**spec["correction"], "run": config})
     after = run(root, config, write=False)
@@ -77,9 +81,10 @@ def test_correction_closes_the_gap_and_is_remembered(tmp_path):
     rows = evolve.regress(root)
     assert rows and all(r["pass"] for r in rows)
 
-    # Forgetting must be caught: drop the new mechanism and the regression fails.
+    # Forgetting must be caught: drop the new record and the regression fails.
     world = yaml.safe_load((root / "world.yaml").read_text(encoding="utf-8"))
-    world["mechanisms"] = [m for m in world["mechanisms"] if m["id"] != result["target"]]
+    for bucket in ("mechanisms", "events"):
+        world[bucket] = [m for m in world.get(bucket, []) if m["id"] != result["target"]]
     (root / "world.yaml").write_text(yaml.safe_dump(world, allow_unicode=True, sort_keys=False), encoding="utf-8")
     assert not all(r["pass"] for r in evolve.regress(root))
 

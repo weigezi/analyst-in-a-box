@@ -1,0 +1,404 @@
+params:
+  unusual_z:
+    value: 3.5
+    source:
+      kind: document
+      ref: 'B. Iglewicz & D. Hoaglin (1993), How to Detect and Handle Outliers, ASQC: modified z-scores beyond 3.5 are labelled
+        potential outliers'
+    status: confirmed
+  unusual_z_low:
+    value: -3.5
+    source:
+      kind: document
+      ref: B. Iglewicz & D. Hoaglin (1993), How to Detect and Handle Outliers, ASQC, applied to the low side
+    status: confirmed
+  single_point_min_share:
+    value: 0.5
+    source:
+      kind: user
+      date: '2026-10-31'
+    status: confirmed
+  single_point_min_excess:
+    value: 0.25
+    source:
+      kind: demo_setting
+      note: The top group must carry at least 25% more of the movement than an even split (0 = even, 1 = all of it). example
+        default, waiting for the user to confirm
+    status: proposed
+  single_point_min_excess_no_history:
+    value: 0.6
+    source:
+      kind: demo_setting
+      note: Without a history to judge noise, demand a much clearer single point. example default, waiting for the user to
+        confirm
+    status: proposed
+  segment_z_min:
+    value: 3.0
+    source:
+      kind: demo_setting
+      note: A group's own change must be this far from its own history (robust z, same method as unusual_z, one notch lower
+        because it is a second test). example default, waiting for the user to confirm
+    status: proposed
+  segment_z_min_when_unusual:
+    value: 2.0
+    source:
+      kind: demo_setting
+      note: When the whole number is already unusual (or we are inside a group already drilled into), the question is where
+        it came from; a group's own z only has to rule out ordinary noise. example default, waiting for the user to confirm
+    status: proposed
+  segment_min_n:
+    value: 30
+    source:
+      kind: demo_setting
+      note: Groups with fewer rows than this are not named as a single point. example default, waiting for the user to confirm
+    status: proposed
+  drill_when_usual:
+    value: false
+    source:
+      kind: demo_setting
+      note: When the whole number is within its usual range, report and do not drill, unless one group stands out (drill_quiet_total_when_group_stands_out).
+        True drills always. example default, waiting for the user to confirm
+    status: proposed
+  search_max_depth:
+    value: 3
+    source:
+      kind: demo_setting
+      note: At most three cuts deep. example default, waiting for the user to confirm
+    status: proposed
+  search_top_k:
+    value: 3
+    source:
+      kind: demo_setting
+      note: Candidates shown per layer. example default, waiting for the user to confirm
+    status: proposed
+  same_cause_min_share:
+    value: 0.6
+    source:
+      kind: demo_setting
+      note: Two slots are one cause when their shared cell carries at least 60% of each. example default, waiting for the
+        user to confirm
+    status: proposed
+  shrink_ratio_segments:
+    value: true
+    source:
+      kind: demo_setting
+      note: Rank ratio groups by empirically-Bayes-shrunk rates (James & Stein 1961; Efron & Morris 1975). example default,
+        waiting for the user to confirm
+    status: proposed
+  own_share_min:
+    value: 0.5
+    source:
+      kind: demo_setting
+      note: If at least half of the change is our own, break it down internally. example default, waiting for the user to
+        confirm
+    status: proposed
+  external_slice_min_share:
+    value: 0.5
+    source:
+      kind: demo_setting
+      note: An outside event must touch the slice that carries at least half of the change. example default, waiting for the
+        user to confirm
+    status: proposed
+  external_size_min_share:
+    value: 0.6
+    source:
+      kind: demo_setting
+      note: At least 60% of that slice's change must fall on the event's days. example default, waiting for the user to confirm
+    status: proposed
+  quality_missing_days_max:
+    value: 0
+    source:
+      kind: demo_setting
+      note: Any expected day with no rows makes the data suspect. example default, waiting for the user to confirm
+    status: proposed
+  quality_duplicate_key_max_share:
+    value: 0.0
+    source:
+      kind: demo_setting
+      note: A declared key is unique by definition.
+    status: proposed
+  quality_jump_high:
+    value: 1.8
+    source:
+      kind: demo_setting
+      note: A day with 1.8x the rows of the same weekday's recent median looks loaded twice. example default, waiting for
+        the user to confirm
+    status: proposed
+  quality_jump_low:
+    value: 0.25
+    source:
+      kind: demo_setting
+      note: A day with a quarter of the usual rows looks partly loaded. example default, waiting for the user to confirm
+    status: proposed
+  quality_value_jump:
+    value: 5.0
+    source:
+      kind: demo_setting
+      note: A day whose total is 5x (or 1/5) the usual looks like a unit or definition change. example default, waiting for
+        the user to confirm
+    status: proposed
+  quality_jump_lookback_weeks:
+    value: 8
+    source:
+      kind: demo_setting
+      note: Weeks of the same weekday used as the reference. example default, waiting for the user to confirm
+    status: proposed
+  quality_row_ratio_max:
+    value: 3.0
+    source:
+      kind: demo_setting
+      note: Rows in one period more than 3x the other is worth a warning. example default, waiting for the user to confirm
+    status: proposed
+  quality_single_row_max_share:
+    value: 0.2
+    source:
+      kind: demo_setting
+      note: One row carrying 20% of the change is named. example default, waiting for the user to confirm
+    status: proposed
+  quality_single_row_fail_share:
+    value: 0.5
+    source:
+      kind: demo_setting
+      note: One row carrying half of the change makes the data suspect. example default, waiting for the user to confirm
+    status: proposed
+  quality_top_rows:
+    value: 5
+    source:
+      kind: demo_setting
+      note: How many extreme rows to list. example default, waiting for the user to confirm
+    status: proposed
+  quality_extreme_row_times:
+    value: 20
+    source:
+      kind: demo_setting
+      note: A row is extreme when its effect is at least 20x the median row's; ordinary rows never count, however small the
+        change. example default, waiting for the user to confirm
+    status: proposed
+  quality_check_levels:
+    value:
+      key_unique: block
+      calendar_complete: block
+      row_ratio: block
+      daily_value_steady: block
+      daily_volume_steady: warn
+      dimension_values_stable: warn
+      no_single_row_dominates: warn
+    source:
+      kind: user
+      date: '2026-10-31'
+      note: 'project maintainer decided: Checks that would make the numbers wrong stop the report (repeated order ids, whole
+        days missing outside closing days, a period with no rows to compare); the others are named at the top of the report
+        and the conclusions are given. daily_value_steady (a day''s total several times the usual, as after a unit change)
+        is placed with ''block'' by the skill, not by the maintainer''s list: it changes every amount after it.'
+    status: confirmed
+  group_stands_out_z:
+    value: 3.5
+    source:
+      kind: user
+      date: '2026-10-31'
+      note: 'project maintainer decided: When the whole number is within its usual range, drill only into a group whose own
+        change is at least this far from its own history (robust z; same cut-off as unusual_z).'
+    status: confirmed
+  drill_quiet_total_when_group_stands_out:
+    value: true
+    source:
+      kind: user
+      date: '2026-10-31'
+      note: 'project maintainer decided: Whole number within its usual range but one group stands far out from its own past
+        swings: drill into it.'
+    status: confirmed
+  onset_lookback_weeks:
+    value: 8
+    source:
+      kind: demo_setting
+      note: Weeks of daily data searched for the day the main group's gap shifted. example default, waiting for the user to
+        confirm
+    status: proposed
+  onset_min_shift_sd:
+    value: 2.0
+    source:
+      kind: demo_setting
+      note: A start date is named only when the shift is at least 2 residual sd. example default, waiting for the user to
+        confirm
+    status: proposed
+  history_skip_misaligned_holidays:
+    value: true
+    source:
+      kind: demo_setting
+      note: A past period whose two windows hold different holidays is left out of the history the z-score is judged against,
+        and named. example default, waiting for the user to confirm
+    status: proposed
+  quality_row_ratio_block:
+    value: 20.0
+    source:
+      kind: demo_setting
+      note: One period with 20x the rows of the other (or none) cannot be compared. example default, waiting for the user
+        to confirm
+    status: proposed
+  quality_new_value_min_share:
+    value: 0.1
+    source:
+      kind: demo_setting
+      note: A value that appears from nothing while another of similar size disappears, each at least 10% of the total, looks
+        like a rename. example default, waiting for the user to confirm
+    status: proposed
+  intake_link_ask_min:
+    value: 0.5
+    source:
+      kind: demo_setting
+      note: Two columns are offered as a link only when at least half the rows of one find a match in the other; below that
+        it is a coincidence of codes, not a link. example default, waiting for the user to confirm
+    status: proposed
+  intake_link_suggest_min:
+    value: 0.95
+    source:
+      kind: demo_setting
+      note: 'At or above this share of matching rows the suggested answer is ''yes''; below it ''no''. Only the suggestion:
+        the user answers every link. example default, waiting for the user to confirm'
+    status: proposed
+  intake_quote_min_chars:
+    value: 8
+    source:
+      kind: demo_setting
+      note: A quote shorter than this (spaces aside) proves nothing about where a claim came from, so a proposal citing it
+        is refused. example default, waiting for the user to confirm
+    status: proposed
+tables:
+- id: qualify.unusual
+  question:
+    en: Is this period unusual against its own history?
+    zh: 这一期和自己的历史比，算不算异常？
+  inputs:
+    robust_z: qualify.robust_z
+  hit_policy: FIRST
+  rows:
+  - when:
+      robust_z:
+        gte: param:unusual_z
+    then:
+      verdict: unusual_high
+  - when:
+      robust_z:
+        lte: param:unusual_z_low
+    then:
+      verdict: unusual_low
+  - when: {}
+    then:
+      verdict: within_usual_range
+- id: qualify.market
+  question:
+    en: Did the market move us, or did we move ourselves?
+    zh: 是大盘带着走，还是自己的问题？
+  inputs:
+    own_share: qualify.own_share
+  hit_policy: FIRST
+  rows:
+  - when:
+      own_share:
+        gte: param:own_share_min
+    then:
+      verdict: own
+      next: break_down_internally
+  - when:
+      own_share:
+        not_null: true
+    then:
+      verdict: market
+      next: report_market_first
+  - when: {}
+    then:
+      verdict: no_market_data
+- id: stop.cut
+  question:
+    en: After a cut, drill into the top segment or stop here?
+    zh: 切完这一刀，往第一名下钻，还是停在这一层？
+  inputs:
+    overall_quiet: cut.overall_quiet
+    top1_beats_quiet: cut.top1_beats_quiet
+    context_unusual: cut.context_unusual
+    top1_abs_share: cut.top1_abs_share
+    top1_excess: cut.top1_excess
+    top1_abs_z: cut.top1_abs_z
+    top1_n: cut.top1_n
+    has_history: cut.has_history
+    order: cut.order
+  hit_policy: FIRST
+  rows:
+  - when:
+      all:
+      - overall_quiet:
+          eq: true
+      - top1_beats_quiet:
+          eq: false
+    then:
+      action: stop
+      reason: whole_number_within_usual_range
+  - when:
+      top1_n:
+        lt: param:segment_min_n
+    then:
+      action: stop
+      reason: top_group_too_small
+  - when:
+      all:
+      - order:
+          eq: second
+      - top1_abs_share:
+          gte: param:single_point_min_share
+      - top1_excess:
+          gte: param:single_point_min_excess
+    then:
+      action: drill
+      reason: single_point
+  - when:
+      all:
+      - overall_quiet:
+          eq: true
+      - top1_beats_quiet:
+          eq: true
+      - top1_excess:
+          gte: param:single_point_min_excess
+      - top1_abs_share:
+          gte: param:single_point_min_share
+    then:
+      action: drill
+      reason: single_point_inside_a_quiet_total
+  - when:
+      all:
+      - context_unusual:
+          eq: true
+      - top1_abs_share:
+          gte: param:single_point_min_share
+      - top1_excess:
+          gte: param:single_point_min_excess
+      - top1_abs_z:
+          gte: param:segment_z_min_when_unusual
+    then:
+      action: drill
+      reason: single_point
+  - when:
+      all:
+      - top1_abs_share:
+          gte: param:single_point_min_share
+      - top1_excess:
+          gte: param:single_point_min_excess
+      - top1_abs_z:
+          gte: param:segment_z_min
+    then:
+      action: drill
+      reason: single_point
+  - when:
+      all:
+      - has_history:
+          eq: false
+      - order:
+          eq: first
+      - top1_excess:
+          gte: param:single_point_min_excess_no_history
+    then:
+      action: drill
+      reason: single_point_without_history
+  - when: {}
+    then:
+      action: stop
+      reason: spread_or_noise

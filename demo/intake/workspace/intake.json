@@ -1,0 +1,101 @@
+{
+ "draft": "draft.json",
+ "answers": {
+  "main_table": "orders",
+  "kind:products": "lookup",
+  "kind:cities": "lookup",
+  "kind:traffic": "business",
+  "kind:promotions": "events",
+  "kind:price_changes": "events",
+  "kind:holidays": "calendar",
+  "kind:weather": "series",
+  "kind:market": "market",
+  "link:orders.sku>products.sku": "yes",
+  "link:orders.city>cities.city": "yes",
+  "link:traffic.channel>orders.channel": "yes",
+  "link:promotions.category>products.category": "yes",
+  "link:promotions.customer_type>orders.customer_type": "yes",
+  "link:price_changes.category>products.category": "yes",
+  "link:weather.region>cities.region": "yes",
+  "event_text:promotions": "campaign",
+  "event_kind:promotions": "internal",
+  "event_text:price_changes": "reason",
+  "event_kind:price_changes": "internal",
+  "event_text:holidays": "name",
+  "role:traffic.visits": "visits",
+  "role:weather.rainfall_mm": "skip",
+  "role:market.market_sales": "skip",
+  "market_compares:market": "revenue",
+  "market_compares:weather": "none",
+  "date_column": "order_date",
+  "role:revenue": "amount",
+  "role:gross_profit": "profit",
+  "role:list_price": "skip",
+  "order_id": "order_id",
+  "template": "orders",
+  "north_star": "gross_profit",
+  "dimensions": [
+   "channel",
+   "category",
+   "region",
+   "city",
+   "delivery",
+   "customer_type"
+  ],
+  "belongs:sku>category": "no",
+  "belongs:city>region": "yes",
+  "belongs:name>category": "no",
+  "single_point_share": 0.5
+ },
+ "confirmed": {
+  "date": "2026-10-31",
+  "main": "orders",
+  "kinds": {
+   "cities": "lookup",
+   "holidays": "calendar",
+   "market": "market",
+   "orders": "main",
+   "price_changes": "events",
+   "products": "lookup",
+   "promotions": "events",
+   "traffic": "business",
+   "weather": "series"
+  },
+  "unanswered_tables": [],
+  "links_confirmed": [
+   "orders.sku>products.sku",
+   "orders.city>cities.city",
+   "price_changes.category>products.category",
+   "promotions.category>products.category",
+   "promotions.customer_type>orders.customer_type",
+   "traffic.channel>orders.channel",
+   "weather.region>cities.region"
+  ],
+  "joins": [
+   {
+    "source": "products",
+    "on": {
+     "sku": "sku"
+    },
+    "columns": [
+     "category",
+     "name",
+     "list_price"
+    ]
+   },
+   {
+    "source": "cities",
+    "on": {
+     "city": "city"
+    },
+    "columns": [
+     "region"
+    ]
+   }
+  ],
+  "events_imported": 3,
+  "events_skipped": [],
+  "questions": 38,
+  "answered": 38
+ }
+}

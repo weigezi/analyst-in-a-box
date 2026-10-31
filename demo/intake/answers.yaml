@@ -1,0 +1,41 @@
+# How the shop owner answers the intake questions (`init demo/intake/tables`), as `confirm` takes them.
+# Each answer is one the owner can give from their own knowledge; where they only accept a suggestion,
+# that is said. Question ids are the ones `init` prints.
+main_table: orders
+kind:products: lookup
+kind:cities: lookup
+kind:traffic: business              # "visits per channel, from our analytics tool"
+kind:promotions: events
+kind:price_changes: events
+kind:holidays: calendar
+kind:weather: series
+kind:market: market                 # "the market index we buy every month"
+link:orders.sku>products.sku: "yes"
+link:orders.city>cities.city: "yes"
+link:traffic.channel>orders.channel: "yes"
+link:promotions.category>products.category: "yes"
+link:promotions.customer_type>orders.customer_type: "yes"
+link:price_changes.category>products.category: "yes"
+link:weather.region>cities.region: "yes"
+event_text:promotions: campaign
+event_kind:promotions: internal
+event_text:price_changes: reason
+event_kind:price_changes: internal
+event_text:holidays: name           # the holiday's code, the same every year (label_zh / label_en are display names)
+role:traffic.visits: visits
+role:weather.rainfall_mm: skip       # outside data: used as evidence, not computed with
+role:market.market_sales: skip
+market_compares:market: revenue
+market_compares:weather: none
+date_column: order_date
+role:revenue: amount
+role:gross_profit: profit
+role:list_price: skip                # a price list, not money in
+order_id: order_id
+template: orders
+north_star: gross_profit
+dimensions: [channel, category, region, city, delivery, customer_type]
+belongs:sku>category: "no"           # sku is not chosen as a dimension, so this changes nothing
+belongs:city>region: "yes"
+belongs:name>category: "no"
+single_point_share: 0.5

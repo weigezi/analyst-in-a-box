@@ -6,10 +6,12 @@ sources:
     type: csv
     path: data/orders.csv.gz
     date_columns: [order_date]
+    key: order_id          # one row per order; the data-quality step checks it never repeats
   traffic:
     type: csv
     path: data/traffic.csv.gz
     date_columns: [date]
+    key: [date, channel]   # one row per day and channel
 
 external:
   calendar:

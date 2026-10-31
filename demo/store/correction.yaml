@@ -1,14 +1,23 @@
 # The correction the demo user makes after the first average-order-value run reports a gap.
 # Used by the demo page and by tests/test_demo_store.py, so both show the same thing.
+#
+# 0.2: in 0.1 the user said "new customers buy a small first order". That is true in both years, so it cannot
+# explain why the average order fell this year; 0.1 still counted it and coverage went 50% -> 100%, which was
+# false. The gap the data shows is a mix shift: inside new customers, fruit baskets went from about a quarter of
+# orders to about half. The user's answer now names what changed this October.
 after_case: aov_last_week
 correction:
-  type: add_mechanism
-  slot: customer_type=new
-  quote: {en: "New customers usually buy a small first order to try us out.", zh: "新客第一单一般买小份，先试试。"}
+  type: add_event
+  slot: category=fruit_basket/customer_type=new
+  quote: {en: "Since 1 October new customers get a free greeting card with a fruit basket.",
+          zh: "10 月 1 日起，新客买果篮送贺卡。"}
   entry:
-    hint: new customer first order
-    entities: [cust_new]
+    hint: fruit basket card offer
+    kind: internal
+    start: 2026-10-01
+    end: 2026-10-31
+    entities: [cust_new, cat_fruit_basket]
     metrics: [aov]
-    direction: lower
-    claim: {en: "New customers buy a smaller first order to try the shop, so more new customers pull the average order value down.",
-            zh: "新客第一单通常买小份先试试，新客占比一高，客单价就被拉低。"}
+    acts_on: structure
+    what: {en: "New customers get a free greeting card with a fruit basket (1 to 31 October).",
+           zh: "新客买果篮送贺卡（10 月 1 日至 31 日）。"}

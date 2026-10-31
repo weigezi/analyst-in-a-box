@@ -34,10 +34,19 @@ effects:
     orders_multiplier: 3.0
 
   - id: new_customer_first_order
-    note: {en: "New customers always buy smaller first orders. This is the mechanism the demo leaves out of world.yaml on purpose.",
-           zh: "新客第一单总是买得小。演示故意没把这条机制写进 world.yaml。"}
+    note: {en: "New customers always buy smaller first orders, in every period. It shapes the level, not the change: it cannot explain a year-on-year fall.",
+           zh: "新客第一单总是买得小，每一期都这样。它决定水平，不决定变化：解释不了同比下滑。"}
+    period: both
     where: {customer_type: new}
     price_multiplier: 0.85
+
+  - id: gift_box_price_rise
+    note: {en: "In June 2026 gift boxes cost 15% more (a supplier price rise passed on); how many sold did not change.",
+           zh: "2026 年 6 月礼盒涨价 15%（供应商涨价转嫁），卖出的件数没变。"}
+    start: 2026-06-01
+    end: 2026-06-30
+    where: {category: gift_box}
+    price_multiplier: 1.15
 
   - id: app_homepage_change
     note: {en: "From 1 September the app home page dropped its plants slot; app plant orders fell 60%, web was untouched.",
@@ -71,9 +80,17 @@ expected:
     cuts:
       category: {top1: fruit_basket, larger_effect: structure}
       customer_type: {top1: new}
-    cites: [mech_fruit_basket_cheaper, ev_fruit_basket_promo]
+    # 0.2: the cause sits in one cell, new customers x fruit baskets, and it is a mix shift inside new customers.
+    cell: {category: fruit_basket, customer_type: new}
+    cites: [mech_fruit_basket_cheaper]
     gap_before_correction: {dimension: customer_type, value: new}
-    planted: [fruit_basket_promo, new_customer_first_order]
+    planted: [fruit_basket_promo]
+
+  - case: june_price_volume
+    question: {en: "June revenue grew year on year. Did we sell more, or charge more?", zh: "6 月营收同比涨了，是卖得多了，还是卖得贵了？"}
+    run: {metric: revenue, current: [2026-06-01, 2026-06-30], base: yoy}
+    pvm: {larger_effect: volume, top_price_key: gift_box}
+    planted: gift_box_price_rise
 
   - case: app_vs_web
     question: {en: "Over the last four weeks, why did the app grow more slowly than the web?", zh: "近四周 App 为什么比网页长得慢？"}

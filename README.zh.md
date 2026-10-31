@@ -26,6 +26,7 @@
 | 看它怎么干活 | 构建演示站：`uv run python site/build.py`，然后打开 `site/dist/index.html` |
 | 用起来 | 把 `skills/analyst-in-a-box/` 放进你的 AI 工具的 skills 文件夹，问它「上周营收为什么跌了？」 |
 | 在终端里用 | `python3 skills/analyst-in-a-box/scripts/aib_cli.py init 你的数据.csv --workspace ./aib-workspace` |
+| 从几张表开始 | 可以直接给 `init` 一个文件夹：`... init ./导出的表/ --workspace ./aib-workspace`（订单、商品、活动日历、调价记录……），它自己看出这些表怎么对上，再请你确认 |
 | 拿自己的生意试 | 按 [试用者说明](docs/trial.zh.md) 走 |
 
 ## 演示
@@ -63,5 +64,18 @@ uv run python tools/bilingual_check.py          # 每份文档都有中英两份
 
 ## 现状
 
-版本 0.1。还没有项目以外的人试用过。许可证：[Apache-2.0](LICENSE)。`demo/public` 里的数据沿用它自己的授权
+版本 0.2。还没有项目以外的人试用过。许可证：[Apache-2.0](LICENSE)。`demo/public` 里的数据沿用它自己的授权
 （CC BY 4.0，见 [demo/public](demo/public/README.zh.md)）。
+
+0.2 新增的，在测试数据上实测（`tests/`）：
+
+- 先查数据。缺两天、一周数据导了两遍，会停发报告并写明原因；某天量突然跳、值疑似改名、单笔订单特别大，会在开头提醒，结论照常给出。
+- 分清噪音和原因。300 周纯噪音（10 个种子）里，营收有 15 周、客单价有 7 周判成单点往下钻；0.1 是 30 周里 18 周。
+- 可以从一文件夹的表开始：自己认出主表、查找表、表之间怎么连（带覆盖率）、活动和调价记录、外部序列，用之前都先问。
+  从文档里读出的原因，必须带着原文那一句才收下，标「待确认」。见 [demo/intake](demo/intake/README.zh.md)。
+- 自己选切哪个维度，同一个原因只报一次，并从另一边反过来验证。
+- 被引用为原因的记录必须能解释这次的变化，两期都成立的不再算。
+- 演示店用 6 个没用过的种子重新生成：埋好的答案全部找回。其中 101 号种子的暴雨题只是勉强过线，见 `docs/decisions.zh.md` 第十五节。
+- 新的拆法：整棵公式树、量-结构-价格、按客户的增长拆解，以及 `followup` 追问。
+
+还没做：三阶问题；用户自己联网搜索以外的新闻来源；找项目以外的人试用。

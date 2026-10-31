@@ -38,6 +38,18 @@ external:                        # outside data, same loaders; "role" says how i
 
 A new kind of source (an online spreadsheet, a warehouse) is one loader in `scripts/aib/sources.py`.
 
+Since 0.2 a source may declare `key: order_id` (or a list such as `[date, channel]`): one row per value,
+which the data-quality step checks. `confirm` writes it only when the user named the column as the id and the
+data has one row per value. Closing days are a `quality` block. Missing rows on those days are not missing data:
+
+```yaml
+quality:
+  closed_weekdays: [5]                 # 0 = Monday
+  closed_dates: [2026-12-25]
+  source: {kind: data, note: "no rows on 53 of 53 Saturdays"}   # inferred from data ...
+  status: proposed                                               # ... so: to confirm, not a fact
+```
+
 ## 3. model.yaml
 
 ```yaml
@@ -64,6 +76,13 @@ comparisons:         # second order across sides
 - `count_distinct` is not summable in general. List in `additive_over` only the dimensions on which each id
   has a single value; `confirm` checks this against the data.
 - A measure can be cut only by its own `dimensions`; a ratio only by dimensions both its parts have.
+- `priorities.<metric>.mode` (0.2): `drill` (default) scores the candidates at every layer, and a confirmed
+  `order` fixes the first cut. `each` cuts every dimension from the top and merges slots that are one cause.
+  `fixed` cuts `order` as given, without scoring. A `proposed` order is only a candidate list.
+- `pvm` (0.2): `[{metric: revenue, quantity: orders, dimension: category}]` adds a price-volume-mix breakdown
+  to every first-order question on that metric.
+- Identities are expanded to the leaves (`revenue` → `orders × aov`, `orders` → `visits × cr`). Expansion stops
+  where a factor cannot be filtered the way the question is filtered.
 
 ## 4. rules.yaml
 
@@ -83,6 +102,19 @@ tables:              # layer 3: one rule per row, first match wins, last row is 
 
 Tables the skill reads: `qualify.unusual`, `qualify.market`, `stop.cut`. Optional params for outside events:
 `external_slice_min_share`, `external_size_min_share` (without them those checks report "not judged").
+
+Since 0.2, `confirm` writes the whole default set from `scripts/aib/defaults.py`, each param with its source.
+A param missing from an older workspace falls back to that default. The 0.2 `stop.cut` reads the noise gate
+(`cut.overall_quiet`, `cut.top1_beats_quiet`, `cut.context_unusual`, `cut.top1_excess`, `cut.top1_abs_z`,
+`cut.top1_n`, `cut.has_history`, `cut.order`). A 0.1 table that reads only `result.top1_abs_share` still runs,
+but it has no noise gate; copy the table from `defaults.py`. Params by group:
+
+| Group | Params |
+|---|---|
+| noise gate | `single_point_min_excess`, `segment_z_min`, `segment_z_min_when_unusual`, `segment_min_n`, `drill_when_usual`, `drill_quiet_total_when_group_stands_out`, `group_stands_out_z` |
+| search | `search_max_depth`, `search_top_k`, `same_cause_min_share`, `shrink_ratio_segments` |
+| data quality | `quality_check_levels` (each check `block` or `warn`), `quality_jump_high` / `_low`, `quality_value_jump`, `quality_row_ratio_max` / `_block`, `quality_single_row_max_share` / `_fail_share`, `quality_extreme_row_times`, `quality_new_value_min_share` |
+| history | `history_skip_misaligned_holidays`, `onset_lookback_weeks`, `onset_min_shift_sd` |
 Operators: `gte gt lte lt eq ne in not_null`, combinable with `all` / `any`. `check` rejects a table whose
 last row is not the fallback, whose rows can never fire, or whose inputs or params do not exist.
 

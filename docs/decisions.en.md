@@ -178,3 +178,154 @@ Public datasets have no answer key, so they only prove "it loads and it runs". T
 ## 14. Next things to research
 
 - **How to bring news in properly** (raised by the maintainer, 2026-10-30): version 1 relies on the web search built into the user's AI tool. Next, research dedicated news sources: which exist, their licence terms, how to filter by time window and region, and how to judge that a news item relates to a particular change.
+
+## 15. Version 0.2 (2026-10-31)
+
+Version 0.1 answered the planted demo questions correctly but did not behave like a careful analyst on dirty
+data. An audit showed it attributing a fall to an event when two days of data were simply missing, and drilling
+into pure noise. These are the decisions taken to fix that. Earlier sections stay as written. Where 0.2
+replaces a 0.1 rule, the rule is named here.
+
+### Check the data before explaining it
+
+A data-quality step runs before any breakdown: whole days missing (closing days excluded), repeated order ids,
+days with far more or fewer rows than usual, a day's total several times the usual, the two periods' row
+counts, a single row carrying the change, and a value that vanished while another appeared. The thresholds are
+params in `rules.yaml`, each with its source.
+
+The old check "identities hold on the data" was a tautology: a ratio is defined as one factor divided by the
+other, so the product always matches. It is renamed `identities_computable` and says it only proves that every
+factor can be computed. A real reconciliation (`segments_add_up_to_total`) replaces it in the list of checks.
+
+### Tell noise from a cause
+
+A cut names a single point only when the top group carries clearly more of the movement than its share of the
+base, and when its own change is far from its own past swings. The two-group bias is gone: with 0.1's
+"top share ≥ 50%" rule, the top group of a two-value dimension always qualified. When the whole number is
+within its usual range, the run reports and does not drill, unless one group stands far out (see the decisions
+below).
+
+A three-day event inside a week is diluted by four ordinary days. Each group's evidence is therefore the
+stronger of two calibrated tests: the week as a whole, and the strongest run of 2 to 4 days, each judged
+against the same statistic on past periods (Naus 1965; Kulldorff 1997). This was found on unseen seeds, not by
+lowering a threshold.
+
+### Choose the dimension; report one cause once
+
+Every layer scores the candidate dimensions by explanatory power × surprise (Adtributor, Bhagwan et al. 2014).
+A confirmed priority still decides the first cut. A drill path counts as one cause, and the run checks it from
+the other side.
+
+### A record must be able to explain the change
+
+Every cited mechanism or event says whether it can explain the change: did it differ between the two periods,
+and does it act on mix or on each group's level? Something true in both periods cannot explain a change.
+0.1's demo correction ("new customers buy a smaller first order") was such a record, and coverage still rose
+from 50% to 100%; that rise was false. The demo correction is now the October offer that changed the mix.
+
+### The market comparison is an estimate
+
+"Following the market" now means the market's growth plus this business's usual gap to it (median over the same
+past periods), in the spirit of shift-share analysis taking the lasting difference out first
+(Esteban-Marquillas 1972). Both numbers are kept; the report uses the adjusted one and calls it an estimate.
+
+### Periods that line up
+
+Calendar months compare with calendar months; a single day compares with the same weekday a week earlier.
+Unequal lengths compare daily averages, automatically when the rule chose them and on request otherwise.
+History follows the same rule as the question. A past period whose two sides held different holidays is left
+out of the history and named.
+
+### Decided by the maintainer (2026-10-31)
+
+- **Whole number within its usual range, one group stands far out: drill into it.**
+
+  Waiting for the maintainer (raised at the 0.2 checkpoint): the average-order-value question needs this
+  default, but in pure noise it fires on groups with a robust z of 4 to 7 about once in 30 weeks.
+
+  Decided: keep it. Params `drill_quiet_total_when_group_stands_out` (true) and `group_stands_out_z` (3.5),
+  source "maintainer decided 2026-10-31".
+- **What happens when a data check fails.**
+
+  Waiting for the maintainer: the checkpoint version stopped the report on any failed check.
+
+  Decided: two levels, a param per check (`quality_check_levels`). Checks that would make the numbers wrong
+  stop the report: repeated order ids, whole days missing outside closing days, a period with almost no rows
+  to compare. The others are named at the top of the report and the conclusions are given: a sudden jump in a
+  day's row count, a value that looks renamed, one order carrying a large share. The skill placed
+  `daily_value_steady` (a day's total several times the usual, as after a unit change) with "stop", because it
+  changes every amount after it. That placement is the skill's, not the maintainer's, and one param changes it.
+- **Saturdays in the public dataset.**
+
+  Waiting for the maintainer: all 53 Saturdays in the data have no invoice, and UCI does not say which days the
+  retailer traded.
+
+  Decided: treat Saturdays as closed, and say this is an assumption drawn from the data. The workspace records
+  it with source "inferred from data" and status "to confirm", and the report says so.
+
+### The run-of-days test pays for being a second test (2026-10-31)
+
+**Decided.** The weekly test stays the main evidence, unchanged. The "strongest run of 2 to 4 days" test replaces
+a group's z only when it is still stronger after a two-test Bonferroni correction: its p-value is doubled, turned
+back into a z, and then compared with the weekly one.
+
+**Why.** Running two tests per group and keeping the stronger gives noise two chances, so false alarms rise. The
+correction takes the extra chance back. Sources: C. E. Bonferroni (1936); O. J. Dunn (1961), "Multiple
+comparisons among means", *JASA* 56(293).
+
+**Measured.** Ten pure-noise shops × 30 weeks = 300 weeks. Revenue drilled into 17 weeks without the
+correction and 15 with it. `tests/test_search.py` now runs these ten seeds × 30 weeks and allows at most 15.
+The demo questions on unseen seeds: 30/30 found.
+
+**Why the weekly test is not corrected too.** Correcting both gave 10/300, but lost a real cause: one channel
+in one region losing 80% of its orders, whose weekly z went from −2.19 to −1.90, below the 2.0 bar. The weekly
+test is the one that is done anyway; only the extra test should pay for being extra.
+
+## 16. Intake: from several tables to a workspace (2026-10-31)
+
+The maintainer: "What makes this skill strong is not only how it presents; it should do the gathering too."
+Before this, `init` read one table and the demo shop's world was written by hand, so nothing showed the
+workspace being formed.
+
+### Inferred from shape only; every inference asked
+
+`init` takes a folder or several files. The main table, the lookup tables, the links between tables, event
+records, calendars and daily series are inferred from the shape of the data, never from column names
+(section 5). Every inference is a multiple-choice question with its suggested answer and the evidence: row
+counts, which column is never after which, a link's coverage. Nothing enters the workspace before `confirm`,
+and a link not answered "yes" is not made.
+
+### Links by coverage
+
+A column whose values are found in another column is a candidate link. Coverage is the share of rows that
+match. Below 50% the pair is not asked about; from 50% to 95% the suggested answer is "no"; from 95% "yes".
+Links are many-to-one lookups only (one row per key on the right), so a main-table row stays one row. The
+thresholds are constants in `intake.py`: rules of intake, not business thresholds.
+
+### Each row of an event table is an event to confirm
+
+Each row of a campaign calendar or a price log becomes a world event: source "system record", status "to
+confirm". The user confirms what the table is, but nobody has vouched for each row yet.
+
+### Documents are read by the AI tool; the script checks the sentence
+
+The script does not read prose: pulling causes out of sentences by rule is guessing too. So the user's AI
+tool reads the document and proposes mechanisms or events. `propose` checks one thing: the quoted sentence is
+in the document, word for word. Whitespace and Markdown emphasis are ignored; every other character must match,
+and a quote under 8 characters is refused. A quote that does not match is refused. Accepted entries keep the
+document path and the sentence, with status "to confirm".
+
+### A record to confirm is not counted as explained (changes a 0.2 rule)
+
+In 0.2 as first written, an internal record that fitted the change counted as explained whatever its status.
+Now an internal record must be confirmed. One still to confirm makes the slot a hypothesis, and the report says
+"possible cause, from a document (or a system record), to confirm", with the sentence. Outside events are
+unchanged: they are still judged by the three checks against outside data. Every internal record the demo shop
+cites is confirmed, so the four demo answers did not change.
+
+### The demo: the same shop, both ways
+
+`demo/intake/` splits the demo shop's data into nine tables plus one weekly report, runs the whole intake, and
+writes a formation report that compares the result with the hand-written workspace, part by part.
+`demo/store/` is not changed. What cannot be formed is listed as such: readable names for codes, mechanisms
+such as the marketplace commission, actions and owners, comparisons, a confirmed cut order, price-volume-mix.

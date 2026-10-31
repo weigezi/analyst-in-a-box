@@ -69,13 +69,40 @@ class Sources:
             if spec is None:
                 raise KeyError(f"unknown source '{name}'")
             kind = spec.get("type")
-            if kind not in LOADERS:
-                raise ValueError(f"source '{name}': unsupported type '{kind}' (supported: {', '.join(LOADERS)})")
-            df = LOADERS[kind](spec, self.root)
+            if kind == "join":
+                df = self._join(name, spec)
+            elif kind not in LOADERS:
+                raise ValueError(f"source '{name}': unsupported type '{kind}' (supported: {', '.join([*LOADERS, 'join'])})")
+            else:
+                df = LOADERS[kind](spec, self.root)
+            if spec.get("rename"):
+                df = df.rename(columns=spec["rename"])
             for col in spec.get("date_columns", []):
                 df[col] = pd.to_datetime(df[col]).dt.normalize()
             self._cache[name] = df
         return self._cache[name]
+
+    def _join(self, name, spec):
+        """A base table with attribute columns looked up from other tables by a key.
+
+        spec: {type: join, base: <source>, joins: [{source: <source>, on: {base_col: key_col}, columns: [...]}]}.
+        Each lookup key must be unique in its table, so every base row stays exactly one row; a base value with no
+        match gets empty attributes (the data-quality step's reconciliation then shows it)."""
+        df = self.frame(spec["base"]).copy()
+        n = len(df)
+        for j in spec.get("joins", []):
+            (left, right), = j["on"].items()
+            other = self.frame(j["source"])
+            if not other[right].is_unique:
+                raise ValueError(f"source '{name}': key '{right}' repeats in '{j['source']}'; a lookup needs one row per key")
+            cols = [c for c in j.get("columns", []) if c != right]
+            look = other[[right, *cols]]
+            if left != right:
+                look = look.rename(columns={right: left})
+            df = df.merge(look, on=left, how="left", validate="many_to_one")
+        if len(df) != n:
+            raise ValueError(f"source '{name}': the lookups changed the number of rows ({n} -> {len(df)})")
+        return df
 
 
 AGGS = {"sum", "count", "count_distinct", "mean", "min", "max"}

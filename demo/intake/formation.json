@@ -1,0 +1,2457 @@
+{
+ "draft": {
+  "kind": "tables",
+  "language": "zh",
+  "main": "orders",
+  "tables": {
+   "cities": {
+    "name": "cities",
+    "path": "../tables/cities.csv",
+    "rows": 8,
+    "profile": [
+     {
+      "column": "city",
+      "shape": "unique",
+      "distinct": 8,
+      "nulls": 0,
+      "examples": [
+       "Beijing",
+       "Chengdu",
+       "Chongqing",
+       "Guangzhou",
+       "Hangzhou"
+      ]
+     },
+     {
+      "column": "region",
+      "shape": "category",
+      "distinct": 4,
+      "nulls": 0,
+      "examples": [
+       "north",
+       "west",
+       "south",
+       "east"
+      ]
+     }
+    ],
+    "date_columns": [],
+    "number_columns": [],
+    "word_columns": [
+     "city",
+     "region"
+    ],
+    "keys": [
+     "city"
+    ],
+    "suggested_kind": "lookup"
+   },
+   "holidays": {
+    "name": "holidays",
+    "path": "../tables/holidays.csv",
+    "rows": 10,
+    "profile": [
+     {
+      "column": "name",
+      "shape": "category",
+      "distinct": 5,
+      "nulls": 0,
+      "examples": [
+       "spring_festival",
+       "valentines_day",
+       "mothers_day",
+       "mid_autumn",
+       "national_day"
+      ]
+     },
+     {
+      "column": "label_zh",
+      "shape": "category",
+      "distinct": 5,
+      "nulls": 0,
+      "examples": [
+       "春节送礼季",
+       "情人节",
+       "母亲节周",
+       "中秋送礼周",
+       "国庆"
+      ]
+     },
+     {
+      "column": "label_en",
+      "shape": "category",
+      "distinct": 5,
+      "nulls": 0,
+      "examples": [
+       "Spring Festival gifting",
+       "Valentine's Day",
+       "Mother's Day week",
+       "Mid-Autumn gifting week",
+       "National Day"
+      ]
+     },
+     {
+      "column": "start",
+      "shape": "date",
+      "distinct": 10,
+      "nulls": 0,
+      "examples": [
+       "2025-01-28",
+       "2025-02-10",
+       "2025-05-05",
+       "2025-09-30",
+       "2025-10-01"
+      ]
+     },
+     {
+      "column": "end",
+      "shape": "date",
+      "distinct": 10,
+      "nulls": 0,
+      "examples": [
+       "2025-02-04",
+       "2025-02-14",
+       "2025-05-11",
+       "2025-10-06",
+       "2025-10-08"
+      ]
+     }
+    ],
+    "date_columns": [
+     "start",
+     "end"
+    ],
+    "number_columns": [],
+    "word_columns": [
+     "name",
+     "label_zh",
+     "label_en"
+    ],
+    "keys": [],
+    "start_end": [
+     "start",
+     "end"
+    ],
+    "suggested_kind": "calendar"
+   },
+   "market": {
+    "name": "market",
+    "path": "../tables/market.csv",
+    "rows": 663,
+    "profile": [
+     {
+      "column": "date",
+      "shape": "date",
+      "distinct": 663,
+      "nulls": 0,
+      "examples": [
+       "2025-01-01",
+       "2025-01-02",
+       "2025-01-03",
+       "2025-01-04",
+       "2025-01-05"
+      ]
+     },
+     {
+      "column": "market_sales",
+      "shape": "number",
+      "distinct": 659,
+      "nulls": 0,
+      "examples": [
+       "116203.0",
+       "117974.0",
+       "141720.0",
+       "149907.0",
+       "127496.0"
+      ],
+      "min": 99550.0,
+      "max": 186318.0
+     }
+    ],
+    "date_columns": [
+     "date"
+    ],
+    "number_columns": [
+     "market_sales"
+    ],
+    "word_columns": [],
+    "keys": [],
+    "per_date": [],
+    "suggested_kind": "series"
+   },
+   "orders": {
+    "name": "orders",
+    "path": "../tables/orders.csv.gz",
+    "rows": 226814,
+    "profile": [
+     {
+      "column": "order_id",
+      "shape": "unique",
+      "distinct": 226814,
+      "nulls": 0,
+      "examples": [
+       "BB0000001",
+       "BB0000002",
+       "BB0000003",
+       "BB0000004",
+       "BB0000005"
+      ]
+     },
+     {
+      "column": "order_date",
+      "shape": "date",
+      "distinct": 663,
+      "nulls": 0,
+      "examples": [
+       "2025-01-01",
+       "2025-01-02",
+       "2025-01-03",
+       "2025-01-04",
+       "2025-01-05"
+      ]
+     },
+     {
+      "column": "sku",
+      "shape": "category",
+      "distinct": 12,
+      "nulls": 0,
+      "examples": [
+       "BQ-ROSE",
+       "BQ-MIX",
+       "BQ-LILY",
+       "FB-SMALL",
+       "FB-DELUXE"
+      ]
+     },
+     {
+      "column": "channel",
+      "shape": "category",
+      "distinct": 3,
+      "nulls": 0,
+      "examples": [
+       "app",
+       "marketplace",
+       "web"
+      ]
+     },
+     {
+      "column": "city",
+      "shape": "category",
+      "distinct": 8,
+      "nulls": 0,
+      "examples": [
+       "Beijing",
+       "Tianjin",
+       "Hangzhou",
+       "Shanghai",
+       "Guangzhou"
+      ]
+     },
+     {
+      "column": "delivery",
+      "shape": "category",
+      "distinct": 3,
+      "nulls": 0,
+      "examples": [
+       "same_day",
+       "scheduled",
+       "pickup"
+      ]
+     },
+     {
+      "column": "customer_type",
+      "shape": "category",
+      "distinct": 2,
+      "nulls": 0,
+      "examples": [
+       "new",
+       "returning"
+      ]
+     },
+     {
+      "column": "revenue",
+      "shape": "number",
+      "distinct": 36392,
+      "nulls": 0,
+      "examples": [
+       "332.54",
+       "185.35",
+       "397.7",
+       "198.66",
+       "289.69"
+      ],
+      "min": 46.95,
+      "max": 678.46
+     },
+     {
+      "column": "gross_profit",
+      "shape": "number",
+      "distinct": 21022,
+      "nulls": 0,
+      "examples": [
+       "182.9",
+       "101.94",
+       "218.74",
+       "109.26",
+       "159.33"
+      ],
+      "min": 13.15,
+      "max": 337.78
+     }
+    ],
+    "date_columns": [
+     "order_date"
+    ],
+    "number_columns": [
+     "revenue",
+     "gross_profit"
+    ],
+    "word_columns": [
+     "order_id",
+     "sku",
+     "channel",
+     "city",
+     "delivery",
+     "customer_type"
+    ],
+    "keys": [],
+    "suggested_kind": "main"
+   },
+   "price_changes": {
+    "name": "price_changes",
+    "path": "../tables/price_changes.csv",
+    "rows": 1,
+    "profile": [
+     {
+      "column": "start",
+      "shape": "date",
+      "distinct": 1,
+      "nulls": 0,
+      "examples": [
+       "2026-06-01"
+      ]
+     },
+     {
+      "column": "end",
+      "shape": "date",
+      "distinct": 1,
+      "nulls": 0,
+      "examples": [
+       "2026-06-30"
+      ]
+     },
+     {
+      "column": "category",
+      "shape": "unique",
+      "distinct": 1,
+      "nulls": 0,
+      "examples": [
+       "gift_box"
+      ]
+     },
+     {
+      "column": "change",
+      "shape": "number",
+      "distinct": 1,
+      "nulls": 0,
+      "examples": [
+       "0.15"
+      ],
+      "min": 0.15,
+      "max": 0.15
+     },
+     {
+      "column": "reason",
+      "shape": "unique",
+      "distinct": 1,
+      "nulls": 0,
+      "examples": [
+       "供应商涨价，礼盒售价上调 15%"
+      ]
+     }
+    ],
+    "date_columns": [
+     "start",
+     "end"
+    ],
+    "number_columns": [
+     "change"
+    ],
+    "word_columns": [
+     "category",
+     "reason"
+    ],
+    "keys": [],
+    "start_end": [
+     "start",
+     "end"
+    ],
+    "suggested_kind": "events"
+   },
+   "products": {
+    "name": "products",
+    "path": "../tables/products.csv",
+    "rows": 12,
+    "profile": [
+     {
+      "column": "sku",
+      "shape": "unique",
+      "distinct": 12,
+      "nulls": 0,
+      "examples": [
+       "BQ-ROSE",
+       "BQ-LILY",
+       "BQ-MIX",
+       "FB-SMALL",
+       "FB-FAMILY"
+      ]
+     },
+     {
+      "column": "category",
+      "shape": "category",
+      "distinct": 4,
+      "nulls": 0,
+      "examples": [
+       "bouquet",
+       "fruit_basket",
+       "plant",
+       "gift_box"
+      ]
+     },
+     {
+      "column": "name",
+      "shape": "unique",
+      "distinct": 12,
+      "nulls": 0,
+      "examples": [
+       "红玫瑰花束",
+       "百合花束",
+       "混搭花束",
+       "小果篮",
+       "家庭果篮"
+      ]
+     },
+     {
+      "column": "list_price",
+      "shape": "number",
+      "distinct": 7,
+      "nulls": 0,
+      "examples": [
+       "249.0",
+       "248.0",
+       "115.0",
+       "114.0",
+       "143.0"
+      ],
+      "min": 114.0,
+      "max": 306.0
+     }
+    ],
+    "date_columns": [],
+    "number_columns": [
+     "list_price"
+    ],
+    "word_columns": [
+     "sku",
+     "category",
+     "name"
+    ],
+    "keys": [
+     "sku",
+     "name"
+    ],
+    "suggested_kind": "lookup"
+   },
+   "promotions": {
+    "name": "promotions",
+    "path": "../tables/promotions.csv",
+    "rows": 2,
+    "profile": [
+     {
+      "column": "start",
+      "shape": "date",
+      "distinct": 2,
+      "nulls": 0,
+      "examples": [
+       "2026-02-07",
+       "2026-10-01"
+      ]
+     },
+     {
+      "column": "end",
+      "shape": "date",
+      "distinct": 2,
+      "nulls": 0,
+      "examples": [
+       "2026-02-14",
+       "2026-10-31"
+      ]
+     },
+     {
+      "column": "campaign",
+      "shape": "unique",
+      "distinct": 2,
+      "nulls": 0,
+      "examples": [
+       "情人节花束主推",
+       "新客买果篮送贺卡"
+      ]
+     },
+     {
+      "column": "category",
+      "shape": "unique",
+      "distinct": 2,
+      "nulls": 0,
+      "examples": [
+       "bouquet",
+       "fruit_basket"
+      ]
+     },
+     {
+      "column": "customer_type",
+      "shape": "category",
+      "distinct": 1,
+      "nulls": 1,
+      "examples": [
+       "new"
+      ]
+     }
+    ],
+    "date_columns": [
+     "start",
+     "end"
+    ],
+    "number_columns": [],
+    "word_columns": [
+     "campaign",
+     "category",
+     "customer_type"
+    ],
+    "keys": [],
+    "start_end": [
+     "start",
+     "end"
+    ],
+    "suggested_kind": "events"
+   },
+   "traffic": {
+    "name": "traffic",
+    "path": "../tables/traffic.csv.gz",
+    "rows": 1989,
+    "profile": [
+     {
+      "column": "date",
+      "shape": "date",
+      "distinct": 663,
+      "nulls": 0,
+      "examples": [
+       "2025-01-01",
+       "2025-01-02",
+       "2025-01-03",
+       "2025-01-04",
+       "2025-01-05"
+      ]
+     },
+     {
+      "column": "channel",
+      "shape": "category",
+      "distinct": 3,
+      "nulls": 0,
+      "examples": [
+       "app",
+       "marketplace",
+       "web"
+      ]
+     },
+     {
+      "column": "visits",
+      "shape": "number",
+      "distinct": 1465,
+      "nulls": 0,
+      "examples": [
+       "2311",
+       "1509",
+       "3903",
+       "2008",
+       "1413"
+      ],
+      "min": 400.0,
+      "max": 7552.0
+     }
+    ],
+    "date_columns": [
+     "date"
+    ],
+    "number_columns": [
+     "visits"
+    ],
+    "word_columns": [
+     "channel"
+    ],
+    "keys": [],
+    "per_date": [
+     "channel"
+    ],
+    "suggested_kind": "business"
+   },
+   "weather": {
+    "name": "weather",
+    "path": "../tables/weather.csv",
+    "rows": 2652,
+    "profile": [
+     {
+      "column": "date",
+      "shape": "date",
+      "distinct": 663,
+      "nulls": 0,
+      "examples": [
+       "2025-01-01",
+       "2025-01-02",
+       "2025-01-03",
+       "2025-01-04",
+       "2025-01-05"
+      ]
+     },
+     {
+      "column": "region",
+      "shape": "category",
+      "distinct": 4,
+      "nulls": 0,
+      "examples": [
+       "north",
+       "east",
+       "south",
+       "west"
+      ]
+     },
+     {
+      "column": "rainfall_mm",
+      "shape": "number",
+      "distinct": 167,
+      "nulls": 0,
+      "examples": [
+       "2.1",
+       "4.8",
+       "1.4",
+       "0.1",
+       "9.1"
+      ],
+      "min": 0.0,
+      "max": 96.6
+     }
+    ],
+    "date_columns": [
+     "date"
+    ],
+    "number_columns": [
+     "rainfall_mm"
+    ],
+    "word_columns": [
+     "region"
+    ],
+    "keys": [],
+    "per_date": [
+     "region"
+    ],
+    "suggested_kind": "series"
+   }
+  },
+  "links": [
+   {
+    "left_table": "orders",
+    "left_column": "sku",
+    "right_table": "products",
+    "right_column": "sku",
+    "right_is_key": true,
+    "coverage": 1.0,
+    "matched_rows": 226814,
+    "rows": 226814,
+    "suggested": "yes"
+   },
+   {
+    "left_table": "orders",
+    "left_column": "city",
+    "right_table": "cities",
+    "right_column": "city",
+    "right_is_key": true,
+    "coverage": 1.0,
+    "matched_rows": 226814,
+    "rows": 226814,
+    "suggested": "yes"
+   },
+   {
+    "left_table": "price_changes",
+    "left_column": "category",
+    "right_table": "products",
+    "right_column": "category",
+    "right_is_key": false,
+    "coverage": 1.0,
+    "matched_rows": 1,
+    "rows": 1,
+    "suggested": "yes"
+   },
+   {
+    "left_table": "promotions",
+    "left_column": "category",
+    "right_table": "products",
+    "right_column": "category",
+    "right_is_key": false,
+    "coverage": 1.0,
+    "matched_rows": 2,
+    "rows": 2,
+    "suggested": "yes"
+   },
+   {
+    "left_table": "promotions",
+    "left_column": "customer_type",
+    "right_table": "orders",
+    "right_column": "customer_type",
+    "right_is_key": false,
+    "coverage": 1.0,
+    "matched_rows": 1,
+    "rows": 1,
+    "suggested": "yes"
+   },
+   {
+    "left_table": "traffic",
+    "left_column": "channel",
+    "right_table": "orders",
+    "right_column": "channel",
+    "right_is_key": false,
+    "coverage": 1.0,
+    "matched_rows": 1989,
+    "rows": 1989,
+    "suggested": "yes"
+   },
+   {
+    "left_table": "weather",
+    "left_column": "region",
+    "right_table": "cities",
+    "right_column": "region",
+    "right_is_key": false,
+    "coverage": 1.0,
+    "matched_rows": 2652,
+    "rows": 2652,
+    "suggested": "yes"
+   }
+  ],
+  "joins": [
+   {
+    "source": "products",
+    "on": {
+     "sku": "sku"
+    },
+    "columns": [
+     "category",
+     "name",
+     "list_price"
+    ]
+   },
+   {
+    "source": "cities",
+    "on": {
+     "city": "city"
+    },
+    "columns": [
+     "region"
+    ]
+   }
+  ],
+  "belongs_to": [
+   {
+    "child": "sku",
+    "parent": "category",
+    "pairs": 12
+   },
+   {
+    "child": "city",
+    "parent": "region",
+    "pairs": 8
+   },
+   {
+    "child": "name",
+    "parent": "category",
+    "pairs": 12
+   }
+  ],
+  "quiet_weekdays": [],
+  "joined_profile": [
+   {
+    "column": "order_id",
+    "shape": "unique",
+    "distinct": 226814,
+    "nulls": 0,
+    "examples": [
+     "BB0000001",
+     "BB0000002",
+     "BB0000003",
+     "BB0000004",
+     "BB0000005"
+    ]
+   },
+   {
+    "column": "order_date",
+    "shape": "date",
+    "distinct": 663,
+    "nulls": 0,
+    "examples": [
+     "2025-01-01",
+     "2025-01-02",
+     "2025-01-03",
+     "2025-01-04",
+     "2025-01-05"
+    ]
+   },
+   {
+    "column": "sku",
+    "shape": "category",
+    "distinct": 12,
+    "nulls": 0,
+    "examples": [
+     "BQ-ROSE",
+     "BQ-MIX",
+     "BQ-LILY",
+     "FB-SMALL",
+     "FB-DELUXE"
+    ]
+   },
+   {
+    "column": "channel",
+    "shape": "category",
+    "distinct": 3,
+    "nulls": 0,
+    "examples": [
+     "app",
+     "marketplace",
+     "web"
+    ]
+   },
+   {
+    "column": "city",
+    "shape": "category",
+    "distinct": 8,
+    "nulls": 0,
+    "examples": [
+     "Beijing",
+     "Tianjin",
+     "Hangzhou",
+     "Shanghai",
+     "Guangzhou"
+    ]
+   },
+   {
+    "column": "delivery",
+    "shape": "category",
+    "distinct": 3,
+    "nulls": 0,
+    "examples": [
+     "same_day",
+     "scheduled",
+     "pickup"
+    ]
+   },
+   {
+    "column": "customer_type",
+    "shape": "category",
+    "distinct": 2,
+    "nulls": 0,
+    "examples": [
+     "new",
+     "returning"
+    ]
+   },
+   {
+    "column": "revenue",
+    "shape": "number",
+    "distinct": 36392,
+    "nulls": 0,
+    "examples": [
+     "332.54",
+     "185.35",
+     "397.7",
+     "198.66",
+     "289.69"
+    ],
+    "min": 46.95,
+    "max": 678.46
+   },
+   {
+    "column": "gross_profit",
+    "shape": "number",
+    "distinct": 21022,
+    "nulls": 0,
+    "examples": [
+     "182.9",
+     "101.94",
+     "218.74",
+     "109.26",
+     "159.33"
+    ],
+    "min": 13.15,
+    "max": 337.78
+   },
+   {
+    "column": "category",
+    "shape": "category",
+    "distinct": 4,
+    "nulls": 0,
+    "examples": [
+     "bouquet",
+     "fruit_basket",
+     "plant",
+     "gift_box"
+    ]
+   },
+   {
+    "column": "name",
+    "shape": "category",
+    "distinct": 12,
+    "nulls": 0,
+    "examples": [
+     "红玫瑰花束",
+     "混搭花束",
+     "百合花束",
+     "小果篮",
+     "精选果篮"
+    ]
+   },
+   {
+    "column": "list_price",
+    "shape": "number",
+    "distinct": 7,
+    "nulls": 0,
+    "examples": [
+     "249.0",
+     "248.0",
+     "115.0",
+     "114.0",
+     "143.0"
+    ],
+    "min": 114.0,
+    "max": 306.0
+   },
+   {
+    "column": "region",
+    "shape": "category",
+    "distinct": 4,
+    "nulls": 0,
+    "examples": [
+     "north",
+     "east",
+     "south",
+     "west"
+    ]
+   }
+  ],
+  "questions": [
+   {
+    "id": "main_table",
+    "ask": "主表（每行一笔交易、要分析的那张）是「orders」吗？它有日期、有数字、行数最多（226,814 行）。",
+    "options": [
+     "orders",
+     "cities",
+     "holidays",
+     "market",
+     "price_changes",
+     "products",
+     "promotions",
+     "traffic",
+     "weather"
+    ],
+    "suggested": "orders"
+   },
+   {
+    "id": "kind:cities",
+    "ask": "「cities」这张表是什么？（8 行；日期列 无；唯一编号列 ['city']）",
+    "options": [
+     {
+      "value": "lookup",
+      "label": "查找表（一行一个编号，其余是属性）"
+     },
+     {
+      "value": "business",
+      "label": "另一份业务数据（要拿来算数的，比如访问量）"
+     },
+     {
+      "value": "events",
+      "label": "事件记录（活动、调价之类，每行一件事、有起止日期）"
+     },
+     {
+      "value": "calendar",
+      "label": "节假日日历"
+     },
+     {
+      "value": "series",
+      "label": "外部的连续数据（天气之类）"
+     },
+     {
+      "value": "market",
+      "label": "行业大盘"
+     },
+     {
+      "value": "ignore",
+      "label": "不用"
+     }
+    ],
+    "suggested": "lookup",
+    "evidence": "8 行；日期列 无；唯一编号列 ['city']"
+   },
+   {
+    "id": "kind:holidays",
+    "ask": "「holidays」这张表是什么？（10 行；日期列 ['start', 'end']；唯一编号列 无；每行「start」都不晚于「end」，像是起止日期）",
+    "options": [
+     {
+      "value": "lookup",
+      "label": "查找表（一行一个编号，其余是属性）"
+     },
+     {
+      "value": "business",
+      "label": "另一份业务数据（要拿来算数的，比如访问量）"
+     },
+     {
+      "value": "events",
+      "label": "事件记录（活动、调价之类，每行一件事、有起止日期）"
+     },
+     {
+      "value": "calendar",
+      "label": "节假日日历"
+     },
+     {
+      "value": "series",
+      "label": "外部的连续数据（天气之类）"
+     },
+     {
+      "value": "market",
+      "label": "行业大盘"
+     },
+     {
+      "value": "ignore",
+      "label": "不用"
+     }
+    ],
+    "suggested": "calendar",
+    "evidence": "10 行；日期列 ['start', 'end']；唯一编号列 无；每行「start」都不晚于「end」，像是起止日期"
+   },
+   {
+    "id": "kind:market",
+    "ask": "「market」这张表是什么？（663 行；日期列 ['date']；唯一编号列 无；每个日期只有一行）",
+    "options": [
+     {
+      "value": "lookup",
+      "label": "查找表（一行一个编号，其余是属性）"
+     },
+     {
+      "value": "business",
+      "label": "另一份业务数据（要拿来算数的，比如访问量）"
+     },
+     {
+      "value": "events",
+      "label": "事件记录（活动、调价之类，每行一件事、有起止日期）"
+     },
+     {
+      "value": "calendar",
+      "label": "节假日日历"
+     },
+     {
+      "value": "series",
+      "label": "外部的连续数据（天气之类）"
+     },
+     {
+      "value": "market",
+      "label": "行业大盘"
+     },
+     {
+      "value": "ignore",
+      "label": "不用"
+     }
+    ],
+    "suggested": "series",
+    "evidence": "663 行；日期列 ['date']；唯一编号列 无；每个日期只有一行"
+   },
+   {
+    "id": "kind:price_changes",
+    "ask": "「price_changes」这张表是什么？（1 行；日期列 ['start', 'end']；唯一编号列 无；每行「start」都不晚于「end」，像是起止日期）",
+    "options": [
+     {
+      "value": "lookup",
+      "label": "查找表（一行一个编号，其余是属性）"
+     },
+     {
+      "value": "business",
+      "label": "另一份业务数据（要拿来算数的，比如访问量）"
+     },
+     {
+      "value": "events",
+      "label": "事件记录（活动、调价之类，每行一件事、有起止日期）"
+     },
+     {
+      "value": "calendar",
+      "label": "节假日日历"
+     },
+     {
+      "value": "series",
+      "label": "外部的连续数据（天气之类）"
+     },
+     {
+      "value": "market",
+      "label": "行业大盘"
+     },
+     {
+      "value": "ignore",
+      "label": "不用"
+     }
+    ],
+    "suggested": "events",
+    "evidence": "1 行；日期列 ['start', 'end']；唯一编号列 无；每行「start」都不晚于「end」，像是起止日期"
+   },
+   {
+    "id": "kind:products",
+    "ask": "「products」这张表是什么？（12 行；日期列 无；唯一编号列 ['sku', 'name']）",
+    "options": [
+     {
+      "value": "lookup",
+      "label": "查找表（一行一个编号，其余是属性）"
+     },
+     {
+      "value": "business",
+      "label": "另一份业务数据（要拿来算数的，比如访问量）"
+     },
+     {
+      "value": "events",
+      "label": "事件记录（活动、调价之类，每行一件事、有起止日期）"
+     },
+     {
+      "value": "calendar",
+      "label": "节假日日历"
+     },
+     {
+      "value": "series",
+      "label": "外部的连续数据（天气之类）"
+     },
+     {
+      "value": "market",
+      "label": "行业大盘"
+     },
+     {
+      "value": "ignore",
+      "label": "不用"
+     }
+    ],
+    "suggested": "lookup",
+    "evidence": "12 行；日期列 无；唯一编号列 ['sku', 'name']"
+   },
+   {
+    "id": "kind:promotions",
+    "ask": "「promotions」这张表是什么？（2 行；日期列 ['start', 'end']；唯一编号列 无；每行「start」都不晚于「end」，像是起止日期）",
+    "options": [
+     {
+      "value": "lookup",
+      "label": "查找表（一行一个编号，其余是属性）"
+     },
+     {
+      "value": "business",
+      "label": "另一份业务数据（要拿来算数的，比如访问量）"
+     },
+     {
+      "value": "events",
+      "label": "事件记录（活动、调价之类，每行一件事、有起止日期）"
+     },
+     {
+      "value": "calendar",
+      "label": "节假日日历"
+     },
+     {
+      "value": "series",
+      "label": "外部的连续数据（天气之类）"
+     },
+     {
+      "value": "market",
+      "label": "行业大盘"
+     },
+     {
+      "value": "ignore",
+      "label": "不用"
+     }
+    ],
+    "suggested": "events",
+    "evidence": "2 行；日期列 ['start', 'end']；唯一编号列 无；每行「start」都不晚于「end」，像是起止日期"
+   },
+   {
+    "id": "kind:traffic",
+    "ask": "「traffic」这张表是什么？（1,989 行；日期列 ['date']；唯一编号列 无；每个日期和「channel」只有一行）",
+    "options": [
+     {
+      "value": "lookup",
+      "label": "查找表（一行一个编号，其余是属性）"
+     },
+     {
+      "value": "business",
+      "label": "另一份业务数据（要拿来算数的，比如访问量）"
+     },
+     {
+      "value": "events",
+      "label": "事件记录（活动、调价之类，每行一件事、有起止日期）"
+     },
+     {
+      "value": "calendar",
+      "label": "节假日日历"
+     },
+     {
+      "value": "series",
+      "label": "外部的连续数据（天气之类）"
+     },
+     {
+      "value": "market",
+      "label": "行业大盘"
+     },
+     {
+      "value": "ignore",
+      "label": "不用"
+     }
+    ],
+    "suggested": "business",
+    "evidence": "1,989 行；日期列 ['date']；唯一编号列 无；每个日期和「channel」只有一行"
+   },
+   {
+    "id": "kind:weather",
+    "ask": "「weather」这张表是什么？（2,652 行；日期列 ['date']；唯一编号列 无；每个日期和「region」只有一行）",
+    "options": [
+     {
+      "value": "lookup",
+      "label": "查找表（一行一个编号，其余是属性）"
+     },
+     {
+      "value": "business",
+      "label": "另一份业务数据（要拿来算数的，比如访问量）"
+     },
+     {
+      "value": "events",
+      "label": "事件记录（活动、调价之类，每行一件事、有起止日期）"
+     },
+     {
+      "value": "calendar",
+      "label": "节假日日历"
+     },
+     {
+      "value": "series",
+      "label": "外部的连续数据（天气之类）"
+     },
+     {
+      "value": "market",
+      "label": "行业大盘"
+     },
+     {
+      "value": "ignore",
+      "label": "不用"
+     }
+    ],
+    "suggested": "series",
+    "evidence": "2,652 行；日期列 ['date']；唯一编号列 无；每个日期和「region」只有一行"
+   },
+   {
+    "id": "link:orders.sku>products.sku",
+    "ask": "「orders」的「sku」和「products」的「sku」是同一个东西吗？226,814/226,814 行能对上（覆盖 100.0%）。",
+    "options": [
+     "yes",
+     "no"
+    ],
+    "suggested": "yes",
+    "coverage": 1.0
+   },
+   {
+    "id": "link:orders.city>cities.city",
+    "ask": "「orders」的「city」和「cities」的「city」是同一个东西吗？226,814/226,814 行能对上（覆盖 100.0%）。",
+    "options": [
+     "yes",
+     "no"
+    ],
+    "suggested": "yes",
+    "coverage": 1.0
+   },
+   {
+    "id": "link:price_changes.category>products.category",
+    "ask": "「price_changes」的「category」和「products」的「category」是同一个东西吗？1/1 行能对上（覆盖 100.0%）。",
+    "options": [
+     "yes",
+     "no"
+    ],
+    "suggested": "yes",
+    "coverage": 1.0
+   },
+   {
+    "id": "link:promotions.category>products.category",
+    "ask": "「promotions」的「category」和「products」的「category」是同一个东西吗？2/2 行能对上（覆盖 100.0%）。",
+    "options": [
+     "yes",
+     "no"
+    ],
+    "suggested": "yes",
+    "coverage": 1.0
+   },
+   {
+    "id": "link:promotions.customer_type>orders.customer_type",
+    "ask": "「promotions」的「customer_type」和「orders」的「customer_type」是同一个东西吗？1/1 行能对上（覆盖 100.0%）。",
+    "options": [
+     "yes",
+     "no"
+    ],
+    "suggested": "yes",
+    "coverage": 1.0
+   },
+   {
+    "id": "link:traffic.channel>orders.channel",
+    "ask": "「traffic」的「channel」和「orders」的「channel」是同一个东西吗？1,989/1,989 行能对上（覆盖 100.0%）。",
+    "options": [
+     "yes",
+     "no"
+    ],
+    "suggested": "yes",
+    "coverage": 1.0
+   },
+   {
+    "id": "link:weather.region>cities.region",
+    "ask": "「weather」的「region」和「cities」的「region」是同一个东西吗？2,652/2,652 行能对上（覆盖 100.0%）。",
+    "options": [
+     "yes",
+     "no"
+    ],
+    "suggested": "yes",
+    "coverage": 1.0
+   },
+   {
+    "id": "event_text:holidays",
+    "ask": "「holidays」里哪一列说的是这件事是什么？",
+    "options": [
+     "name",
+     "label_zh",
+     "label_en"
+    ],
+    "suggested": "name"
+   },
+   {
+    "id": "role:market.market_sales",
+    "column": "market_sales",
+    "table": "market",
+    "ask": "「market」的「market_sales」这一列是什么？",
+    "options": [
+     {
+      "value": "amount",
+      "label": "收入金额（卖了多少钱）"
+     },
+     {
+      "value": "profit",
+      "label": "利润金额"
+     },
+     {
+      "value": "cost",
+      "label": "成本金额"
+     },
+     {
+      "value": "quantity",
+      "label": "数量（件数）"
+     },
+     {
+      "value": "visits",
+      "label": "访问量（来过的人，不管买没买）"
+     },
+     {
+      "value": "skip",
+      "label": "不是指标，忽略"
+     }
+    ]
+   },
+   {
+    "id": "market_compares:market",
+    "ask": "如果「market」是行业大盘，拿它和主表的哪一列比？不是大盘就选 none。",
+    "options": [
+     "none",
+     "revenue",
+     "gross_profit"
+    ],
+    "suggested": "none"
+   },
+   {
+    "id": "event_text:price_changes",
+    "ask": "「price_changes」里哪一列说的是这件事是什么？",
+    "options": [
+     "reason"
+    ],
+    "suggested": "reason"
+   },
+   {
+    "id": "event_kind:price_changes",
+    "ask": "「price_changes」里记的是你们自己做的事，还是外面发生的事？",
+    "options": [
+     "internal",
+     "external"
+    ],
+    "suggested": "internal"
+   },
+   {
+    "id": "event_text:promotions",
+    "ask": "「promotions」里哪一列说的是这件事是什么？",
+    "options": [
+     "campaign"
+    ],
+    "suggested": "campaign"
+   },
+   {
+    "id": "event_kind:promotions",
+    "ask": "「promotions」里记的是你们自己做的事，还是外面发生的事？",
+    "options": [
+     "internal",
+     "external"
+    ],
+    "suggested": "internal"
+   },
+   {
+    "id": "role:traffic.visits",
+    "column": "visits",
+    "table": "traffic",
+    "ask": "「traffic」的「visits」这一列是什么？",
+    "options": [
+     {
+      "value": "amount",
+      "label": "收入金额（卖了多少钱）"
+     },
+     {
+      "value": "profit",
+      "label": "利润金额"
+     },
+     {
+      "value": "cost",
+      "label": "成本金额"
+     },
+     {
+      "value": "quantity",
+      "label": "数量（件数）"
+     },
+     {
+      "value": "visits",
+      "label": "访问量（来过的人，不管买没买）"
+     },
+     {
+      "value": "skip",
+      "label": "不是指标，忽略"
+     }
+    ]
+   },
+   {
+    "id": "role:weather.rainfall_mm",
+    "column": "rainfall_mm",
+    "table": "weather",
+    "ask": "「weather」的「rainfall_mm」这一列是什么？",
+    "options": [
+     {
+      "value": "amount",
+      "label": "收入金额（卖了多少钱）"
+     },
+     {
+      "value": "profit",
+      "label": "利润金额"
+     },
+     {
+      "value": "cost",
+      "label": "成本金额"
+     },
+     {
+      "value": "quantity",
+      "label": "数量（件数）"
+     },
+     {
+      "value": "visits",
+      "label": "访问量（来过的人，不管买没买）"
+     },
+     {
+      "value": "skip",
+      "label": "不是指标，忽略"
+     }
+    ]
+   },
+   {
+    "id": "market_compares:weather",
+    "ask": "如果「weather」是行业大盘，拿它和主表的哪一列比？不是大盘就选 none。",
+    "options": [
+     "none",
+     "revenue",
+     "gross_profit"
+    ],
+    "suggested": "none"
+   },
+   {
+    "id": "date_column",
+    "ask": "按哪一列的日期统计？",
+    "options": [
+     "order_date"
+    ]
+   },
+   {
+    "id": "role:revenue",
+    "column": "revenue",
+    "ask": "「revenue」这一列是什么？例子：332.54, 185.35, 397.7",
+    "options": [
+     {
+      "value": "amount",
+      "label": "收入金额（卖了多少钱）"
+     },
+     {
+      "value": "profit",
+      "label": "利润金额"
+     },
+     {
+      "value": "cost",
+      "label": "成本金额"
+     },
+     {
+      "value": "quantity",
+      "label": "数量（件数）"
+     },
+     {
+      "value": "visits",
+      "label": "访问量（来过的人，不管买没买）"
+     },
+     {
+      "value": "skip",
+      "label": "不是指标，忽略"
+     }
+    ],
+    "table": "orders"
+   },
+   {
+    "id": "role:gross_profit",
+    "column": "gross_profit",
+    "ask": "「gross_profit」这一列是什么？例子：182.9, 101.94, 218.74",
+    "options": [
+     {
+      "value": "amount",
+      "label": "收入金额（卖了多少钱）"
+     },
+     {
+      "value": "profit",
+      "label": "利润金额"
+     },
+     {
+      "value": "cost",
+      "label": "成本金额"
+     },
+     {
+      "value": "quantity",
+      "label": "数量（件数）"
+     },
+     {
+      "value": "visits",
+      "label": "访问量（来过的人，不管买没买）"
+     },
+     {
+      "value": "skip",
+      "label": "不是指标，忽略"
+     }
+    ],
+    "table": "orders"
+   },
+   {
+    "id": "role:list_price",
+    "column": "list_price",
+    "ask": "「list_price」这一列是什么？例子：249.0, 248.0, 115.0",
+    "options": [
+     {
+      "value": "amount",
+      "label": "收入金额（卖了多少钱）"
+     },
+     {
+      "value": "profit",
+      "label": "利润金额"
+     },
+     {
+      "value": "cost",
+      "label": "成本金额"
+     },
+     {
+      "value": "quantity",
+      "label": "数量（件数）"
+     },
+     {
+      "value": "visits",
+      "label": "访问量（来过的人，不管买没买）"
+     },
+     {
+      "value": "skip",
+      "label": "不是指标，忽略"
+     }
+    ],
+    "table": "orders"
+   },
+   {
+    "id": "order_id",
+    "ask": "哪一列是一笔订单（或一笔交易、一个订阅）的编号？",
+    "options": [
+     "order_id",
+     "none"
+    ]
+   },
+   {
+    "id": "template",
+    "ask": "这份数据按什么记？只影响叫法，不影响算法。",
+    "options": [
+     {
+      "value": "orders",
+      "label": "订单（电商、零售、餐饮）"
+     },
+     {
+      "value": "subscription",
+      "label": "订阅或会员"
+     }
+    ]
+   },
+   {
+    "id": "north_star",
+    "ask": "这些数里，你最关心哪一个？",
+    "options": [
+     "revenue",
+     "gross_profit",
+     "list_price"
+    ]
+   },
+   {
+    "id": "dimensions",
+    "multi": true,
+    "ask": "哪些列可以用来切分看（渠道、地区、品类这类）？",
+    "options": [
+     "sku",
+     "channel",
+     "city",
+     "delivery",
+     "customer_type",
+     "category",
+     "name",
+     "list_price",
+     "region"
+    ]
+   },
+   {
+    "id": "belongs:sku>category",
+    "ask": "数据里每个「sku」只出现在一个「category」下面。它是不是属于那个「category」？",
+    "options": [
+     "yes",
+     "no"
+    ]
+   },
+   {
+    "id": "belongs:city>region",
+    "ask": "数据里每个「city」只出现在一个「region」下面。它是不是属于那个「region」？",
+    "options": [
+     "yes",
+     "no"
+    ]
+   },
+   {
+    "id": "belongs:name>category",
+    "ask": "数据里每个「name」只出现在一个「category」下面。它是不是属于那个「category」？",
+    "options": [
+     "yes",
+     "no"
+    ]
+   },
+   {
+    "id": "single_point_share",
+    "ask": "一刀切下去，第一名占全部变动多少才算「单点」、值得往下钻？",
+    "options": [
+     0.5,
+     0.6,
+     0.7,
+     "own value"
+    ]
+   }
+  ]
+ },
+ "confirm": {
+  "north_star": "gross_profit",
+  "metrics": [
+   "revenue",
+   "gross_profit",
+   "visits",
+   "id_count",
+   "per_id",
+   "margin",
+   "conversion"
+  ],
+  "dimensions": [
+   "channel",
+   "category",
+   "region",
+   "city",
+   "delivery",
+   "customer_type"
+  ],
+  "intake": {
+   "date": "2026-10-31",
+   "main": "orders",
+   "kinds": {
+    "cities": "lookup",
+    "holidays": "calendar",
+    "market": "market",
+    "orders": "main",
+    "price_changes": "events",
+    "products": "lookup",
+    "promotions": "events",
+    "traffic": "business",
+    "weather": "series"
+   },
+   "unanswered_tables": [],
+   "links_confirmed": [
+    "orders.sku>products.sku",
+    "orders.city>cities.city",
+    "price_changes.category>products.category",
+    "promotions.category>products.category",
+    "promotions.customer_type>orders.customer_type",
+    "traffic.channel>orders.channel",
+    "weather.region>cities.region"
+   ],
+   "joins": [
+    {
+     "source": "products",
+     "on": {
+      "sku": "sku"
+     },
+     "columns": [
+      "category",
+      "name",
+      "list_price"
+     ]
+    },
+    {
+     "source": "cities",
+     "on": {
+      "city": "city"
+     },
+     "columns": [
+      "region"
+     ]
+    }
+   ],
+   "events_imported": 3,
+   "events_skipped": [],
+   "questions": 38,
+   "answered": 38
+  },
+  "first_run": {
+   "metric": "gross_profit",
+   "current": [
+    "2026-10-12",
+    "2026-10-18"
+   ],
+   "base": "yoy"
+  }
+ },
+ "problems": [],
+ "proposed": {
+  "accepted": [
+   {
+    "id": "ev_marketplace_fee_terms",
+    "type": "event",
+    "quote": "电商平台从 10 月 12 日起执行新的费用条款，我们没有接受新的抽成档位，店铺随后掉出了首页推荐位，搜索流量明显变少。"
+   },
+   {
+    "id": "ev_east_rainstorm",
+    "type": "event",
+    "quote": "华东 21 日到 23 日连着三天大暴雨，上海、杭州两地的当日达几乎停摆"
+   },
+   {
+    "id": "mech_same_day_needs_riders",
+    "type": "mechanism",
+    "quote": "当日达要靠骑手上路，雨一大就送不出去，这在雨季是老问题。"
+   }
+  ],
+  "rejected": []
+ },
+ "formation": {
+  "counts": {
+   "from_data": 45,
+   "user_answers": 42,
+   "from_documents": 3,
+   "needs_a_person": 6
+  },
+  "items": {
+   "from_data": [
+    {
+     "kind": "entity",
+     "id": "channel:app"
+    },
+    {
+     "kind": "entity",
+     "id": "channel:marketplace"
+    },
+    {
+     "kind": "entity",
+     "id": "channel:web"
+    },
+    {
+     "kind": "entity",
+     "id": "category:bouquet"
+    },
+    {
+     "kind": "entity",
+     "id": "category:fruit_basket"
+    },
+    {
+     "kind": "entity",
+     "id": "category:gift_box"
+    },
+    {
+     "kind": "entity",
+     "id": "category:plant"
+    },
+    {
+     "kind": "entity",
+     "id": "region:east"
+    },
+    {
+     "kind": "entity",
+     "id": "region:north"
+    },
+    {
+     "kind": "entity",
+     "id": "region:south"
+    },
+    {
+     "kind": "entity",
+     "id": "region:west"
+    },
+    {
+     "kind": "entity",
+     "id": "city:Beijing"
+    },
+    {
+     "kind": "entity",
+     "id": "city:Chengdu"
+    },
+    {
+     "kind": "entity",
+     "id": "city:Chongqing"
+    },
+    {
+     "kind": "entity",
+     "id": "city:Guangzhou"
+    },
+    {
+     "kind": "entity",
+     "id": "city:Hangzhou"
+    },
+    {
+     "kind": "entity",
+     "id": "city:Shanghai"
+    },
+    {
+     "kind": "entity",
+     "id": "city:Shenzhen"
+    },
+    {
+     "kind": "entity",
+     "id": "city:Tianjin"
+    },
+    {
+     "kind": "entity",
+     "id": "delivery:pickup"
+    },
+    {
+     "kind": "entity",
+     "id": "delivery:same_day"
+    },
+    {
+     "kind": "entity",
+     "id": "delivery:scheduled"
+    },
+    {
+     "kind": "entity",
+     "id": "customer_type:new"
+    },
+    {
+     "kind": "entity",
+     "id": "customer_type:returning"
+    },
+    {
+     "kind": "relation",
+     "id": "rel:city:Beijing>region:north",
+     "confirmed_by_user": true
+    },
+    {
+     "kind": "relation",
+     "id": "rel:city:Tianjin>region:north",
+     "confirmed_by_user": true
+    },
+    {
+     "kind": "relation",
+     "id": "rel:city:Hangzhou>region:east",
+     "confirmed_by_user": true
+    },
+    {
+     "kind": "relation",
+     "id": "rel:city:Shanghai>region:east",
+     "confirmed_by_user": true
+    },
+    {
+     "kind": "relation",
+     "id": "rel:city:Guangzhou>region:south",
+     "confirmed_by_user": true
+    },
+    {
+     "kind": "relation",
+     "id": "rel:city:Shenzhen>region:south",
+     "confirmed_by_user": true
+    },
+    {
+     "kind": "relation",
+     "id": "rel:city:Chongqing>region:west",
+     "confirmed_by_user": true
+    },
+    {
+     "kind": "relation",
+     "id": "rel:city:Chengdu>region:west",
+     "confirmed_by_user": true
+    },
+    {
+     "kind": "metric",
+     "id": "per_id",
+     "via": "formula"
+    },
+    {
+     "kind": "metric",
+     "id": "margin",
+     "via": "formula"
+    },
+    {
+     "kind": "metric",
+     "id": "conversion",
+     "via": "formula"
+    },
+    {
+     "kind": "identity",
+     "id": "revenue_by_per_id",
+     "via": "formula"
+    },
+    {
+     "kind": "identity",
+     "id": "gross_profit_by_margin",
+     "via": "formula"
+    },
+    {
+     "kind": "identity",
+     "id": "id_count_by_conversion",
+     "via": "formula"
+    },
+    {
+     "kind": "lookup",
+     "id": "orders",
+     "joins": [
+      "products",
+      "cities"
+     ]
+    },
+    {
+     "kind": "outside_calendar",
+     "id": "holidays"
+    },
+    {
+     "kind": "outside_market",
+     "id": "market"
+    },
+    {
+     "kind": "outside_series",
+     "id": "weather"
+    },
+    {
+     "kind": "event",
+     "id": "ev_price_changes_1",
+     "status": "proposed",
+     "source": "../tables/price_changes.csv row 2"
+    },
+    {
+     "kind": "event",
+     "id": "ev_promotions_1",
+     "status": "proposed",
+     "source": "../tables/promotions.csv row 2"
+    },
+    {
+     "kind": "event",
+     "id": "ev_promotions_2",
+     "status": "proposed",
+     "source": "../tables/promotions.csv row 3"
+    }
+   ],
+   "user_answers": [
+    {
+     "kind": "metric",
+     "id": "revenue",
+     "via": "user"
+    },
+    {
+     "kind": "metric",
+     "id": "gross_profit",
+     "via": "user"
+    },
+    {
+     "kind": "metric",
+     "id": "visits",
+     "via": "user"
+    },
+    {
+     "kind": "metric",
+     "id": "id_count",
+     "via": "user"
+    },
+    {
+     "kind": "answer",
+     "id": "main_table",
+     "answer": "orders"
+    },
+    {
+     "kind": "answer",
+     "id": "kind:products",
+     "answer": "lookup"
+    },
+    {
+     "kind": "answer",
+     "id": "kind:cities",
+     "answer": "lookup"
+    },
+    {
+     "kind": "answer",
+     "id": "kind:traffic",
+     "answer": "business"
+    },
+    {
+     "kind": "answer",
+     "id": "kind:promotions",
+     "answer": "events"
+    },
+    {
+     "kind": "answer",
+     "id": "kind:price_changes",
+     "answer": "events"
+    },
+    {
+     "kind": "answer",
+     "id": "kind:holidays",
+     "answer": "calendar"
+    },
+    {
+     "kind": "answer",
+     "id": "kind:weather",
+     "answer": "series"
+    },
+    {
+     "kind": "answer",
+     "id": "kind:market",
+     "answer": "market"
+    },
+    {
+     "kind": "answer",
+     "id": "link:orders.sku>products.sku",
+     "answer": "yes"
+    },
+    {
+     "kind": "answer",
+     "id": "link:orders.city>cities.city",
+     "answer": "yes"
+    },
+    {
+     "kind": "answer",
+     "id": "link:traffic.channel>orders.channel",
+     "answer": "yes"
+    },
+    {
+     "kind": "answer",
+     "id": "link:promotions.category>products.category",
+     "answer": "yes"
+    },
+    {
+     "kind": "answer",
+     "id": "link:promotions.customer_type>orders.customer_type",
+     "answer": "yes"
+    },
+    {
+     "kind": "answer",
+     "id": "link:price_changes.category>products.category",
+     "answer": "yes"
+    },
+    {
+     "kind": "answer",
+     "id": "link:weather.region>cities.region",
+     "answer": "yes"
+    },
+    {
+     "kind": "answer",
+     "id": "event_text:promotions",
+     "answer": "campaign"
+    },
+    {
+     "kind": "answer",
+     "id": "event_kind:promotions",
+     "answer": "internal"
+    },
+    {
+     "kind": "answer",
+     "id": "event_text:price_changes",
+     "answer": "reason"
+    },
+    {
+     "kind": "answer",
+     "id": "event_kind:price_changes",
+     "answer": "internal"
+    },
+    {
+     "kind": "answer",
+     "id": "event_text:holidays",
+     "answer": "name"
+    },
+    {
+     "kind": "answer",
+     "id": "role:traffic.visits",
+     "answer": "visits"
+    },
+    {
+     "kind": "answer",
+     "id": "role:weather.rainfall_mm",
+     "answer": "skip"
+    },
+    {
+     "kind": "answer",
+     "id": "role:market.market_sales",
+     "answer": "skip"
+    },
+    {
+     "kind": "answer",
+     "id": "market_compares:market",
+     "answer": "revenue"
+    },
+    {
+     "kind": "answer",
+     "id": "market_compares:weather",
+     "answer": "none"
+    },
+    {
+     "kind": "answer",
+     "id": "date_column",
+     "answer": "order_date"
+    },
+    {
+     "kind": "answer",
+     "id": "role:revenue",
+     "answer": "amount"
+    },
+    {
+     "kind": "answer",
+     "id": "role:gross_profit",
+     "answer": "profit"
+    },
+    {
+     "kind": "answer",
+     "id": "role:list_price",
+     "answer": "skip"
+    },
+    {
+     "kind": "answer",
+     "id": "order_id",
+     "answer": "order_id"
+    },
+    {
+     "kind": "answer",
+     "id": "template",
+     "answer": "orders"
+    },
+    {
+     "kind": "answer",
+     "id": "north_star",
+     "answer": "gross_profit"
+    },
+    {
+     "kind": "answer",
+     "id": "dimensions",
+     "answer": [
+      "channel",
+      "category",
+      "region",
+      "city",
+      "delivery",
+      "customer_type"
+     ]
+    },
+    {
+     "kind": "answer",
+     "id": "belongs:sku>category",
+     "answer": "no"
+    },
+    {
+     "kind": "answer",
+     "id": "belongs:city>region",
+     "answer": "yes"
+    },
+    {
+     "kind": "answer",
+     "id": "belongs:name>category",
+     "answer": "no"
+    },
+    {
+     "kind": "answer",
+     "id": "single_point_share",
+     "answer": 0.5
+    }
+   ],
+   "from_documents": [
+    {
+     "kind": "event",
+     "id": "ev_marketplace_fee_terms",
+     "status": "proposed",
+     "source": "../docs/weekly_report.zh.md",
+     "quote": "电商平台从 10 月 12 日起执行新的费用条款，我们没有接受新的抽成档位，店铺随后掉出了首页推荐位，搜索流量明显变少。"
+    },
+    {
+     "kind": "event",
+     "id": "ev_east_rainstorm",
+     "status": "proposed",
+     "source": "../docs/weekly_report.zh.md",
+     "quote": "华东 21 日到 23 日连着三天大暴雨，上海、杭州两地的当日达几乎停摆"
+    },
+    {
+     "kind": "mechanism",
+     "id": "mech_same_day_needs_riders",
+     "status": "proposed",
+     "source": "../docs/weekly_report.zh.md",
+     "quote": "当日达要靠骑手上路，雨一大就送不出去，这在雨季是老问题。"
+    }
+   ],
+   "needs_a_person": [
+    {
+     "kind": "mechanism",
+     "reason": "mechanisms",
+     "have": 1,
+     "confirmed": 0
+    },
+    {
+     "kind": "action",
+     "reason": "actions"
+    },
+    {
+     "kind": "priority",
+     "reason": "priorities"
+    },
+    {
+     "kind": "comparison",
+     "reason": "comparisons"
+    },
+    {
+     "kind": "pvm",
+     "reason": "pvm"
+    },
+    {
+     "kind": "labels",
+     "reason": "labels"
+    }
+   ]
+  },
+  "pending_confirmation": [
+   "ev_price_changes_1",
+   "ev_promotions_1",
+   "ev_promotions_2",
+   "ev_marketplace_fee_terms",
+   "ev_east_rainstorm",
+   "mech_same_day_needs_riders"
+  ],
+  "intake": {
+   "date": "2026-10-31",
+   "main": "orders",
+   "kinds": {
+    "cities": "lookup",
+    "holidays": "calendar",
+    "market": "market",
+    "orders": "main",
+    "price_changes": "events",
+    "products": "lookup",
+    "promotions": "events",
+    "traffic": "business",
+    "weather": "series"
+   },
+   "unanswered_tables": [],
+   "links_confirmed": [
+    "orders.sku>products.sku",
+    "orders.city>cities.city",
+    "price_changes.category>products.category",
+    "promotions.category>products.category",
+    "promotions.customer_type>orders.customer_type",
+    "traffic.channel>orders.channel",
+    "weather.region>cities.region"
+   ],
+   "joins": [
+    {
+     "source": "products",
+     "on": {
+      "sku": "sku"
+     },
+     "columns": [
+      "category",
+      "name",
+      "list_price"
+     ]
+    },
+    {
+     "source": "cities",
+     "on": {
+      "city": "city"
+     },
+     "columns": [
+      "region"
+     ]
+    }
+   ],
+   "events_imported": 3,
+   "events_skipped": [],
+   "questions": 38,
+   "answered": 38
+  }
+ },
+ "runs": {
+  "revenue_last_week": {
+   "slots": [
+    {
+     "id": "channel=marketplace",
+     "status": "hypothesis",
+     "leaf": true,
+     "citations": [
+      {
+       "id": "ev_marketplace_fee_terms",
+       "status": "proposed",
+       "explains": "change",
+       "source": "document",
+       "checks": null
+      }
+     ]
+    }
+   ],
+   "blocked": false,
+   "coverage": {
+    "explained": 0,
+    "slots": 1,
+    "share": 0.0,
+    "data_suspect": false
+   },
+   "quality": "ok"
+  },
+  "east_last_week": {
+   "slots": [
+    {
+     "id": "delivery=same_day",
+     "status": "explained",
+     "leaf": true,
+     "citations": [
+      {
+       "id": "mech_same_day_needs_riders",
+       "status": "proposed",
+       "explains": "cannot_explain_change",
+       "source": "document",
+       "checks": null
+      },
+      {
+       "id": "ev_east_rainstorm",
+       "status": "proposed",
+       "explains": "change",
+       "source": "document",
+       "checks": "supported"
+      }
+     ]
+    }
+   ],
+   "blocked": false,
+   "coverage": {
+    "explained": 1,
+    "slots": 1,
+    "share": 1.0,
+    "data_suspect": false
+   },
+   "quality": "ok"
+  },
+  "aov_last_week": {
+   "slots": [
+    {
+     "id": "category=fruit_basket",
+     "status": "gap",
+     "leaf": false,
+     "citations": []
+    },
+    {
+     "id": "category=fruit_basket/customer_type=new",
+     "status": "hypothesis",
+     "leaf": true,
+     "citations": [
+      {
+       "id": "ev_promotions_2",
+       "status": "proposed",
+       "explains": "change",
+       "source": "system_record",
+       "checks": null
+      }
+     ]
+    }
+   ],
+   "blocked": false,
+   "coverage": {
+    "explained": 0,
+    "slots": 1,
+    "share": 0.0,
+    "data_suspect": false
+   },
+   "quality": "ok"
+  },
+  "june_revenue": {
+   "slots": [
+    {
+     "id": "category=gift_box",
+     "status": "hypothesis",
+     "leaf": true,
+     "citations": [
+      {
+       "id": "ev_price_changes_1",
+       "status": "proposed",
+       "explains": "change",
+       "source": "system_record",
+       "checks": null
+      }
+     ]
+    }
+   ],
+   "blocked": false,
+   "coverage": {
+    "explained": 0,
+    "slots": 1,
+    "share": 0.0,
+    "data_suspect": false
+   },
+   "quality": "ok"
+  },
+  "first_run": {
+   "slots": [
+    {
+     "id": "channel=marketplace",
+     "status": "hypothesis",
+     "leaf": true,
+     "citations": [
+      {
+       "id": "ev_marketplace_fee_terms",
+       "status": "proposed",
+       "explains": "change",
+       "source": "document",
+       "checks": null
+      }
+     ]
+    }
+   ],
+   "blocked": false,
+   "coverage": {
+    "explained": 0,
+    "slots": 1,
+    "share": 0.0,
+    "data_suspect": false
+   },
+   "quality": "ok"
+  }
+ }
+}

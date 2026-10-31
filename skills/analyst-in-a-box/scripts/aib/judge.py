@@ -24,6 +24,10 @@ from .qualify import OUTPUT_FIELDS as QUALIFY_FIELDS
 KNOWN_FIELDS = {**{k: set(v) for k, v in OUTPUT_FIELDS.items()}, "qualify": set(QUALIFY_FIELDS)}
 # "result" means "the cut just computed, whichever operator produced it", so one table can serve every operator.
 KNOWN_FIELDS["result"] = set().union(*(set(v) for v in OUTPUT_FIELDS.values()))
+# "cut" is the noise gate computed for the cut just made (search.gate): how the top group compares with an even
+# split and with its own history.
+KNOWN_FIELDS["cut"] = {"overall_quiet", "top1_beats_quiet", "context_unusual", "layer", "n_groups", "top1_abs_share",
+                       "top1_excess", "top1_abs_z", "top1_z", "top1_n", "has_history", "order"}
 OPS = ("gte", "gt", "lte", "lt", "eq", "ne", "in", "not_null")
 
 

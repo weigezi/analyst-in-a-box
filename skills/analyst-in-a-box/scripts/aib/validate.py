@@ -66,6 +66,15 @@ def model_problems(ws: Workspace) -> list[str]:
             elif d not in allowed:
                 p.append(f"{w}: '{d}' cannot cut this metric (its data has no such column)")
         _check_source(w, pr, p)
+    for i, pv in enumerate(ws.model.get("pvm", []) or []):
+        w = f"pvm {i}"
+        for part in ("metric", "quantity"):
+            if pv.get(part) not in ws.metrics:
+                p.append(f"{w}: {part} '{pv.get(part)}' is not a metric")
+        if pv.get("dimension") not in dims:
+            p.append(f"{w}: unknown dimension '{pv.get('dimension')}'")
+        elif pv.get("metric") in ws.metrics and pv["dimension"] not in ws.metric_dimensions(pv["metric"]):
+            p.append(f"{w}: '{pv['dimension']}' cannot cut {pv['metric']}")
     for c in ws.model.get("comparisons", []):
         w = f"comparison {c.get('id')}"
         if c.get("dimension") not in dims:

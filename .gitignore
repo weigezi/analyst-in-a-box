@@ -8,6 +8,9 @@ __pycache__/
 site/dist/
 demo/**/runs/
 demo/public/raw/
+# the intake demo's two big tables are rebuilt from demo/store by demo/intake/build_tables.py (run_intake.py does it)
+demo/intake/tables/orders.csv.gz
+demo/intake/tables/traffic.csv.gz
 *.log
 
 # tools

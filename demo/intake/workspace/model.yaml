@@ -1,0 +1,251 @@
+north_star: gross_profit
+measures:
+  m_revenue:
+    source: orders
+    agg: sum
+    column: revenue
+    date: order_date
+    dimensions:
+    - channel
+    - category
+    - region
+    - city
+    - delivery
+    - customer_type
+  m_gross_profit:
+    source: orders
+    agg: sum
+    column: gross_profit
+    date: order_date
+    dimensions:
+    - channel
+    - category
+    - region
+    - city
+    - delivery
+    - customer_type
+  m_visits:
+    source: traffic
+    agg: sum
+    column: visits
+    date: date
+    dimensions:
+    - channel
+  m_count:
+    source: orders
+    agg: count_distinct
+    column: order_id
+    date: order_date
+    dimensions: &id001
+    - channel
+    - category
+    - region
+    - city
+    - delivery
+    - customer_type
+    additive_over: *id001
+metrics:
+  revenue:
+    label: revenue
+    measure: m_revenue
+    unit: currency
+    role: amount
+    source: &id002
+      kind: user
+      date: '2026-10-31'
+    status: confirmed
+  gross_profit:
+    label: gross_profit
+    measure: m_gross_profit
+    unit: currency
+    role: profit
+    source: *id002
+    status: confirmed
+  visits:
+    label: visits
+    measure: m_visits
+    unit: count
+    role: visits
+    source: *id002
+    status: confirmed
+  id_count:
+    label:
+      en: Orders
+      zh: 订单数
+    measure: m_count
+    unit: count
+    source: *id002
+    status: confirmed
+  per_id:
+    label:
+      en: Average order value
+      zh: 客单价
+    kind: ratio
+    numerator: revenue
+    denominator: id_count
+    unit: currency
+    source:
+      kind: formula
+      ref: templates/formulas/orders.yaml
+    status: confirmed
+  margin:
+    label:
+      en: Margin rate
+      zh: 毛利率
+    kind: ratio
+    numerator: gross_profit
+    denominator: revenue
+    unit: ratio
+    source:
+      kind: formula
+      ref: templates/formulas/orders.yaml
+    status: confirmed
+  conversion:
+    label:
+      en: Conversion rate
+      zh: 转化率
+    kind: ratio
+    numerator: id_count
+    denominator: visits
+    unit: ratio
+    source:
+      kind: formula
+      ref: templates/formulas/orders.yaml
+    status: confirmed
+identities:
+- id: revenue_by_per_id
+  left: revenue
+  factors:
+  - id_count
+  - per_id
+  operator: multiply
+  source:
+    kind: formula
+  status: confirmed
+- id: gross_profit_by_margin
+  left: gross_profit
+  factors:
+  - revenue
+  - margin
+  operator: multiply
+  source:
+    kind: formula
+  status: confirmed
+- id: id_count_by_conversion
+  left: id_count
+  factors:
+  - visits
+  - conversion
+  operator: multiply
+  source:
+    kind: formula
+  status: confirmed
+dimensions:
+  channel:
+    label: channel
+    column: channel
+  category:
+    label: category
+    column: category
+  region:
+    label: region
+    column: region
+  city:
+    label: city
+    column: city
+  delivery:
+    label: delivery
+    column: delivery
+  customer_type:
+    label: customer_type
+    column: customer_type
+priorities:
+  revenue:
+    order:
+    - channel
+    - category
+    - region
+    - city
+    - delivery
+    - customer_type
+    mode: drill
+    source:
+      kind: user
+      date: '2026-10-31'
+      note: order of the user's selection; not yet a priority, so every layer is chosen by score until the user confirms one
+    status: proposed
+  gross_profit:
+    order:
+    - channel
+    - category
+    - region
+    - city
+    - delivery
+    - customer_type
+    mode: drill
+    source:
+      kind: user
+      date: '2026-10-31'
+      note: order of the user's selection; not yet a priority, so every layer is chosen by score until the user confirms one
+    status: proposed
+  visits:
+    order:
+    - channel
+    mode: drill
+    source:
+      kind: user
+      date: '2026-10-31'
+      note: order of the user's selection; not yet a priority, so every layer is chosen by score until the user confirms one
+    status: proposed
+  id_count:
+    order:
+    - channel
+    - category
+    - region
+    - city
+    - delivery
+    - customer_type
+    mode: drill
+    source:
+      kind: user
+      date: '2026-10-31'
+      note: order of the user's selection; not yet a priority, so every layer is chosen by score until the user confirms one
+    status: proposed
+  per_id:
+    order:
+    - channel
+    - category
+    - region
+    - city
+    - delivery
+    - customer_type
+    mode: drill
+    source:
+      kind: user
+      date: '2026-10-31'
+      note: order of the user's selection; not yet a priority, so every layer is chosen by score until the user confirms one
+    status: proposed
+  margin:
+    order:
+    - channel
+    - category
+    - region
+    - city
+    - delivery
+    - customer_type
+    mode: drill
+    source:
+      kind: user
+      date: '2026-10-31'
+      note: order of the user's selection; not yet a priority, so every layer is chosen by score until the user confirms one
+    status: proposed
+  conversion:
+    order:
+    - channel
+    mode: drill
+    source:
+      kind: user
+      date: '2026-10-31'
+      note: order of the user's selection; not yet a priority, so every layer is chosen by score until the user confirms one
+    status: proposed
+comparisons: []

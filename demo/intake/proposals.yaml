@@ -1,0 +1,34 @@
+# What an AI tool proposes after reading docs/weekly_report.zh.md (the shop writes its reports in Chinese; the
+# English file next to it is a translation for readers of this repository), as `propose` takes it.
+# The script does not read the report itself: it only checks that every quote is in it, word for word.
+# Entities use the ids the intake gave the groups (dimension:value).
+doc: docs/weekly_report.zh.md
+items:
+  - type: event
+    quote: "电商平台从 10 月 12 日起执行新的费用条款，我们没有接受新的抽成档位，店铺随后掉出了首页推荐位，搜索流量明显变少。"
+    entry:
+      hint: marketplace fee terms
+      kind: internal
+      start: 2026-10-12
+      entities: ["channel:marketplace"]
+      what: {zh: "电商平台执行新的费用条款，店铺掉出首页推荐位。", en: "The marketplace applied new fee terms and the shop lost its home-page placement."}
+  - type: event
+    quote: "华东 21 日到 23 日连着三天大暴雨，上海、杭州两地的当日达几乎停摆"
+    entry:
+      hint: east rainstorm
+      kind: external
+      start: 2026-10-21
+      end: 2026-10-23
+      entities: ["region:east", "delivery:same_day"]
+      what: {zh: "华东连续三天大暴雨。", en: "Three days of heavy rain in the east."}
+      evidence: {source: weather, filters: {region: east}}
+  - type: mechanism
+    quote: "当日达要靠骑手上路，雨一大就送不出去，这在雨季是老问题。"
+    entry:
+      hint: same day needs riders
+      entities: ["delivery:same_day"]
+      metrics: [revenue]
+      period: both
+      claim: {zh: "当日达要骑手上路，雨大就送不出去。", en: "Same-day delivery needs riders on the road; heavy rain stops it."}
+  # Read but not proposed: the checkout redesign ("看不出变化"), new gift-box packaging (December), the support rota.
+  # The fruit-basket sentence describes the change, it does not say why; the campaign calendar already holds the card offer.

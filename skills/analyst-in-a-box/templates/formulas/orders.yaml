@@ -7,12 +7,21 @@ names:
   id_count: {en: Orders, zh: 订单数}
   per_id: {en: Average order value, zh: 客单价}
   margin: {en: Margin rate, zh: 毛利率}
+  conversion: {en: Conversion rate, zh: 转化率}
 formulas:
   - needs: [amount, id_column]
     metric: per_id
+    unit: currency
     ratio: [amount, id_count]
     identity: {left: amount, factors: [id_count, per_id]}
   - needs: [profit, amount]
     metric: margin
+    unit: ratio
     ratio: [profit, amount]
     identity: {left: profit, factors: [amount, margin]}
+  # Only when the user says a column counts visits (from a traffic table, say): orders = visits x conversion.
+  - needs: [id_column, visits]
+    metric: conversion
+    unit: ratio
+    ratio: [id_count, visits]
+    identity: {left: id_count, factors: [visits, conversion]}

@@ -20,6 +20,9 @@ ROOT = TOOLS.parent
 TEXT = {".py", ".md", ".yaml", ".yml", ".j2", ".html", ".js", ".mjs", ".css", ".sh", ".txt", ".sql", ".toml", ".json", ".csv"}
 SKIP_DIRS = {".git", ".venv", "node_modules", "dist", "raw", "__pycache__", ".pytest_cache", "runs", "outputs", "_backup"}
 MIN_LEN = 40
+# Third-party licence texts must be shipped word for word, so any other project carrying the same licence
+# shares their lines. They are still scanned for denylist terms, only left out of the overlap comparison.
+LICENCE_TEXTS = {"ofl.txt", "license", "license.txt", "licence", "notice"}
 
 
 def files(root: Path):
@@ -53,7 +56,10 @@ def main(argv=None):
                 n = norm(line)
                 if len(n) >= MIN_LEN:
                     theirs.add(n)
+        licences = [p for p in ours if p.name.lower() in LICENCE_TEXTS]
         for p in ours:
+            if p in licences:
+                continue
             for i, line in enumerate(p.read_text(encoding="utf-8", errors="ignore").splitlines(), 1):
                 n = norm(line)
                 if len(n) >= MIN_LEN and n in theirs:
@@ -63,6 +69,9 @@ def main(argv=None):
     for h in hits:
         print("  " + h)
     if a.compare:
+        if licences:
+            print("left out of the overlap comparison (verbatim third-party licence texts): "
+                  + ", ".join(str(p.relative_to(ROOT)) for p in licences))
         print(f"lines of {MIN_LEN}+ characters shared with {a.compare}: {len(overlap)}")
         for o in overlap:
             print("  " + o)

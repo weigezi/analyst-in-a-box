@@ -10,9 +10,11 @@ names:
 formulas:
   - needs: [amount, id_column]
     metric: per_id
+    unit: currency
     ratio: [amount, id_count]
     identity: {left: amount, factors: [id_count, per_id]}
   - needs: [profit, amount]
     metric: margin
+    unit: ratio
     ratio: [profit, amount]
     identity: {left: profit, factors: [amount, margin]}

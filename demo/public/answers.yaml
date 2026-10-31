@@ -12,4 +12,12 @@ template: orders
 north_star: revenue
 dimensions: [market, country_group, customer_status]
 belongs:country_group>market: "yes"  # the 8 largest countries include the UK, so "Other" is international only
+# 0.2 asks this because every one of the 53 Saturdays in the data has no invoice. UCI does not document opening
+# days, so this is an assumption drawn from the data (maintainer, 2026-10-31), recorded in the workspace as
+# "inferred from data, to confirm", not as a known fact. Other days with no rows (Christmas, a few bank holidays)
+# are left as they are, so the data-quality step still reports them when they fall in a window.
+closed_weekdays:
+  days: [5]
+  basis: inferred_from_data
+  note: "No invoice on any of the 53 Saturdays in the data; UCI does not say which days the retailer traded."
 single_point_share: 0.5
