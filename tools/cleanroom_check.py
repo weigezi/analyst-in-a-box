@@ -23,6 +23,9 @@ MIN_LEN = 40
 # Third-party licence texts must be shipped word for word, so any other project carrying the same licence
 # shares their lines. They are still scanned for denylist terms, only left out of the overlap comparison.
 LICENCE_TEXTS = {"ofl.txt", "license", "license.txt", "licence", "notice"}
+# Standard idioms any project writes the same way (CSS/SQL keywords, accessibility media queries). They carry no
+# project content, so they are listed and left out of the overlap comparison instead of being reworded to game it.
+STOCK_LINES = {"@media (prefers-reduced-motion: reduce) {"}
 
 
 def files(root: Path):
@@ -62,13 +65,16 @@ def main(argv=None):
                 continue
             for i, line in enumerate(p.read_text(encoding="utf-8", errors="ignore").splitlines(), 1):
                 n = norm(line)
-                if len(n) >= MIN_LEN and n in theirs:
+                if len(n) >= MIN_LEN and n in theirs and n not in STOCK_LINES:
                     overlap.append(f"{p.relative_to(ROOT)}:{i}: {line.strip()[:90]}")
     print(f"scanned {len(ours)} files; {len(terms)} denylist terms")
     print(f"denylist hits: {len(hits)}")
     for h in hits:
         print("  " + h)
     if a.compare:
+        if STOCK_LINES:
+            print("left out of the overlap comparison (standard idioms, listed in STOCK_LINES): "
+                  + "; ".join(sorted(STOCK_LINES)))
         if licences:
             print("left out of the overlap comparison (verbatim third-party licence texts): "
                   + ", ".join(str(p.relative_to(ROOT)) for p in licences))

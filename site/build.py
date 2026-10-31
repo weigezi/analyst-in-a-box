@@ -32,9 +32,9 @@ CASE_IDS = ("revenue_last_week", "east_last_week", "aov_last_week", "june_price_
 
 # Navigation, shared with the pages another builder renders (pages_more). Paths are inside a language root.
 NAV = [
-    {"key": "graph", "path": "graph.html", "label": {"zh": "知识图谱", "en": "Knowledge graph"}},
-    {"key": "reports", "path": "reports/revenue_last_week.html", "label": {"zh": "案例报告", "en": "Reports"}},
-    {"key": "intake", "path": "intake.html", "label": {"zh": "采集", "en": "Bringing data in"}},
+    {"key": "intake", "path": "intake.html", "label": {"zh": "怎么形成", "en": "How it forms"}},
+    {"key": "graph", "path": "graph.html", "label": {"zh": "长成什么样", "en": "What it becomes"}},
+    {"key": "reports", "path": "reports/revenue_last_week.html", "label": {"zh": "证据", "en": "Evidence"}},
     {"key": "learning", "path": "learning.html", "label": {"zh": "它怎么学", "en": "How it learns"}},
     {"key": "architecture", "path": "architecture.html", "label": {"zh": "怎么搭的", "en": "How it is built"}},
 ]
@@ -130,6 +130,20 @@ def _ctx_filter(fn):
 @jinja2.pass_context
 def _money_filter(ctx, x, signed=False, dp=0):
     return f_money(x, ctx["lang"], signed, dp, ctx.get("currency", "CNY"))
+
+
+def write_package():
+    """A downloadable copy of the skill folder, so the install command on the home page really works."""
+    import re
+    import tarfile
+    skill = ROOT / "skills" / "analyst-in-a-box"
+    version = re.search(r"^\s*version:\s*([0-9.]+)", (skill / "SKILL.md").read_text(encoding="utf-8"), re.M).group(1)
+    out = DIST / "downloads"
+    out.mkdir(parents=True, exist_ok=True)
+    name = f"analyst-in-a-box-{version}.tar.gz"
+    with tarfile.open(out / name, "w:gz") as tar:
+        tar.add(skill, arcname="analyst-in-a-box")
+    return {"name": name, "version": version, "kb": round((out / name).stat().st_size / 1024)}
 
 
 def make_env() -> jinja2.Environment:
@@ -442,7 +456,8 @@ def unsure_view(u):
 
 def intake_summary(d):
     """From the intake run sitedata.collect() just did (demo/intake/run_intake.py -> formation.json)."""
-    return {"tables": len(d["draft"]["tables"]), "counts": d["formation"]["counts"]}
+    return {"tables": len(d["draft"]["tables"]), "asked": len(d["draft"]["questions"]),
+            "counts": d["formation"]["counts"]}
 
 
 def tone_of(state):
@@ -543,6 +558,7 @@ def build():
         shutil.rmtree(DIST)
     DIST.mkdir(parents=True)
     env = make_env()
+    env.globals["skill_package"] = write_package()   # the downloadable copy the home page installs from
     env.globals["site_meta"] = {**data["meta"], "footer": {
         "zh": "演示店「花果篮」是虚构的，数据由程序生成；页面上每个数字都来自这次构建时引擎的运行结果。",
         "en": "The demo shop, Bloom & Basket, is fictional and its data is generated; every number on this site comes from the engine's runs at build time."}}
