@@ -1,0 +1,114 @@
+{% extends "base.html.j2" %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block description %}{{ description }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ root }}assets/graphmap.css">{% endblock %}
+{% macro code_or(x) %}{% if x.code %}<code>{{ x.t }}</code>{% else %}{{ x.t }}{% endif %}{% endmacro %}
+{% block content %}
+<section class="gm-hero"><div class="wrap">
+  <p class="eyebrow">{{ w.eyebrow }}</p>
+  <h1>{% for ph in w.h1 %}<span class="ph">{{ ph }}</span>{% if not loop.last %} {% endif %}{% endfor %}</h1>
+  <p class="gm-lede">{{ lede }}</p>
+</div></section>
+
+<section class="ik-sec" id="ik-tables"><div class="wrap">
+  <h2>{{ w.s_tables }}</h2><p class="ik-sub">{{ w.s_tables_sub }}</p>
+  <div class="ik-tables">
+    {% for t in tables %}
+    <article class="ik-table{% if t.suggested == 'main' %} main{% endif %}">
+      <header><code class="ik-file">{{ t.file }}</code><span class="ik-kind">{{ t.label }}</span></header>
+      <p class="ik-meta">{{ t.rows_text }}{% if t.changed %} · <b>{{ t.changed }}</b>{% endif %}</p>
+      <div class="ik-scroll" tabindex="0" role="region" aria-label="{{ t.file }}">
+        <table><thead><tr>{% for c in t.columns %}<th title="{{ c.raw }}">{{ c.label.zh if zh else c.label.en }}</th>{% endfor %}</tr></thead>
+        <tbody>{% for r in t.sample %}<tr>{% for v in r %}<td>{{ v }}</td>{% endfor %}</tr>{% endfor %}</tbody></table>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+</div></section>
+
+<section class="ik-sec" id="ik-questions"><div class="wrap">
+  <h2>{{ w.s_q }}</h2><p class="ik-sub">{{ q_sub }}</p>
+  {% macro qcard(q) %}
+    <article class="ik-q">
+      <p class="ik-ask">{{ q.ask }}</p>
+      {% if q.evidence %}<p class="ik-ev"><span>{{ w.evidence }}</span>{{ q.evidence }}</p>{% endif %}
+      <dl class="ik-ans">
+        {% if q.suggest %}<div><dt>{{ w.suggest }}</dt><dd>{{ q.suggest }}</dd></div>{% endif %}
+        <div class="owner"><dt>{{ w.answer }}</dt><dd>{{ q.answer }}{% if q.overrode %} <span class="ik-flag">{{ w.overrode }}</span>{% endif %}</dd></div>
+      </dl>
+    </article>
+  {% endmacro %}
+  <div class="ik-qs">{% for q in featured %}{{ qcard(q) }}{% endfor %}</div>
+  <details class="ik-more"><summary>{{ q_all }}</summary>
+    <div class="ik-qs">{% for q in rest %}{{ qcard(q) }}{% endfor %}</div>
+    {% if left_out %}<p class="ik-sub">{{ left_out }}</p>{% endif %}
+  </details>
+</div></section>
+
+<section class="ik-sec" id="ik-doc"><div class="wrap">
+  <h2>{{ w.s_doc }}</h2><p class="ik-sub">{{ doc_sub }}</p>
+  <div class="ik-docwrap">
+    <div class="ik-doc">
+      <p class="ik-doc-h">{{ w.doc_src }}</p>
+      {% for hd, ps in doc %}<h3 lang="zh-CN">{{ hd }}</h3>{% for p in ps %}<p lang="zh-CN">{{ p | safe }}</p>{% endfor %}{% endfor %}
+      {% if doc_tr %}
+      <details class="ik-tr"><summary>{{ w.doc_tr }}</summary>
+        {% for hd, ps in doc_tr %}<h3>{{ hd }}</h3>{% for p in ps %}<p>{{ p | safe }}</p>{% endfor %}{% endfor %}
+      </details>
+      {% endif %}
+    </div>
+    <ol class="ik-recs">
+      {% for r in recs %}
+      <li><span class="ik-n">{{ r.n }}</span><div><p class="ik-rec-k">{{ w.rec_as }} · {{ r.kind }}</p><p>{{ r.text }}</p><p class="ik-tag">{{ w.to_confirm }}</p></div></li>
+      {% endfor %}
+      <li class="ik-skip"><p>{{ w.not_proposed }}</p></li>
+    </ol>
+  </div>
+</div></section>
+
+<section class="ik-sec" id="ik-formed"><div class="wrap">
+  <h2>{{ w.s_formed }}</h2><p class="ik-sub">{{ w.s_formed_sub }}</p>
+  <ul class="ik-counts">{% for t, n in counts %}<li><b>{{ n }}</b><span>{{ t }}</span></li>{% endfor %}</ul>
+  <div class="ik-formed">
+    <div class="ik-card">
+      <h3>{{ w.tree_h }}</h3>
+      <ul class="ik-tree">{% for i in tree %}<li>{{ code_or(i.left) }} = {% for f in i.factors %}{{ code_or(f) }}{% if not loop.last %} × {% endif %}{% endfor %}</li>{% endfor %}</ul>
+      <p class="ik-note">{{ w.tree_note }}</p>
+      <h3>{{ w.dims_h }}</h3>
+      <p class="ik-codes">{% for x in dims %}<code>{{ x }}</code>{% endfor %}</p>
+    </div>
+    <div class="ik-card">
+      <h3>{{ w.world_h }}</h3>
+      <p>{{ world_items }}</p>
+      <h3>{{ w.events_h }}</h3>
+      <ul class="ik-list">{% for e in table_events %}<li><span class="ik-when">{{ e.when }}</span>{{ e.text }}</li>{% endfor %}</ul>
+      <h3>{{ w.person_h }}</h3>
+      <ul class="ik-list">{% for p in person %}<li><b>{{ p.what }}</b>{{ w.colon }}{{ p.why }}</li>{% endfor %}</ul>
+      <p><a class="ik-link" href="graph.html">{{ w.graph_link }} →</a></p>
+    </div>
+  </div>
+</div></section>
+
+<section class="ik-sec" id="ik-gaps"><div class="wrap">
+  <h2>{{ w.s_gaps }}</h2><p class="ik-sub">{{ w.s_gaps_sub }}</p>
+  <div class="ik-scroll" tabindex="0" role="region" aria-label="{{ w.s_gaps }}">
+  <table class="ik-cmp"><thead><tr>{% for h in w.cmp_head %}<th>{{ h }}</th>{% endfor %}</tr></thead>
+    <tbody>{% for r in cmp %}<tr><td>{{ r.part }}</td><td class="num">{{ r.store }}</td><td class="num">{{ r.formed }}</td><td class="{{ 'ok' if r.ok else 'no' }}">{{ r.match }}</td></tr>{% endfor %}</tbody></table>
+  </div>
+  <ul class="ik-gaplist">{% for g in gaps %}<li>{{ g }}</li>{% endfor %}</ul>
+</div></section>
+
+<section class="ik-sec" id="ik-runs"><div class="wrap">
+  <h2>{{ w.s_runs }}</h2><p class="ik-sub">{{ w.s_runs_sub }}</p>
+  <div class="ik-first"><p class="ik-doc-h">{{ w.first_h }}</p><p>{{ first_body | safe }}</p></div>
+  <div class="ik-scroll" tabindex="0" role="region" aria-label="{{ w.s_runs }}">
+  <table class="ik-runs"><thead><tr>{% for h in w.run_head %}<th>{{ h }}</th>{% endfor %}</tr></thead>
+    <tbody>{% for r in runs %}<tr>
+      <td>{{ r.q | safe }}{% if r.first %}<br><span class="ik-flag">{{ w.first }}</span>{% endif %}</td>
+      <td>{% for dim, v in r.path %}<span class="ik-path">{{ dim }} <code>{{ v }}</code></span>{% if not loop.last %} › {% endif %}{% endfor %}</td>
+      <td>{% for c in r.cites %}<p>{{ c.text }}<br><small>{{ c.src }}{% if c.checks %} · {{ c.checks }}{% endif %}</small></p>{% else %}—{% endfor %}</td>
+      <td class="{{ 'ok' if r.explained else '' }}">{{ r.status }}</td></tr>{% endfor %}</tbody></table>
+  </div>
+  <p class="ik-note">{{ note_east }}</p>
+</div></section>
+{% endblock %}

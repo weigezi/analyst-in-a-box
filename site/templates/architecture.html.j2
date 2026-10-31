@@ -1,0 +1,60 @@
+{% extends "base.html.j2" %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block description %}{{ description }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ root }}assets/graphmap.css">{% endblock %}
+{% block content %}
+<section class="gm-hero"><div class="wrap">
+  <p class="eyebrow">{{ w.eyebrow }}</p>
+  <h1>{% for ph in w.h1 %}<span class="ph">{{ ph }}</span>{% if not loop.last %} {% endif %}{% endfor %}</h1>
+  <p class="gm-lede">{{ lede }}</p>
+</div></section>
+
+<section class="ik-sec" id="ar-roles"><div class="wrap">
+  <h2>{{ w.s_roles }}</h2>
+  <div class="ar-layers">
+    <div class="ar-roles">
+      {% for who, does, xs in roles %}
+      <article class="ar-role"><p class="ar-who">{{ who }}</p><p class="ar-does">{{ does }}</p>
+        <ul>{% for x in xs %}<li>{{ x }}</li>{% endfor %}</ul></article>
+      {% endfor %}
+    </div>
+    {% for t, d in base %}<div class="ar-base"><b>{{ t }}</b><span>{{ d }}</span></div>{% endfor %}
+  </div>
+</div></section>
+
+<section class="ik-sec" id="ar-flow"><div class="wrap">
+  <h2>{{ w.s_flow }}</h2><p class="ik-sub">{{ flow_sub }}</p>
+  <div class="gm-canvas ar-flow" style="--w:{{ flow.w }}px;--h:{{ flow.h }}px">
+    <svg class="gm-edges" viewBox="0 0 {{ flow.w }} {{ flow.h }}" width="{{ flow.w }}" height="{{ flow.h }}" aria-hidden="true">
+      <defs><marker id="ar-arrow" viewBox="0 0 8 8" refX="1" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L8,4 L0,8 z"/></marker></defs>
+      {% for e in flow.edges %}<path class="ar-e{% if e.branch %} branch{% endif %}" d="{{ e.d }}" marker-end="url(#ar-arrow)"/>{% endfor %}
+    </svg>
+    <ol class="ar-steps">
+      {% for s in flow.steps %}<li class="gm-node ar-step" style="--x:{{ s.box.x }}px;--y:{{ s.box.y }}px;--bw:{{ s.box.w }}px;--bh:{{ s.box.h }}px;--d:{{ 1 if s.box.lane else 0 }}"><b>{{ s.t }}</b><span>{{ s.d }}</span></li>{% endfor %}
+    </ol>
+  </div>
+  <p class="ik-note">{{ flow_note }}</p>
+</div></section>
+
+<section class="ik-sec" id="ar-methods"><div class="wrap">
+  <h2>{{ w.s_methods }}</h2><p class="ik-sub">{{ w.methods_sub }}</p>
+  <div class="ar-cards">{% for m in methods %}<article class="ar-card"><h3>{{ m.name }}</h3><p>{{ m.what }}</p><p class="ar-src">{{ m.src }}</p></article>{% endfor %}</div>
+</div></section>
+
+<section class="ik-sec" id="ar-compare"><div class="wrap">
+  <h2>{{ w.s_cmp }}</h2>
+  <div class="ik-scroll" tabindex="0" role="region" aria-label="{{ w.s_cmp }}">
+  <table class="ik-cmp"><thead><tr>{% for h in w.cmp_head %}<th>{{ h }}</th>{% endfor %}</tr></thead>
+    <tbody>{% for a, b, c in cmp %}<tr{% if loop.last %} class="ar-us"{% endif %}><td><b>{{ a }}</b></td><td>{{ b }}</td><td>{{ c }}</td></tr>{% endfor %}</tbody></table>
+  </div>
+  <p class="ar-strong">{{ not_more }}</p>
+  <p class="ik-note">{{ borrow }}</p>
+</div></section>
+
+<section class="ik-sec" id="ar-size"><div class="wrap">
+  <h2>{{ w.s_size }}</h2>
+  <ul class="ik-counts ar-size">{% for t, n in size %}<li><b>{{ n }}</b><span>{{ t }}</span></li>{% endfor %}</ul>
+  <h2 class="ar-h2b">{{ w.s_not }}</h2>
+  <ul class="ik-gaplist">{% for x in w.not %}<li>{{ x }}</li>{% endfor %}</ul>
+</div></section>
+{% endblock %}

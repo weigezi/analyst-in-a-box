@@ -1,0 +1,78 @@
+{#- Body of the order-value report: a ratio, so every cut splits into mix (who buys what) and each group's own level. -#}
+{% set L0 = v.cuts %}
+{% set L1 = L0.groups[0].next %}
+{% set g0 = L0.groups[0] %}
+{% set g1 = L1.groups[0] %}
+{% set c = g1.cause %}
+{% set mech = c.citations[0] %}
+{% set on = v.onset %}
+{% set off = v.offsets[0] %}
+{% set cat = g0.label | t %}
+{% set seg = g1.label | t %}
+<h1 class="r-title">{% if zh %}<span class="ph">上周客单价 {{ v.total.base | money(false, 2) }} → {{ v.total.cur | money(false, 2) }}：</span><span class="ph">主要是{{ seg }}里{{ cat }}多了，</span><span class="ph">为什么多，记录解释不了</span>{% else %}Order value {{ v.total.base | money(false, 2) }} → {{ v.total.cur | money(false, 2) }}: mostly more {{ cat | lower }} among {{ seg | lower }}, and no record explains why{% endif %}</h1>
+<p class="r-dek">{% if zh %}客单价是个比率，跌了可能是「贵的卖少了、便宜的卖多了」（结构），也可能是「每一类自己变便宜了」（各组自身）。这次 {{ L0.structure | money(true, 2) }} 来自结构，只有 {{ L0.rate | money(true, 2) }} 来自各组自身。{% else %}Order value is a ratio. It can fall because cheaper things made up more of the orders (mix), or because each group itself got cheaper (own level). This time {{ L0.structure | money(true, 2) }} came from mix and only {{ L0.rate | money(true, 2) }} from groups' own levels.{% endif %}</p>
+
+<div class="r-summary">
+  <div class="r-figure"><div class="big {{ v.total.change | tone }}">{{ v.total.change | money(true, 2) }}</div>
+    <div class="big-sub tnum">{{ v.total.base | money(false, 2) }} → {{ v.total.cur | money(false, 2) }}</div>
+    <div class="r-spark" data-chart="{{ v.id }}.spark" data-label="{{ '过去每周客单价比去年同周的变化' if zh else 'Past weekly change in order value' }}"></div>
+    <div class="r-sparkcap">{% if zh %}每周客单价比去年同周差多少元，过去 {{ v.history_n }} 周 + 本周{% else %}Weekly change in order value against last year (¥), {{ v.history_n }} weeks + this one{% endif %}</div></div>
+  <ul class="r-points">
+    <li>{% if zh %}<b>整体还在正常波动内。</b>离常态是平时波动的 {{ q.robust_z | times }} 倍，没到 {{ v.z_line | times }} 倍；但{{ cat }}这一组明显突出，所以还是往下查了。{% else %}<b>The total is within the usual range.</b> {{ q.robust_z | times }}× the usual wobble, under {{ v.z_line | times }}×; but {{ cat | lower }} stand out, so it looked further.{% endif %}</li>
+    <li>{% if zh %}<b>结构为主。</b>{{ cat }}占订单的比例从 {{ g0.weight_base | pct(1, false) }} 升到 {{ g0.weight_cur | pct(1, false) }}，它又是最便宜的一类，客单价就被拉低；{{ cat }}自己的单价只从 {{ g0.rate_base | money(false, 2) }} 到 {{ g0.rate_cur | money(false, 2) }}。{% else %}<b>Mix led.</b> {{ cat }} went from {{ g0.weight_base | pct(1, false) }} to {{ g0.weight_cur | pct(1, false) }} of orders, and they are the cheapest category, so order value fell; their own price moved only from {{ g0.rate_base | money(false, 2) }} to {{ g0.rate_cur | money(false, 2) }}.{% endif %}</li>
+    <li>{% if zh %}<b>多出来的{{ cat }}在{{ seg }}里。</b>{{ cat }}订单里{{ seg }}的比例从 {{ g1.weight_base | pct(1, false) }} 升到 {{ g1.weight_cur | pct(1, false) }}，变化从 {{ on.start | md }}开始。为什么，记录里没有。{% else %}<b>The extra {{ cat | lower }} are bought by {{ seg | lower }}.</b> Their share of {{ cat | lower }} orders rose from {{ g1.weight_base | pct(1, false) }} to {{ g1.weight_cur | pct(1, false) }}, starting {{ on.start | md }}. Why is not on record.{% endif %}</li>
+  </ul>
+</div>
+
+<section class="r-sec" id="s-tree">
+  <h2>{{ "这道题是怎么拆的" if zh else "How this question was broken down" }}</h2>
+  <p>{% if zh %}每切一层，都把变化分成「结构」和「各组自身」两半，看哪一半大。先按品类切，再在{{ cat }}里按新老客切，最后从另一边反过来验证。{% else %}At every layer the change splits into mix and own level, and the larger half leads. First by category, then by customer type inside {{ cat | lower }}, then checked from the other side.{% endif %}</p>
+  {{ tree.whole(v) }}
+  {% if c.cross_check and c.cross_check.confirms %}<p class="r-note">{% if zh %}反过来验证：先按新老客、再按品类切，指向的还是{{ seg }}的{{ cat }}。两层说的是同一个原因，只算一次。{% else %}Checked from the other side: cutting by customer type first and category second points to the same {{ seg | lower }} buying {{ cat | lower }}. The two layers describe one cause, counted once.{% endif %}</p>{% endif %}
+</section>
+
+<section class="r-sec" id="s-unusual">
+  <h2>{{ "整体在正常波动内，但有一组特别突出" if zh else "The total is within the usual range, but one group stands out" }}</h2>
+  <p>{% if zh %}过去 {{ v.history_n }} 周，客单价比去年同周的差，中间那一半在 {{ rg.usual_range[0] | money(true, 2) }} 到 {{ rg.usual_range[1] | money(true, 2) }}。本周 {{ v.total.change | money(true, 2) }}，在两条线之内。总数正常时它一般不往下拆；这次{{ cat }}这一组离它自己的常态很远，按规则还是往下查。{% else %}Over {{ v.history_n }} weeks the middle half of weekly changes ran from {{ rg.usual_range[0] | money(true, 2) }} to {{ rg.usual_range[1] | money(true, 2) }}. This week is {{ v.total.change | money(true, 2) }}, inside the lines. When the total is normal it usually stops; here {{ cat | lower }} are far from their own normal, so by the rules it looks further.{% endif %}</p>
+  <figure class="r-fig wide"><figcaption class="r-figtitle">{{ "每周客单价比去年同周差多少（单位：元）" if zh else "Weekly order value against last year (¥)" }}</figcaption>
+    <div data-chart="{{ v.id }}.range" data-last="{{ '本周' if zh else 'This week' }}" data-label="{{ '每周客单价变化' if zh else 'Weekly change in order value' }}"></div>
+    <ul class="legend"><li><i class="l-iqr"></i>{{ "过去这些周中间那一半" if zh else "Middle half of past weeks" }}</li><li><i class="l-th"></i>{{ "超出这两条线才算异常" if zh else "Outside these lines counts as unusual" }}</li></ul></figure>
+</section>
+
+<section class="r-sec" id="s-mix">
+  <h2>{% if zh %}<span class="ph">按品类拆：</span><span class="ph">结构 {{ L0.structure | money(true, 2) }}，</span><span class="ph">各组自身 {{ L0.rate | money(true, 2) }}</span>{% else %}By category: mix {{ L0.structure | money(true, 2) }}, own level {{ L0.rate | money(true, 2) }}{% endif %}</h2>
+  <p>{% if zh %}「结构」是各品类占订单的比例变了带来的变化，「各组自身」是每个品类自己的单价变了带来的变化，两者同时变的部分单列为「两者交叉」。三项加起来正好是客单价的变化。{% else %}Mix is what changed because categories took a different share of orders; own level is what changed because each category's own price moved; the part where both moved at once is shown separately. The three add up to the change in order value.{% endif %}</p>
+  <figure class="r-fig"><figcaption class="r-figtitle">{{ "客单价变化：结构和各组自身（单位：元）" if zh else "Change in order value: mix and own level (¥)" }}</figcaption>
+    <div data-chart="{{ v.id }}.terms0" data-total="{{ '客单价变化' if zh else 'Change in order value' }}" data-label="{{ '客单价变化按结构和各组自身拆开' if zh else 'Order value change split into mix and own level' }}"></div></figure>
+  <figure class="r-fig"><figcaption class="r-figtitle">{{ "各品类带来的变化（单位：元）" if zh else "Change by category (¥)" }}</figcaption>
+    <div data-chart="{{ v.id }}.waterfall" data-total="{{ '合计变化' if zh else 'Total change' }}" data-others="{{ '其余 {n} 组' if zh else 'Other {n} groups' }}" data-label="{{ '各品类带来的客单价变化' if zh else 'Order value change by category' }}"></div>
+    <p class="r-note">{% if zh %}{{ off.label | t }}反方向带来 {{ off.value | money(true, 2) }}，抵掉一部分。{% else %}{{ off.label | t }} pulled the other way by {{ off.value | money(true, 2) }}.{% endif %}</p></figure>
+  <h3>{% if zh %}再在{{ cat }}里按新老客拆：结构 {{ L1.structure | money(true, 2) }}，各组自身 {{ L1.rate | money(true, 2) }}{% else %}Then inside {{ cat | lower }}, by customer type: mix {{ L1.structure | money(true, 2) }}, own level {{ L1.rate | money(true, 2) }}{% endif %}</h3>
+  <figure class="r-fig"><figcaption class="r-figtitle">{% if zh %}{{ cat }}的单价变化：结构和各组自身（单位：元）{% else %}{{ cat }}: change in price per order, mix and own level (¥){% endif %}</figcaption>
+    <div data-chart="{{ v.id }}.terms1" data-total="{{ '单价变化' if zh else 'Change in price per order' }}" data-label="{{ cat ~ ('的单价变化按结构和各组自身拆开' if zh else ': change split into mix and own level') }}"></div></figure>
+</section>
+
+<section class="r-sec" id="s-why">
+  <h2>{{ "为什么：记录解释不了" if zh else "Why: no record explains it" }}</h2>
+  {% set fit %}{% if zh %}这条只说明了「{{ cat }}多了为什么会拉低客单价」，没说明「{{ seg }}为什么从 {{ on.start | md }}起多买了{{ cat }}」。所以它不算原因，这一块记为「记录解释不了」。{% else %}This explains why more {{ cat | lower }} pull order value down, not why {{ seg | lower }} started buying more of them from {{ on.start | md }}. So it is not a cause, and the group is marked “no record explains it”.{% endif %}{% endset %}
+  {{ tree.evidence(mech, fit) }}
+  <figure class="r-fig wide"><figcaption class="r-figtitle">{% if zh %}{{ cat }}订单里{{ seg }}的比例，每天比去年同日高多少（单位：个百分点）{% else %}{{ seg }}' share of {{ cat | lower }} orders: daily gap to the same day last year (percentage points){% endif %}</figcaption>
+    <div data-chart="{{ v.id }}.onset" data-start="{{ '{d} 起' if zh else 'From {d}' }}" data-label="{{ '新客在果篮订单里的比例，每天比去年同日' if zh else 'New customers share of fruit-basket orders, daily gap' }}"></div>
+    <p class="r-note">{% if zh %}变化日期是程序自己找的：{{ on.start | md }}之前平均 {{ on.mean_before | delta("points", 1) }}，之后 {{ on.mean_after | delta("points", 1) }}。这一天店里的记录里没有对应的事件。{% else %}The program found the date itself: {{ on.mean_before | delta("points", 1) }} on average before {{ on.start | md }}, {{ on.mean_after | delta("points", 1) }} after. No event on record starts that day.{% endif %}</p></figure>
+  <figure class="r-fig wide"><figcaption class="r-figtitle">{{ "整店每天的客单价：本周和去年同周（单位：元）" if zh else "Whole shop, daily order value: this week and the same week last year (¥)" }}</figcaption>
+    <div data-chart="{{ v.id }}.daily" data-cur="{{ '本周' if zh else 'This week' }}" data-base="{{ '去年同周' if zh else 'Same week last year' }}" data-label="{{ '每天的客单价' if zh else 'Daily order value' }}"></div></figure>
+</section>
+
+<section class="r-sec" id="s-unchecked">
+  <h2>{{ "这次没核实的" if zh else "What this report did not check" }}</h2>
+  <ul class="r-list">
+    <li>{% if zh %}{{ seg }}从 {{ on.start | md }}起多买{{ cat }}的原因。最可能的问法是「{{ on.start | md }}前后，对{{ seg }}或{{ cat }}做过什么活动？」它会把你的回答记下来，下次同样的题直接引用。{% else %}Why {{ seg | lower }} began buying more {{ cat | lower }} from {{ on.start | md }}. The question to ask is “Was there any offer for {{ seg | lower }} or on {{ cat | lower }} around {{ on.start | md }}?” It records the answer and cites it next time.{% endif %} <a href="../learning.html">{{ "看它怎么学 →" if zh else "How it learns →" }}</a></li>
+    <li>{% if zh %}整体在正常波动内。这份报告找的是「变在哪」，不是在说这一周出了异常。{% else %}The total is within the usual range. This report finds where the change sits; it does not say the week was unusual.{% endif %}</li>
+    <li>{% if zh %}{{ off.label | t }}反方向带来 {{ off.value | money(true, 2) }}，这次没有查为什么。{% else %}{{ off.label | t }} pulled the other way by {{ off.value | money(true, 2) }}; why was not checked.{% endif %}</li>
+  </ul>
+</section>
+
+<section class="r-sec" id="s-act">
+  <h2>{{ "谁该做什么" if zh else "Who should act" }}</h2>
+  <p>{% if zh %}没有记下的负责人和动作：原因还不知道，先回答上面那一问。{% else %}No owner or action on record: the cause is not known yet. Answer the question above first.{% endif %}</p>
+</section>

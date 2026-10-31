@@ -1,0 +1,63 @@
+{#- Body of the app-against-web report: a second-order question. The gap in growth between two sides splits into
+    a mix gap (the sides sell different things) and a performance gap (the same thing grew differently on each side). -#}
+{% set L0 = v.cuts %}
+{% set g0 = L0.groups[0] %}
+{% set c = v.cause %}
+{% set ev = c.citations[0] %}
+{% set act = c.actions[0] %}
+{% set a, b = L0.sides[0] | t, L0.sides[1] | t %}
+{% set cat = g0.label | t %}
+{% set cal = v.calendar %}
+<h1 class="r-title">{% if zh %}<span class="ph">近四周 {{ a }}比{{ b }}慢 {{ -L0.total | delta("points", 1, false) }}：</span><span class="ph">差在同样的东西在 {{ a }}上卖得差，</span><span class="ph">集中在{{ cat }}</span>{% else %}Over four weeks the app grew {{ -L0.total | delta("points", 1, false) }} slower than the web: the same things sold worse in the app, mostly {{ cat | lower }}{% endif %}</h1>
+<p class="r-dek">{% if zh %}两边比增速，差可以来自「卖的东西不一样」（结构差），也可以来自「同样的东西，两边长得不一样」（表现差）。这次结构差只有 {{ L0.mix | delta("points", 1) }}，表现差 {{ L0.performance | delta("points", 1) }}。{{ ev.start | md }}起{{ ev.text | t | replace("。", "") }}。{% else %}When two sides' growth is compared, the gap can come from selling different things (mix gap) or from the same things growing differently (performance gap). Here the mix gap is only {{ L0.mix | delta("points", 1) }} and the performance gap {{ L0.performance | delta("points", 1) }}. From {{ ev.start | md }}: {{ ev.text | t }}{% endif %}</p>
+
+<div class="r-summary">
+  <div class="r-figure"><div class="big {{ L0.total | tone }}">{{ L0.total | delta("points", 1) }}</div>
+    <div class="big-sub tnum">{{ a }} {{ L0.growth_a | pct }} · {{ b }} {{ L0.growth_b | pct }}</div>
+    <div class="r-spark" data-chart="{{ v.id }}.spark" data-label="{{ '整店过去几个四周的同比变化' if zh else 'Whole shop, past four-week changes' }}"></div>
+    <div class="r-sparkcap">{% if zh %}整店每四周同比，过去 {{ v.history_n }} 段 + 本段{% else %}Whole shop, four-week change on last year, {{ v.history_n }} periods + this one{% endif %}</div></div>
+  <ul class="r-points">
+    <li>{% if zh %}<b>差在表现，不在结构。</b>两边卖的品类比例差不多，结构差只有 {{ L0.mix | delta("points", 1) }}。{% else %}<b>Performance, not mix.</b> The two sides sell much the same categories; the mix gap is only {{ L0.mix | delta("points", 1) }}.{% endif %}</li>
+    <li>{% if zh %}<b>集中在{{ cat }}。</b>{{ cat }}在{{ a }}上 {{ g0.growth_a | pct }}，在{{ b }}上 {{ g0.growth_b | pct }}，带来 {{ g0.amount | delta("points", 1) }}。{% else %}<b>Mostly {{ cat | lower }}.</b> {{ cat }} {{ g0.growth_a | pct }} in the app, {{ g0.growth_b | pct }} on the web: {{ g0.amount | delta("points", 1) }} of the gap.{% endif %}</li>
+    <li>{% if zh %}<b>原因有记录。</b>{{ ev.start | md }}起{{ ev.text | t }}{% else %}<b>Cause on record.</b> From {{ ev.start | md }}: {{ ev.text | t }}{% endif %}</li>
+  </ul>
+</div>
+
+<section class="r-sec" id="s-tree">
+  <h2>{{ "这道题是怎么拆的" if zh else "How this question was broken down" }}</h2>
+  <p>{% if zh %}这是二阶题：比的不是一个数的变化，而是两边增速的差。按品类切，每一组都分成结构差和表现差。{% else %}A second-order question: it compares not one number's change but the gap between two sides' growth. Cut by category, every group splits into a mix gap and a performance gap.{% endif %}</p>
+  {{ tree.whole(v) }}
+</section>
+
+<section class="r-sec" id="s-split">
+  <h2>{% if zh %}<span class="ph">结构差 {{ L0.mix | delta("points", 1) }}，</span><span class="ph">表现差 {{ L0.performance | delta("points", 1) }}</span>{% else %}Mix gap {{ L0.mix | delta("points", 1) }}, performance gap {{ L0.performance | delta("points", 1) }}{% endif %}</h2>
+  <p>{% if zh %}「结构差」：如果两边每个品类长得一样快，只因为两边卖的品类比例不同，增速会差多少。「表现差」：同一个品类，两边长得不一样快带来的差。两项加起来正好是增速差。{% else %}Mix gap: how far the two sides' growth would differ if every category grew at the same rate on both, just because they sell different proportions. Performance gap: what comes from the same category growing at different rates. The two add up to the growth gap.{% endif %}</p>
+  <figure class="r-fig"><figcaption class="r-figtitle">{% if zh %}{{ a }}和{{ b }}的增速差：结构差和表现差（单位：个百分点）{% else %}App against web: mix gap and performance gap (percentage points){% endif %}</figcaption>
+    <div data-chart="{{ v.id }}.terms0" data-total="{{ '增速差' if zh else 'Growth gap' }}" data-label="{{ '增速差按结构差和表现差拆开' if zh else 'Growth gap split into mix and performance' }}"></div></figure>
+  <figure class="r-fig"><figcaption class="r-figtitle">{{ "各品类带来的增速差（单位：个百分点）" if zh else "Growth gap by category (percentage points)" }}</figcaption>
+    <div data-chart="{{ v.id }}.waterfall" data-total="{{ '增速差' if zh else 'Growth gap' }}" data-others="{{ '其余 {n} 组' if zh else 'Other {n} groups' }}" data-label="{{ '各品类带来的增速差' if zh else 'Growth gap by category' }}"></div></figure>
+</section>
+
+<section class="r-sec" id="s-why">
+  <h2>{% if zh %}<span class="ph">原因有记录：</span><span class="ph">{{ ev.text | t | replace("。", "") }}</span>{% else %}Cause on record: {{ ev.text | t | replace(".", "") }}{% endif %}</h2>
+  {% set fit %}{% if zh %}对得上：记录说的是{{ a }}上的{{ cat }}，正是增速差最大的那一组；时间在这四周之前。{% else %}It fits: the record is about {{ cat | lower }} in the app, the group with the largest gap, and it starts before these four weeks.{% endif %}{% endset %}
+  {{ tree.evidence(ev, fit) }}
+  <figure class="r-fig wide"><figcaption class="r-figtitle">{{ "整店每天营收：近四周和去年同期（单位：元）" if zh else "Whole shop, daily revenue: these four weeks and last year (¥)" }}</figcaption>
+    <div data-chart="{{ v.id }}.daily" data-cur="{{ '近四周' if zh else 'These four weeks' }}" data-base="{{ '去年同期' if zh else 'Last year' }}" data-label="{{ '整店每天营收' if zh else 'Whole shop, daily revenue' }}"></div>
+    <p class="r-note">{% if zh %}按星期几对齐。去年同期里有中秋送礼周，今年的国庆和去年差了 1 天，两年的节日没对上，所以整店同比 {{ v.total.growth | pct }} 不能直接看。{% else %}Aligned by weekday. Last year's period includes the Mid-Autumn gifting week and National Day differs by a day, so the holidays do not line up and the whole shop's {{ v.total.growth | pct }} should not be read directly.{% endif %}</p></figure>
+</section>
+
+<section class="r-sec" id="s-unchecked">
+  <h2>{{ "这次没核实的" if zh else "What this report did not check" }}</h2>
+  <ul class="r-list">
+    <li>{% if zh %}这次没有找到{{ cat }}在{{ a }}上从哪天开始变的：没有单独的变化日期，只能说记录的日期（{{ ev.start | md }}）在这四周之前。{% else %}It did not find the day {{ cat | lower }} in the app started to change; it can only say the record's date ({{ ev.start | md }}) is before these four weeks.{% endif %}</li>
+    <li>{% if zh %}整店近四周同比 {{ v.total.growth | pct }}，离常态很远，但这里面有两年节日没对上的影响，这份报告没有把节日剔掉再算一次。{% else %}The whole shop is {{ v.total.growth | pct }} over the four weeks, far from normal, but that includes holidays that do not line up; this report did not recompute it without them.{% endif %}</li>
+    <li>{% if zh %}{{ v.secondary_label | t }}在两边也差了 {{ v.secondary.value | delta("points", 1) }}，这次没有查为什么。{% else %}{{ v.secondary_label | t }} also differ by {{ v.secondary.value | delta("points", 1) }}; why was not checked.{% endif %}</li>
+  </ul>
+</section>
+
+<section class="r-sec" id="s-act">
+  <h2>{{ "谁该做什么" if zh else "Who should act" }}</h2>
+  <table class="r-table"><thead><tr><th>{{ "负责人" if zh else "Owner" }}</th><th>{{ "做什么" if zh else "What" }}</th><th>{{ "依据" if zh else "Basis" }}</th></tr></thead>
+    <tbody><tr><td><b>{{ act.owner | t }}</b></td><td>{{ act.action | t }}</td><td class="tnum">{% if zh %}{{ cat }}带来 {{ g0.amount | delta("points", 1) }} 的增速差；{{ ev.start | md }}起的改版有记录{% else %}{{ cat }} account for {{ g0.amount | delta("points", 1) }} of the gap; the {{ ev.start | md }} change is on record{% endif %}</td></tr></tbody></table>
+</section>

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import re
 from pathlib import Path
 
 import pandas as pd
@@ -47,14 +48,59 @@ def _kind(s: pd.Series, n: int) -> str:
     return "category" if nun <= MAX_DIM_VALUES else "text"
 
 
+# Readable names for columns. These are names, not meanings: what a column *means* is still asked as a question
+# (role:<column>) and never taken from its name. A token missing from the table stays as it is, and the person
+# answering can override any name with an answer "name:<column>" (a string, or {"zh": ..., "en": ...}).
+TOKEN_ZH = {
+    "id": "编号", "order": "订单", "date": "日期", "time": "时间", "datetime": "时间", "day": "日期", "week": "周",
+    "month": "月份", "year": "年份", "customer": "客户", "client": "客户", "country": "国家", "region": "大区",
+    "province": "省份", "city": "城市", "store": "门店", "shop": "门店", "group": "分组", "status": "状态",
+    "market": "市场", "revenue": "营收", "gmv": "成交额", "amount": "金额", "value": "金额", "items": "件数",
+    "lines": "行数", "invoice": "发票", "quantity": "数量", "qty": "数量", "price": "单价", "unit": "单价",
+    "sku": "商品编号", "product": "商品", "channel": "渠道", "category": "品类", "type": "类型", "name": "名称",
+    "delivery": "配送方式", "shipping": "配送", "promotion": "活动", "campaign": "活动", "start": "开始",
+    "end": "结束", "weather": "天气", "rainfall": "降雨量", "rain": "降雨", "mm": "毫米", "visits": "访问量",
+    "visit": "访问量", "traffic": "流量", "sessions": "会话数", "profit": "毛利", "margin": "毛利率",
+    "cost": "成本", "gross": "毛利", "net": "净", "total": "合计", "average": "平均", "avg": "平均", "discount": "折扣", "refund": "退款", "return": "退货", "supplier": "供应商", "brand": "品牌",
+    "spend": "花费", "clicks": "点击", "click": "点击", "impressions": "曝光", "conversion": "转化",
+    "user": "用户", "member": "会员", "subscription": "订阅", "plan": "套餐", "list": "标价", "label": "名称",
+    "zh": "中文", "en": "英文", "reason": "原因", "change": "变动", "sales": "销售额", "note": "备注",
+}
+UNITS = {"mm": "毫米", "pct": "%", "kg": "千克", "g": "克", "km": "公里"}
+ACRONYMS = {"id": "ID", "sku": "SKU", "gmv": "GMV", "qty": "Qty", "mm": "mm", "url": "URL", "kpi": "KPI"}
+
+
+COMPOUND = {
+    "list_price": {"zh": "标价", "en": "List price"}, "unit_price": {"zh": "单价", "en": "Unit price"},
+    "label_zh": {"zh": "名称（中文）", "en": "Name (Chinese)"}, "label_en": {"zh": "名称（英文）", "en": "Name (English)"},
+}
+
+
+def readable(column):
+    """{"zh": ..., "en": ...} from the column's own tokens; not a statement about what the column means."""
+    if str(column).lower() in COMPOUND:
+        return dict(COMPOUND[str(column).lower()])
+    tokens = [t for t in re.split(r"[_\-\s]+", str(column)) if t]
+    parts, prev = [], None
+    for i, t in enumerate(tokens):
+        word = TOKEN_ZH.get(t.lower(), t)
+        if t.lower() in UNITS and i:
+            word = f"（{word}）"
+        if word != prev:                      # "unit_price" must not read "单价单价"
+            parts.append(word)
+            prev = word
+    en = " ".join(ACRONYMS.get(t.lower(), t[:1].upper() + t[1:].lower()) for t in tokens)
+    return {"zh": "".join(parts) or str(column), "en": en or str(column)}
+
+
 def profile(df: pd.DataFrame) -> list[dict]:
     n = len(df)
     out = []
     for col in df.columns:
         s = df[col]
         k = _kind(s, n)
-        item = {"column": col, "shape": k, "distinct": int(s.nunique(dropna=True)), "nulls": int(s.isna().sum()),
-                "examples": [str(x) for x in s.dropna().unique()[:5]]}
+        item = {"column": col, "name": readable(col), "shape": k, "distinct": int(s.nunique(dropna=True)),
+                "nulls": int(s.isna().sum()), "examples": [str(x) for x in s.dropna().unique()[:5]]}
         if k == "number":
             item["min"], item["max"] = float(s.min()), float(s.max())
         out.append(item)
@@ -80,12 +126,16 @@ def questions(prof: list[dict], fds: list[dict], lang: str = "zh", quiet: list[d
     dates = [p["column"] for p in prof if p["shape"] == "date"]
     if dates:
         qs.append({"id": "date_column", "ask": "按哪一列的日期统计？" if zh else "Which date column should the numbers be counted by?",
-                   "options": dates})
+                   "options": [{"value": c, "label": (next(x for x in prof if x["column"] == c).get("name") or {}).get(lang) or c}
+                               for c in dates]})
+    def nm(item, lg):
+        return (item.get("name") or {}).get(lg) or item["column"]
+
     for p in prof:
         if p["shape"] == "number":
             qs.append({"id": f"role:{p['column']}", "column": p["column"],
-                       "ask": (f"「{p['column']}」这一列是什么？例子：{', '.join(p['examples'][:3])}" if zh else
-                               f"What is the column \"{p['column']}\"? Examples: {', '.join(p['examples'][:3])}"),
+                       "ask": (f"「{nm(p, 'zh')}」这一列是什么？例子：{', '.join(p['examples'][:3])}" if zh else
+                               f"What is the column \"{nm(p, 'en')}\"? Examples: {', '.join(p['examples'][:3])}"),
                        "options": [{"value": k, "label": v[lang]} for k, v in ROLES.items()]})
     rows = max((p["distinct"] + p["nulls"] for p in prof), default=0)
     ids = [p["column"] for p in prof if p["shape"] in ("unique", "text")
@@ -93,7 +143,8 @@ def questions(prof: list[dict], fds: list[dict], lang: str = "zh", quiet: list[d
     if ids:
         qs.append({"id": "order_id", "ask": "哪一列是一笔订单（或一笔交易、一个订阅）的编号？" if zh else
                    "Which column identifies one order (or one transaction, one subscription)?",
-                   "options": ids + ["none"]})
+                   "options": [{"value": c, "label": (next((x for x in prof if x["column"] == c), {}).get("name") or {}).get(lang) or c}
+                               for c in ids] + ["none"]})
         qs.append({"id": "template", "ask": "这份数据按什么记？只影响叫法，不影响算法。" if zh else
                    "What does each row record? This only changes the names, not the arithmetic.",
                    "options": [{"value": "orders", "label": "订单（电商、零售、餐饮）" if zh else "Orders (e-commerce, retail, restaurants)"},
@@ -210,21 +261,38 @@ def proposed_priorities(measures: dict, metrics: dict, dims: list, said: dict) -
     return out
 
 
-def build_metrics(specs: list, id_spec: dict | None, template: str, said: dict):
+def _as_name(v):
+    if isinstance(v, dict):
+        return {"zh": v.get("zh") or v.get("en"), "en": v.get("en") or v.get("zh")}
+    return {"zh": v, "en": v}
+
+
+def name_map(profile: list, answers: dict) -> dict:
+    """Readable name per column: the answer "name:<column>" if given, else the one read from the column name."""
+    out = {}
+    for it in profile:
+        given = answers.get(f"name:{it['column']}")
+        out[it["column"]] = _as_name(given) if given else it.get("name") or readable(it["column"])
+    return out
+
+
+def build_metrics(specs: list, id_spec: dict | None, template: str, said: dict, names: dict | None = None):
     """Measures, metrics and identities from the columns whose meaning the user confirmed.
 
     specs: [{column, role, source, date, dimensions[, columns]}]; id_spec: the order-id column, if any.
     The template only names formulas (arithmetic); which columns fill them comes from the user's roles."""
     measures, metrics, identities, by_role = {}, {}, [], {}
+    nm = lambda c: (names or {}).get(c) or _as_name(c)  # noqa: E731
     for sp in specs:
         if sp["role"] == "skip":
             continue
         col = sp["column"]
-        m = {"source": sp["source"], "agg": "sum", "column": col, "date": sp["date"], "dimensions": list(sp["dimensions"])}
+        m = {"label": nm(col), "source": sp["source"], "agg": "sum", "column": col, "date": sp["date"],
+             "dimensions": list(sp["dimensions"])}
         if sp.get("columns"):
             m["columns"] = dict(sp["columns"])
         measures[f"m_{col}"] = m
-        metrics[col] = {"label": col, "measure": f"m_{col}", "unit": "count" if sp["role"] in ("quantity", "visits") else "currency",
+        metrics[col] = {"label": nm(col), "measure": f"m_{col}", "unit": "count" if sp["role"] in ("quantity", "visits") else "currency",
                         "role": sp["role"], "source": said, "status": "confirmed"}
         by_role.setdefault(sp["role"], col)
     tpl = yaml.safe_load((TEMPLATES / f"{template}.yaml").read_text(encoding="utf-8"))
@@ -295,10 +363,13 @@ def confirm(workspace, answers: dict, today: dt.date | None = None) -> dict:
     if id_col:
         add = _additive_dims(df, id_col, dims)
         id_spec = {"column": id_col, "source": "data", "date": date_col, "dimensions": add}
-    measures, metrics, identities, by_role = build_metrics(specs, id_spec, answers.get("template", "orders"), said)
+    names = name_map(draft["profile"], answers)
+    project["columns"] = {c: n for c, n in names.items()}
+    _dump(ws / "project.yaml", project)
+    measures, metrics, identities, by_role = build_metrics(specs, id_spec, answers.get("template", "orders"), said, names)
     north = answers.get("north_star") if answers.get("north_star") in metrics else by_role.get("amount") or next(iter(metrics), None)
     model = {"north_star": north, "measures": measures, "metrics": metrics, "identities": identities,
-             "dimensions": {d: {"label": d, "column": d} for d in dims},
+             "dimensions": {d: {"label": names.get(d) or _as_name(d), "column": d} for d in dims},
              "priorities": proposed_priorities(measures, metrics, dims, said),
              "comparisons": []}
     _dump(ws / "model.yaml", model)

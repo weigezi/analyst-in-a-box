@@ -172,6 +172,11 @@ def _joined(main_df, links, frames, main, use=lambda lk: lk["suggested"] == "yes
     return df, joins
 
 
+def _rn(col, lang):
+    """Readable name of a column, for question text (the ids keep the raw names)."""
+    return draft.readable(col)[lang]
+
+
 def _q(qid, zh, en, options, lang, **extra):
     return {"id": qid, "ask": zh if lang == "zh" else en, "options": options, **extra}
 
@@ -215,11 +220,13 @@ def init(paths, workspace, lang="zh", main=None) -> dict:
     for t in tables.values():
         if t["name"] == main:
             continue
-        ev = (f"{t['rows']:,} 行；日期列 {t['date_columns'] or '无'}；唯一编号列 {t['keys'] or '无'}" if zh else
-              f"{t['rows']:,} rows; date columns {t['date_columns'] or 'none'}; one-per-row columns {t['keys'] or 'none'}")
+        date_names = ", ".join(_rn(c, lang) for c in t["date_columns"]) or ("无" if zh else "none")
+        key_names = ", ".join(_rn(c, lang) for c in t["keys"]) or ("无" if zh else "none")
+        ev = (f"{t['rows']:,} 行；日期列 {date_names}；唯一编号列 {key_names}" if zh else
+              f"{t['rows']:,} rows; date columns {date_names}; one-per-row columns {key_names}")
         if t.get("start_end"):
-            ev += (f"；每行「{t['start_end'][0]}」都不晚于「{t['start_end'][1]}」，像是起止日期" if zh else
-                   f"; on every row \"{t['start_end'][0]}\" is not after \"{t['start_end'][1]}\", like a start and an end")
+            ev += (f"；每行「{_rn(t['start_end'][0], lang)}」都不晚于「{_rn(t['start_end'][1], lang)}」，像是起止日期" if zh else
+                   f"; on every row \"{_rn(t['start_end'][0], lang)}\" is not after \"{_rn(t['start_end'][1], lang)}\", like a start and an end")
         if "per_date" in t:
             ev += (f"；每个日期{'和「' + t['per_date'][0] + '」' if t['per_date'] else ''}只有一行" if zh else
                    f"; one row per date{' and ' + t['per_date'][0] if t['per_date'] else ''}")
@@ -390,7 +397,9 @@ def confirm(workspace, answers: dict, today: dt.date | None = None) -> dict:
                                "source": {"kind": "system_record", "ref": f"{_rel(t['path'], ws)} row {i + 2}",
                                           "note": "imported from an event table at intake; the table was confirmed, each row is to confirm"},
                                "status": "proposed"})
-    measures, metrics, identities, by_role = draft.build_metrics(specs, id_spec, answers.get("template", "orders"), said)
+    every_column = list(dict.fromkeys([c for f in frames.values() for c in f.columns] + list(joined.columns)))
+    names = draft.name_map([{"column": c, "name": draft.readable(c)} for c in every_column], answers)
+    measures, metrics, identities, by_role = draft.build_metrics(specs, id_spec, answers.get("template", "orders"), said, names)
     north = answers.get("north_star") if answers.get("north_star") in metrics else by_role.get("amount") or next(iter(metrics), None)
 
     project = {"name": _abs(mt["path"], ws).parent.name, "language": lang, "sources": sources}
@@ -401,7 +410,7 @@ def confirm(workspace, answers: dict, today: dt.date | None = None) -> dict:
         project["quality"] = q
     draft._dump(ws / "project.yaml", project)
     model = {"north_star": north, "measures": measures, "metrics": metrics, "identities": identities,
-             "dimensions": {x: {"label": x, "column": x} for x in dims},
+             "dimensions": {x: {"label": names.get(x) or draft._as_name(x), "column": x} for x in dims},
              "priorities": draft.proposed_priorities(measures, metrics, dims, said),
              "comparisons": []}
     draft._dump(ws / "model.yaml", model)
@@ -502,7 +511,8 @@ def propose(workspace, doc, items: list, today: dt.date | None = None) -> dict:
         accepted.append({"id": entry["id"], "type": kind, "quote": it["quote"]})
     draft._dump(ws / "world.yaml", world)
     with open(ws / "proposals.jsonl", "a", encoding="utf-8") as f:
-        f.write(json.dumps({"at": dt.datetime.now().isoformat(timespec="seconds"), "doc": os.path.relpath(doc.resolve(), ws.resolve()),
+        at = today.isoformat() if today else dt.datetime.now().isoformat(timespec="seconds")
+        f.write(json.dumps({"at": at, "doc": os.path.relpath(doc.resolve(), ws.resolve()),
                             "accepted": accepted, "rejected": rejected}, ensure_ascii=False) + "\n")
     return {"accepted": accepted, "rejected": rejected}
 

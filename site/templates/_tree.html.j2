@@ -1,0 +1,114 @@
+{#- Breakdown tree: from the total change down to the cause, every node with its amount.
+    Only the path the breakdown took is expanded; the groups it did not follow collapse into "other N groups".
+    Also the evidence card shared by every report. Import with context: {% import "_tree.html.j2" as tree with context %}. -#}
+{% set REASON = {
+  "single_point": ("这一组明显突出，接着往下拆", "This group stands out, so it keeps going"),
+  "single_point_inside_a_quiet_total": ("总数在正常范围内，但这一组明显突出，接着往下拆", "The total is within the usual range but this group stands out, so it keeps going"),
+  "spread_or_noise": ("各组一起变，没有哪组突出，停在这里", "The groups moved together and none stands out, so it stops here"),
+  "whole_number_within_usual_range": ("总数在正常范围内，不往下拆", "The total is within the usual range, so it does not break it down"),
+} %}
+{% set STATUS = {
+  "explained": ("原因有记录", "Cause on record"),
+  "gap": ("记录解释不了", "No record explains it"),
+  "pending": ("待你确认", "Waiting for you to confirm"),
+} %}
+{% set SOURCE = {
+  "system_record": ("系统记录", "system record"), "document": ("文档", "document"),
+  "demo_setting": ("演示店设置", "demo shop setting"), "user": ("用户告诉它的", "told by the user"),
+  "external": ("外部来源", "outside source"), "general_knowledge": ("公开信息", "public information"),
+} %}
+{% set ENTRY_STATUS = {"confirmed": ("已确认", "confirmed"), "proposed": ("推测，待确认", "a guess, waiting to be confirmed")} %}
+{% set CHECK_STATUS = {"supported": ("推测，已过三道检查", "A hypothesis that passed all three checks"),
+                       "timing_only": ("推测，只有时间对得上，未证实", "A hypothesis: only the timing matches, not proven"),
+                       "not_supported": ("推测，时间都对不上", "A hypothesis whose timing does not match")} %}
+{% set LARGER = {"structure": ("结构为主", "Mix led"), "rate": ("各组自身为主", "Own level led"),
+                 "mix": ("结构差为主", "Mix gap led"), "performance": ("表现差为主", "Performance gap led")} %}
+{% macro pick(pair) %}{{ pair[0] if zh else pair[1] }}{% endmacro %}
+
+{% macro amount(x, v) %}<span class="tr-amt {{ x | tone }}">{{ x | delta(v.unit, v.dp) }}</span>{% endmacro %}
+
+{% macro source_name(src) %}{{ src.label | t if src.get("label") else pick(SOURCE[src.kind]) }}{% endmacro %}
+
+{% macro formula_node(n, v) %}
+<li class="tr-node"><div class="tr-box"><span class="tr-lab">{{ n.label | t }}</span>{{ amount(n.amount, v) }}
+  <span class="tr-note">{{ "自身" if zh else "itself" }} {{ n.growth | pct }}</span></div>
+  {% if n.children %}<p class="tr-how">{{ n.label | t }} = {% for c in n.formula %}{{ c | t }}{{ " × " if not loop.last }}{% endfor %}</p>
+  <ul class="tr">{% for c in n.children %}{{ formula_node(c, v) }}{% endfor %}</ul>{% endif %}
+</li>
+{% endmacro %}
+
+{% macro formula(f, v) %}
+<div class="tr-branch"><p class="tr-how strong">{{ "按公式拆：" if zh else "By formula: " }}{{ f.label | t }} = {% for c in f.formula %}{{ c | t }}{{ " × " if not loop.last }}{% endfor %}</p>
+<ul class="tr">{% for c in f.children %}{{ formula_node(c, v) }}{% endfor %}</ul></div>
+{% endmacro %}
+
+{% macro cause_tag(c) %}
+{% set cit = c.citations[0] if c.citations else none %}
+<div class="tr-cause {{ c.status }}"><span class="tag">{{ pick(STATUS[c.status]) }}</span>
+  {% for cit in c.citations %}<span>{% if cit.start %}{{ cit.start | md }}{{ "起，" if zh else ": " }}{% endif %}{{ cit.text | t }}
+  <span class="tr-src">{{ source_name(cit.source) }} · {{ pick(CHECK_STATUS[cit.checks.status]) if cit.get("checks") else pick(ENTRY_STATUS[cit.status]) }}{% if cit.explains in ("cannot_explain_change", "why_mix_matters") %} · {{ "解释不了这次的变化" if zh else "does not explain this change" }}{% endif %}</span></span>{% endfor %}
+  {% for a in c.actions %}<span class="tr-act"><b>{{ a.owner | t }}</b>{{ "：" if zh else ": " }}{{ a.action | t }}</span>{% endfor %}
+</div>
+{% endmacro %}
+
+{% macro group_note(op, g, v) %}
+{% if op == "additive" %}{{ "自身" if zh else "itself" }} {{ g.growth | pct }} · {{ "占全部变动" if zh else "share of all movement" }} {{ g.abs_share | pct(0, false) }}
+{% elif op == "divisive" %}{{ "结构" if zh else "mix" }} {{ g.structure | delta(v.unit, v.dp) }} · {{ "各组自身" if zh else "own level" }} {{ g.rate | delta(v.unit, v.dp) }}
+{% else %}{{ v.cuts.sides[0] | t }} {{ g.growth_a | pct }} · {{ v.cuts.sides[1] | t }} {{ g.growth_b | pct }}{% endif %}
+{% endmacro %}
+
+{% macro cut_level(L, v) %}
+<p class="tr-how">{% if zh %}按{{ L.dimension | t }}拆，{{ L.n_groups }} 组。{% else %}By {{ L.dimension | t | lower }}, {{ L.n_groups }} groups. {% endif %}{% if L.larger %}<b>{{ pick(LARGER[L.larger]) }}</b>{{ "。" if zh else ". " }}{% endif %}<span class="tr-why">{{ pick(REASON[L.reason]) if L.reason in REASON else "" }}</span></p>
+<ul class="tr">
+  {% for g in L.groups %}
+  <li class="tr-node on"><div class="tr-box"><span class="tr-lab">{{ g.label | t }}</span>{{ amount(g.amount, v) }}
+    <span class="tr-note">{{ group_note(L.op, g, v) }}</span></div>
+    {% if g.cause %}{{ cause_tag(g.cause) }}{% endif %}
+    {% if g.next %}{{ cut_level(g.next, v) }}{% endif %}
+  </li>
+  {% endfor %}
+  {% if L.rest %}<li class="tr-node rest"><div class="tr-box"><span class="tr-lab">{{ ("其余 " ~ L.rest.n ~ " 组") if zh else ("Other " ~ L.rest.n ~ (" group" if L.rest.n == 1 else " groups")) }}</span>{{ amount(L.rest.amount, v) }}
+    <span class="tr-note">{{ "没往下拆" if zh else "not followed" }}</span></div></li>{% endif %}
+</ul>
+{% endmacro %}
+
+{% macro pvm_branch(p, v) %}
+<div class="tr-branch"><p class="tr-how strong">{% if zh %}按{{ p.dimension_label | t }}拆量、价、结构{% else %}Volume, price and mix by {{ p.dimension_label | t | lower }}{% endif %}</p>
+<ul class="tr">
+  <li class="tr-node{{ ' on' if p.larger_effect == 'volume' }}"><div class="tr-box"><span class="tr-lab">{{ "卖得多少（量）" if zh else "How much sold (volume)" }}</span>{{ amount(p.volume_total, v) }}
+    <span class="tr-note">{{ "订单数" if zh else "orders" }} {{ p.quantity_base | num }} → {{ p.quantity_cur | num }}</span></div></li>
+  <li class="tr-node{{ ' on' if p.larger_effect == 'price' }}"><div class="tr-box"><span class="tr-lab">{{ "卖多少钱（价格）" if zh else "At what price (price)" }}</span>{{ amount(p.price_total, v) }}</div></li>
+  <li class="tr-node{{ ' on' if p.larger_effect == 'mix' }}"><div class="tr-box"><span class="tr-lab">{{ "卖了什么（结构）" if zh else "What was sold (mix)" }}</span>{{ amount(p.mix_total, v) }}</div></li>
+</ul></div>
+{% endmacro %}
+
+{% macro whole(v) %}
+{% set unit_word = ("单位：元" if zh else "¥") if v.unit == "currency" else ("单位：个百分点" if zh else "percentage points") %}
+<figure class="r-fig wide tree-fig" aria-label="{{ '这道题的拆解树' if zh else 'Breakdown tree for this question' }}">
+  <figcaption class="r-figtitle">{{ "这道题的拆解树：从总变化拆到原因" if zh else "Breakdown tree: from the total change down to the cause" }}{{ "（" if zh else " (" }}{{ unit_word }}{{ "）" if zh else ")" }}</figcaption>
+  <div class="tree">
+    {% if v.cuts.op == "second_order_sides" %}
+    <div class="tr-root"><span class="tr-lab">{% if zh %}{{ v.cuts.sides[0] | t }}和{{ v.cuts.sides[1] | t }}的增速差{% else %}Growth gap, {{ v.cuts.sides[0] | t }} against {{ v.cuts.sides[1] | t | lower }}{% endif %}</span>{{ amount(v.cuts.total, v) }}
+      <span class="tr-note">{{ "结构差" if zh else "mix gap" }} {{ v.cuts.mix | delta(v.unit, v.dp) }} + {{ "表现差" if zh else "performance gap" }} {{ v.cuts.performance | delta(v.unit, v.dp) }}</span></div>
+    {% else %}
+    <div class="tr-root"><span class="tr-lab">{% for f in v.filters %}{{ f | t }}{{ "" if zh else " " }}{% endfor %}{{ v.metric | t if zh or not v.filters else v.metric | t | lower }}{{ "总变化" if zh else ", total change" }}</span>{{ amount(v.total.delta, v) }}
+      <span class="tr-note">{{ v.total.base | money(false, v.dp) }} → {{ v.total.cur | money(false, v.dp) }}{% if v.total.growth is not none %}{{ "，" if zh else ", " }}{{ v.total.growth | pct }}{% endif %}{% if v.cuts.op == "divisive" %}{{ "；" if zh else "; " }}{{ "结构" if zh else "mix" }} {{ v.cuts.structure | delta(v.unit, v.dp) }}{{ "，" if zh else ", " }}{{ "各组自身" if zh else "own level" }} {{ v.cuts.rate | delta(v.unit, v.dp) }}{{ "，" if zh else ", " }}{{ "交叉" if zh else "both" }} {{ v.cuts.interaction | delta(v.unit, v.dp) }}{% endif %}</span></div>
+    {% endif %}
+    <div class="tr-branches">
+      {% if v.formula %}{{ formula(v.formula, v) }}{% endif %}
+      {% if v.pvm %}{{ pvm_branch(v.pvm, v) }}{% endif %}
+      {% if v.cuts %}<div class="tr-branch">{{ cut_level(v.cuts, v) }}</div>{% endif %}
+    </div>
+  </div>
+</figure>
+{% endmacro %}
+
+{#- One cited world entry: what it says, when, source, status, how it fits, and what data would refute it. -#}
+{% macro evidence(cit, fit="") %}
+<div class="evidence big-ev{{ ' pending' if cit.status == 'proposed' }}">
+  <span class="tag">{{ ("机制" if zh else "Mechanism") if cit.bucket == "mechanisms" else ("事件" if zh else "Event") }}{% if cit.start %} · {{ cit.start | md }}{% if cit.end %}{{ " 至 " if zh else "–" }}{{ cit.end | md }}{% else %}{{ "起" if zh else " onwards" }}{% endif %}{% endif %} · {{ "出处：" if zh else "source: " }}{{ source_name(cit.source) }} · {{ pick(CHECK_STATUS[cit.checks.status]) if cit.get("checks") else pick(ENTRY_STATUS[cit.status]) }}</span>
+  <p>{{ cit.text | t }}</p>
+  {% if fit %}<p class="ev-fit">{{ fit }}</p>{% endif %}
+  {% if cit.get("refuted_by") %}<p class="ev-refute"><b>{{ "什么数据出现就推翻它：" if zh else "What data would refute it: " }}</b>{{ cit.refuted_by | t }}</p>{% endif %}
+</div>
+{% endmacro %}

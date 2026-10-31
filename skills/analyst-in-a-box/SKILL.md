@@ -4,7 +4,7 @@ description: Explains why a business number moved (revenue, GMV, orders, average
 license: Apache-2.0 (see LICENSE)
 compatibility: Python 3.10+ with pandas, pyyaml and openpyxl (duckdb optional). Runs locally; data never leaves the machine.
 metadata:
-  version: 0.2.0
+  version: 0.2.1
 ---
 
 # analyst-in-a-box

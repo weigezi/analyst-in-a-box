@@ -1,0 +1,81 @@
+{#- Body of the east-region report: an additive cut inside one region, and an outside event put through three checks. -#}
+{% set c = v.cause %}
+{% set ev = c.citations | selectattr("external") | first %}
+{% set mech = c.citations | rejectattr("external") | first %}
+{% set ck = ev.checks %}
+{% set act = c.actions[0] %}
+{% set rest = v.rest %}
+{% set sec = v.secondary_label | t %}
+{% set region = v.filters[0] | t %}
+<h1 class="r-title">{% if zh %}<span class="ph">{{ region }}上周营收同比 {{ v.total.growth | pct }}：</span><span class="ph">{{ mk }}少了 {{ -v.main.value | wan }}，</span><span class="ph">赶上连下三天暴雨</span>{% else %}East region revenue {{ v.total.growth | pct }} on last year: same-day courier lost {{ -v.main.value | wan }}, during three days of heavy rain{% endif %}</h1>
+<p class="r-dek">{% if zh %}下雨和下跌对得上：时间对、跌的正是{{ region }}的{{ mk }}、量级也够。但天气是外面的事，这里只算「过了三道检查的推测」，要你确认才算数。{% else %}The rain and the fall line up: the timing matches, the fall is in the east's same-day courier orders, and the size is enough. But weather is an outside event, so this is a hypothesis that passed three checks, and it needs you to confirm it.{% endif %}</p>
+
+<div class="r-summary">
+  <div class="r-figure"><div class="big {{ v.total.growth | tone }}">{{ v.total.growth | pct }}</div>
+    <div class="big-sub tnum">{{ v.total.base | money }} → {{ v.total.cur | money }}{{ "，" if zh else ", " }}{{ v.total.delta | money(true) }}</div>
+    <div class="r-spark" data-chart="{{ v.id }}.spark" data-label="{{ '过去每周的同比变化和本周' if zh else 'Past weekly changes and this week' }}"></div>
+    <div class="r-sparkcap">{% if zh %}{{ region }}每周同比，过去 {{ v.history_n }} 个可比的周 + 本周{% else %}East, weekly change on last year, {{ v.history_n }} comparable weeks + this one{% endif %}</div></div>
+  <ul class="r-points">
+    <li>{% if zh %}<b>比平时低得多。</b>{{ region }}离常态是平时波动的 {{ q.robust_z | times }} 倍，超过 {{ v.z_line | times }} 倍才算异常。{% else %}<b>Far below normal.</b> The east is {{ q.robust_z | times }}× the usual wobble from normal; {{ v.z_line | times }}× counts as unusual.{% endif %}</li>
+    <li>{% if zh %}<b>集中在{{ mk }}。</b>{{ mk }}自身 {{ rest.top_change | pct }}，占全部变动 {{ v.cuts.groups[0].abs_share | pct(0, false) }}。{% else %}<b>It sits in same-day courier.</b> Same-day itself is {{ rest.top_change | pct }}, {{ v.cuts.groups[0].abs_share | pct(0, false) }} of all movement.{% endif %}</li>
+    <li>{% if zh %}<b>剔除下雨那三天，{{ mk }}几乎不跌。</b>拿掉 {{ ck.event_days | length }} 个雨天和去年对应的日子，{{ mk }}还剩 {{ ck.size.residual_change | money(true) }}：{{ "不但没跌，还略涨" if ck.size.residual_change > 0 else "还在跌" }}。{% else %}<b>Leave out the three rainy days and same-day barely falls.</b> Without the {{ ck.event_days | length }} rainy days and their matching days last year, same-day changes by {{ ck.size.residual_change | money(true) }}: {{ "it even rises slightly" if ck.size.residual_change > 0 else "still falling" }}.{% endif %}</li>
+  </ul>
+</div>
+
+<section class="r-sec" id="s-tree">
+  <h2>{{ "这道题是怎么拆的" if zh else "How this question was broken down" }}</h2>
+  <p>{% if zh %}只看{{ region }}。左边按公式拆，右边按配送方式切，只展开它走过的那条路。{% else %}The east region only. By formula on one side, by delivery on the other; only the path it took is opened.{% endif %}</p>
+  {{ tree.whole(v) }}
+</section>
+
+<section class="r-sec" id="s-unusual">
+  <h2>{{ "这一周比平时低得多" if zh else "This week is far below normal" }}</h2>
+  <p>{% if zh %}过去 {{ v.history_n }} 个可比的周，{{ region }}同比中间那一半在 {{ rg.usual_range[0] | pct }} 到 {{ rg.usual_range[1] | pct }}。本周 {{ v.total.growth | pct }}，低于 {{ rg.unusual_below | pct }} 那条线。{% else %}Over {{ v.history_n }} comparable weeks the east's middle half of changes ran from {{ rg.usual_range[0] | pct }} to {{ rg.usual_range[1] | pct }}. This week is {{ v.total.growth | pct }}, below the {{ rg.unusual_below | pct }} line.{% endif %}</p>
+  <figure class="r-fig wide"><figcaption class="r-figtitle">{{ region }}{{ "每周营收同比变化" if zh else ": weekly revenue change on last year" }}</figcaption>
+    <div data-chart="{{ v.id }}.range" data-last="{{ '本周' if zh else 'This week' }}" data-label="{{ '过去每周的同比变化和本周' if zh else 'Past weekly changes and this week' }}"></div>
+    <ul class="legend"><li><i class="l-iqr"></i>{{ "过去这些周中间那一半" if zh else "Middle half of past weeks" }}</li><li><i class="l-th"></i>{{ "超出这两条线才算异常" if zh else "Outside these lines counts as unusual" }}</li></ul></figure>
+</section>
+
+<section class="r-sec" id="s-where">
+  <h2>{% if zh %}{{ mk }}少了 {{ -v.main.value | wan }}，{{ sec }}也少了 {{ -v.secondary.value | wan }}{% else %}Same-day lost {{ -v.main.value | wan }}; scheduled delivery lost {{ -v.secondary.value | wan }} too{% endif %}</h2>
+  <p>{% if zh %}{{ mk }}从 {{ rest.top_base | money }} 到 {{ rest.top_cur | money }}，{{ rest.top_change | pct }}。其余配送方式从 {{ rest.rest_base | money }} 到 {{ rest.rest_cur | money }}，{{ rest.rest_change | pct }}；平时约 {{ rest.rest_usual_change | pct }}，但它们平时起伏也大，引擎判为在正常范围内。{% else %}Same-day went from {{ rest.top_base | money }} to {{ rest.top_cur | money }}, {{ rest.top_change | pct }}. The other delivery types went from {{ rest.rest_base | money }} to {{ rest.rest_cur | money }}, {{ rest.rest_change | pct }}; usually about {{ rest.rest_usual_change | pct }}, but they swing a lot, and the engine judges this within their usual range.{% endif %}</p>
+  <figure class="r-fig"><figcaption class="r-figtitle">{{ region }}{{ "营收变化按配送方式拆开（单位：元）" if zh else ": revenue change by delivery (¥)" }}</figcaption>
+    <div data-chart="{{ v.id }}.waterfall" data-total="{{ '合计变化' if zh else 'Total change' }}" data-others="{{ '其余 {n} 组' if zh else 'Other {n} groups' }}" data-label="{{ '营收变化按配送方式拆开' if zh else 'Revenue change by delivery' }}"></div></figure>
+</section>
+
+<section class="r-sec" id="s-checks">
+  <h2>{{ "外部事件要过三道检查，才进结论" if zh else "An outside event has to pass three checks before it enters the conclusion" }}</h2>
+  <p>{% if zh %}天气、新闻这类外面的事，就算日子对得上，也可能只是碰巧。所以先当推测，依次看时间、范围、量级。{% else %}Weather or news can line up with a fall by coincidence. So it starts as a hypothesis and is checked for timing, slice and size, in that order.{% endif %}</p>
+  <ol class="checks3">
+    <li class="{{ 'ok' if ck.timing.pass else 'no' }}"><b>{{ "时间：" if zh else "Timing: " }}</b>{% if zh %}暴雨的 {{ ck.event_days | length }} 天（{% for d in ck.event_days %}{{ d | md }}{{ "、" if not loop.last }}{% endfor %}）都在本周里。{% else %}all {{ ck.event_days | length }} days of rain ({% for d in ck.event_days %}{{ d | md }}{{ ", " if not loop.last }}{% endfor %}) fall inside this week.{% endif %}<span class="ck-v">{{ ("过" if zh else "pass") if ck.timing.pass else ("不过" if zh else "fail") }}</span></li>
+    <li class="{{ 'ok' if ck.slice.pass else 'no' }}"><b>{{ "范围：" if zh else "Slice: " }}</b>{% if zh %}暴雨碰到的是{{ region }}的{{ mk }}，这一块少了 {{ ck.slice.slice_delta | money(true) }}，占{{ region }}这次变化的 {{ ck.slice.share_of_change | pct(0, false) }}；要占到一半以上才算。{% else %}the rain touches same-day courier in the east, which changed by {{ ck.slice.slice_delta | money(true) }}, {{ ck.slice.share_of_change | pct(0, false) }} of the east's change; it needs at least half.{% endif %}<span class="ck-v">{{ ("过" if zh else "pass") if ck.slice.pass else ("不过" if zh else "fail") }}</span></li>
+    <li class="{{ 'ok' if ck.size.pass else 'no' }}"><b>{{ "量级：" if zh else "Size: " }}</b>{% if zh %}只看暴雨那几天，这一块就少了 {{ ck.size.change_on_event_days | money(true) }}，比整周少的 {{ ck.slice.slice_delta | money(true) }} 还多：其余几天这一块其实在涨。要求至少六成落在事件那几天。{% else %}on the rainy days alone the slice lost {{ ck.size.change_on_event_days | money(true) }}, more than its whole-week {{ ck.slice.slice_delta | money(true) }}: on the other days it was growing. The rule asks for at least 60% on the event's days.{% endif %}<span class="ck-v">{{ ("过" if zh else "pass") if ck.size.pass else ("不过" if zh else "fail") }}</span></li>
+  </ol>
+  <div class="r-stats">
+    <div><p class="r-stat-l">{{ "暴雨那几天" if zh else "On the rainy days" }}</p><p class="r-stat-v {{ ck.size.change_on_event_days | tone }}">{{ ck.size.change_on_event_days | money(true) }}</p><p class="r-stat-s">{{ "和去年对应的日子比" if zh else "against the matching days last year" }}</p></div>
+    <div><p class="r-stat-l">{{ "剔除那几天之后还剩" if zh else "Left after removing those days" }}</p><p class="r-stat-v {{ ck.size.residual_change | tone }}">{{ ck.size.residual_change | money(true) }}</p><p class="r-stat-s">{{ "其余四天，同样剔除去年对应的日子" if zh else "the other four days, with last year's matching days removed too" }}</p></div>
+  </div>
+  {% if ck.evidence %}<p class="r-note">{% if zh %}天气数据：{{ region }}暴雨那几天平均降雨 {{ ck.evidence.mean_on_event_days | num(1) }} 毫米，本周其余几天 {{ ck.evidence.mean_other_days | num(1) }} 毫米。{% else %}Weather data: {{ ck.evidence.mean_on_event_days | num(1) }} mm of rain a day on average in the east on those days, {{ ck.evidence.mean_other_days | num(1) }} mm on the rest of the week.{% endif %}</p>{% endif %}
+  {% set fit %}{% if zh %}三道检查都过了，所以写成「过了三道检查的推测」，不写成原因。{% else %}All three checks pass, so it is written as a hypothesis that passed three checks, not as the cause.{% endif %}{% endset %}
+  {{ tree.evidence(ev, fit) }}
+  {% if mech %}{% set mfit %}{% if zh %}这条机制本身没错，但下雨天两年都有，单靠它解释不了这一周为什么跌：要配上这周的暴雨才说得通。{% else %}The mechanism holds, but rainy days happen in both years, so on its own it cannot explain why this week fell; it needs this week's storm.{% endif %}{% endset %}
+  {{ tree.evidence(mech, mfit) }}{% endif %}
+  <figure class="r-fig wide"><figcaption class="r-figtitle">{{ region }}{{ "每天营收：本周和去年同周（单位：元）" if zh else ": daily revenue, this week and the same week last year (¥)" }}</figcaption>
+    <div data-chart="{{ v.id }}.daily" data-cur="{{ '本周' if zh else 'This week' }}" data-base="{{ '去年同周' if zh else 'Same week last year' }}" data-label="{{ '华东每天营收' if zh else 'East, daily revenue' }}"></div>
+    <p class="r-note">{% if zh %}暴雨是 {% for d in ck.event_days %}{{ d | md }}{{ "、" if not loop.last }}{% endfor %}。{% else %}The rain fell on {% for d in ck.event_days %}{{ d | md }}{{ ", " if not loop.last }}{% endfor %}.{% endif %}</p></figure>
+</section>
+
+<section class="r-sec" id="s-unchecked">
+  <h2>{{ "这次没核实的" if zh else "What this report did not check" }}</h2>
+  <ul class="r-list">
+    <li>{% if zh %}问题问的是「为什么比其他地区跌得多」，但这次只算了{{ region }}自己，没有把其他大区放在一起比。{% else %}The question asks why the east fell more than the other regions, but this run looks at the east only; the other regions were not compared side by side.{% endif %}</li>
+    <li>{% if zh %}{{ sec }}也少了 {{ v.secondary.value | money(true) }}。暴雨这条的推翻条件之一就是「其他配送方式也跌得一样多」，这一块没有单独查是不是也落在雨天。{% else %}Scheduled delivery lost {{ v.secondary.value | money(true) }} too. One way to refute the rain is “other delivery types fell just as much”; whether scheduled delivery's fall also sits on the rainy days was not checked.{% endif %}</li>
+    <li>{% if zh %}暴雨记录来自天气数据，状态是「推测，待确认」。你确认之前，结论里不把它当事实。{% else %}The rain comes from weather data and is marked “a guess, waiting to be confirmed”. Until you confirm it, the conclusion does not treat it as fact.{% endif %}</li>
+  </ul>
+</section>
+
+<section class="r-sec" id="s-act">
+  <h2>{{ "谁该做什么" if zh else "Who should act" }}</h2>
+  <table class="r-table"><thead><tr><th>{{ "负责人" if zh else "Owner" }}</th><th>{{ "做什么" if zh else "What" }}</th><th>{{ "依据" if zh else "Basis" }}</th></tr></thead>
+    <tbody><tr><td><b>{{ act.owner | t }}</b></td><td>{{ act.action | t }}</td><td class="tnum">{% if zh %}{{ mk }}少了 {{ -v.main.value | wan }}；暴雨是过了三道检查的推测，待确认{% else %}Same-day lost {{ -v.main.value | wan }}; the rain is a hypothesis that passed three checks, still to be confirmed{% endif %}</td></tr></tbody></table>
+</section>

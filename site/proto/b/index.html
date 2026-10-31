@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>analyst-in-a-box · 这个数为什么变了</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="nav"><div class="wrap">
+  <a class="brand" href="index.html"><i aria-hidden="true"></i>analyst-in-a-box</a>
+  <nav><a href="#unsure">它什么时候说不确定</a><a href="#case">看它怎么查</a><a href="report.html">样例报告</a></nav>
+  <div class="right"><a class="lang" href="index.en.html">English</a>
+    <a class="gh" href="#" title="仓库待公开">GitHub <small>仓库待公开</small></a></div>
+</div></header>
+
+<main>
+<section class="hero"><div class="wrap">
+  <div class="hero-copy">
+    <p class="kicker">开源 · 装进你的 AI 工具用</p>
+    <h1><span class="ph">这个数为什么变了，</span><br><span class="dim ph">接下来该谁去做什么。</span></h1>
+    <p class="lede">在 AI 工具里问一句，它调本机脚本把账算完：<b>算不算异常、变在哪、为什么、该谁去做</b>。每个数字都有出处，数据不出你的电脑。</p>
+  </div>
+  <div class="hero-try">
+    <div class="ctas"><a class="btn" href="report.html">看完整样例报告</a><a class="btn ghost" href="#install">复制安装命令</a></div>
+    <p class="install-note">安装：把 skill 文件夹放进你 AI 工具的 skills 目录，然后直接问。</p>
+  </div>
+  <div class="hero-cmd">
+    <div class="install" id="install"><code><span class="p">$ </span><span class="k">git clone &lt;仓库地址，待公开&gt; aib &amp;&amp; cp -r aib/skills/analyst-in-a-box ~/你的工具/skills/</span></code>
+      <button class="copy" type="button" data-copy="install">复制</button></div>
+    <ul class="trust"><li>Apache-2.0</li><li>数据不出本机</li><li>CSV、Excel、数据库都能接</li></ul>
+  </div>
+
+  <div class="session" aria-label="在 AI 工具里的一次会话">
+    <div class="sess-bar"><span>AI 工具 · 会话</span><button class="replay" type="button" id="replay">重放</button></div>
+    <div class="sess-body">
+      <div class="msg-user reveal" data-v="question" data-f="t"></div>
+      <ol class="progress reveal"><li id="sess-r1"></li><li id="sess-r2"></li><li id="sess-r3"></li><li id="sess-r4"></li></ol>
+      <article class="rcard reveal">
+        <p class="rcard-head"><span data-v="shop" data-f="t"></span> · <span class="tnum" data-v="current" data-f="range"></span>，对比去年同周</p>
+        <h2 id="ans-title"></h2>
+        <div class="figure-row">
+          <div><div class="big" data-v="total.growth" data-f="pct"></div>
+            <div class="big-sub tnum"><span data-v="total.base" data-f="money"></span> → <span data-v="total.cur" data-f="money"></span></div></div>
+          <div class="spark-wrap"><p class="spark-chip"><span class="chip" id="ans-chip"></span></p><div id="ans-spark"></div>
+            <div class="spark-cap">每周同比，过去 26 周；灰色是中秋错开的几周</div></div>
+        </div>
+        <div class="ans-cut"><p class="sub-h">各渠道营收变化</p><div id="ans-cut"></div></div>
+        <p class="ans-cause"><span class="tag">原因有记录</span><span id="ans-cause"></span> <a href="report.html">看完整报告 →</a></p>
+      </article>
+    </div>
+  </div>
+</div></section>
+
+<section class="sec" id="unsure"><div class="wrap">
+  <div class="sec-h">
+    <p class="eyebrow">它什么时候说不确定</p>
+    <h2><span class="ph">没有异常，就说正常；</span><span class="ph">数据有问题，</span><span class="ph">先说数据有问题。</span></h2>
+    <p>下面三份数据是专门做出来考它的：一份只有正常波动，一份缺了两天，一份同一周导入了两次。</p>
+  </div>
+  <div class="unsure">
+    <article class="ucard"><p class="u-tag">正常波动</p><h3>「在正常波动内，不找原因」</h3><p id="u-noise"></p></article>
+    <article class="ucard"><p class="u-tag">缺了两天</p><h3>「数据存疑，不出结论」</h3><p id="u-missing"></p></article>
+    <article class="ucard"><p class="u-tag">整周重复</p><h3>「订单编号重复，不出结论」</h3><p id="u-dup"></p></article>
+  </div>
+  <p class="caveat">以上是正在开发的新版引擎在这三份考题数据上的实测结果，数字之后会变。它也会答错：演示店的客单价那题，旧版报的原因解释不了这次的同比变化，真正的原因是新客里果篮的占比变高了，新版在改。另外三道题的原因是顺着它的拆法埋的，证明不了它遇到别的情况也行。</p>
+</div></section>
+
+<section class="sec" id="case"><div class="wrap">
+  <div class="sec-h">
+    <p class="eyebrow">一个案子</p>
+    <h2>一步一步看它怎么查。</h2>
+    <p>同一道题「上周营收同比下滑，为什么？」，分六步。点一步看一步，也可以直接跳到结果。</p>
+  </div>
+  <div class="card stepper" id="stepper"></div>
+</div></section>
+</main>
+
+<footer class="foot"><div class="wrap">
+  <span>演示店「花果篮」是虚构的，数据由程序生成。</span>
+  <span>Apache-2.0</span>
+</div></footer>
+
+<script src="../shared/data.js"></script>
+<script src="../shared/fmt.js"></script>
+<script src="../shared/charts.js"></script>
+<script src="../shared/demo.js"></script>
+<script src="../shared/page-index.js"></script>
+</body>
+</html>

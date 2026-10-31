@@ -329,3 +329,16 @@ cites is confirmed, so the four demo answers did not change.
 writes a formation report that compares the result with the hand-written workspace, part by part.
 `demo/store/` is not changed. What cannot be formed is listed as such: readable names for codes, mechanisms
 such as the marketplace commission, actions and owners, comparisons, a confirmed cut order, price-volume-mix.
+
+## 17. A readable name for every column (added 2026-10-31)
+
+Intake and reports used to show column names as they are (`order_id`, `channel`), which a business reader cannot use.
+Now:
+
+- after reading the columns, the getting-started flow gives each column a readable name in both languages, from the
+  words in the column name (`order_id` → 订单编号 / Order ID), and writes it into `draft.json`, `project.yaml` and the
+  labels and dimension names of `model.yaml`;
+- **these are names, not meanings**: what a column means is still asked as a multiple-choice question and never taken
+  from its name;
+- the person answering can override any name with `name:<column>`; words it does not know are kept as they are;
+- the raw column name stays in the data and in a hover tooltip, and is not shown as text on a page.

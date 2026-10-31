@@ -124,15 +124,19 @@ relations:     # belongs_to（属于）、supplies（供货）、goes_through（
   - {id: rel_1, subject: city_shanghai, predicate: belongs_to, object: region_east, source: {kind: data}, status: confirmed}
 mechanisms:    # 为什么这一块的数天生不一样
   - {id: mech_commission, entities: [ch_marketplace], metrics: [margin_rate], direction: lower,
-     claim: {en: "...", zh: "..."}, source: {kind: user, date: 2026-10-30, quote: "..."}, status: confirmed}
+     claim: {en: "...", zh: "..."}, refuted_by: {en: "...", zh: "..."},
+     source: {kind: user, date: 2026-10-30, quote: "..."}, status: confirmed}
 events:        # 什么时候发生了什么；end 可省略（省略 = 还在持续）
   - {id: ev_rain, kind: external, start: 2026-10-21, end: 2026-10-23, entities: [region_east, deliv_same_day],
      what: {en: "...", zh: "..."}, evidence: {source: weather, filters: {region: east}},
-     source: {kind: document, ref: "https://..."}, status: proposed}
+     refuted_by: {en: "...", zh: "..."}, source: {kind: document, ref: "https://...", label: {en: "...", zh: "..."}}, status: proposed}
 actions:       # 谁能做什么
   - {id: act_1, entities: [ch_marketplace], action: {en: "...", zh: "..."}, owner: {en: Channel manager, zh: 渠道负责人},
      source: {kind: user}, status: confirmed}
 ```
+
+`refuted_by` 用大白话写清：什么数据出现，就说明这条记录是错的。每次引用都会把它印在下面，让读的人知道该去核对什么；
+引擎自己的检查（原因和这次变化对不对得上、外部事件的三道检查）照常进行，不依赖它。`source.label` 是出处在两种语言里的可读名字。
 
 一条记录只有在它的**全部**实体都落在这一块的上下文里（筛选条件、下钻路径、这一块本身、对比的两侧）时才会被引用。
 机制还要指标对得上；事件还要和时间窗有重叠。

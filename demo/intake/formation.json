@@ -11,6 +11,10 @@
     "profile": [
      {
       "column": "city",
+      "name": {
+       "zh": "城市",
+       "en": "City"
+      },
       "shape": "unique",
       "distinct": 8,
       "nulls": 0,
@@ -24,6 +28,10 @@
      },
      {
       "column": "region",
+      "name": {
+       "zh": "大区",
+       "en": "Region"
+      },
       "shape": "category",
       "distinct": 4,
       "nulls": 0,
@@ -53,6 +61,10 @@
     "profile": [
      {
       "column": "name",
+      "name": {
+       "zh": "名称",
+       "en": "Name"
+      },
       "shape": "category",
       "distinct": 5,
       "nulls": 0,
@@ -66,6 +78,10 @@
      },
      {
       "column": "label_zh",
+      "name": {
+       "zh": "名称（中文）",
+       "en": "Name (Chinese)"
+      },
       "shape": "category",
       "distinct": 5,
       "nulls": 0,
@@ -79,6 +95,10 @@
      },
      {
       "column": "label_en",
+      "name": {
+       "zh": "名称（英文）",
+       "en": "Name (English)"
+      },
       "shape": "category",
       "distinct": 5,
       "nulls": 0,
@@ -92,6 +112,10 @@
      },
      {
       "column": "start",
+      "name": {
+       "zh": "开始",
+       "en": "Start"
+      },
       "shape": "date",
       "distinct": 10,
       "nulls": 0,
@@ -105,6 +129,10 @@
      },
      {
       "column": "end",
+      "name": {
+       "zh": "结束",
+       "en": "End"
+      },
       "shape": "date",
       "distinct": 10,
       "nulls": 0,
@@ -141,6 +169,10 @@
     "profile": [
      {
       "column": "date",
+      "name": {
+       "zh": "日期",
+       "en": "Date"
+      },
       "shape": "date",
       "distinct": 663,
       "nulls": 0,
@@ -154,6 +186,10 @@
      },
      {
       "column": "market_sales",
+      "name": {
+       "zh": "市场销售额",
+       "en": "Market Sales"
+      },
       "shape": "number",
       "distinct": 659,
       "nulls": 0,
@@ -186,6 +222,10 @@
     "profile": [
      {
       "column": "order_id",
+      "name": {
+       "zh": "订单编号",
+       "en": "Order ID"
+      },
       "shape": "unique",
       "distinct": 226814,
       "nulls": 0,
@@ -199,6 +239,10 @@
      },
      {
       "column": "order_date",
+      "name": {
+       "zh": "订单日期",
+       "en": "Order Date"
+      },
       "shape": "date",
       "distinct": 663,
       "nulls": 0,
@@ -212,6 +256,10 @@
      },
      {
       "column": "sku",
+      "name": {
+       "zh": "商品编号",
+       "en": "SKU"
+      },
       "shape": "category",
       "distinct": 12,
       "nulls": 0,
@@ -225,6 +273,10 @@
      },
      {
       "column": "channel",
+      "name": {
+       "zh": "渠道",
+       "en": "Channel"
+      },
       "shape": "category",
       "distinct": 3,
       "nulls": 0,
@@ -236,6 +288,10 @@
      },
      {
       "column": "city",
+      "name": {
+       "zh": "城市",
+       "en": "City"
+      },
       "shape": "category",
       "distinct": 8,
       "nulls": 0,
@@ -249,6 +305,10 @@
      },
      {
       "column": "delivery",
+      "name": {
+       "zh": "配送方式",
+       "en": "Delivery"
+      },
       "shape": "category",
       "distinct": 3,
       "nulls": 0,
@@ -260,6 +320,10 @@
      },
      {
       "column": "customer_type",
+      "name": {
+       "zh": "客户类型",
+       "en": "Customer Type"
+      },
       "shape": "category",
       "distinct": 2,
       "nulls": 0,
@@ -270,6 +334,10 @@
      },
      {
       "column": "revenue",
+      "name": {
+       "zh": "营收",
+       "en": "Revenue"
+      },
       "shape": "number",
       "distinct": 36392,
       "nulls": 0,
@@ -285,6 +353,10 @@
      },
      {
       "column": "gross_profit",
+      "name": {
+       "zh": "毛利",
+       "en": "Gross Profit"
+      },
       "shape": "number",
       "distinct": 21022,
       "nulls": 0,
@@ -324,6 +396,10 @@
     "profile": [
      {
       "column": "start",
+      "name": {
+       "zh": "开始",
+       "en": "Start"
+      },
       "shape": "date",
       "distinct": 1,
       "nulls": 0,
@@ -333,6 +409,10 @@
      },
      {
       "column": "end",
+      "name": {
+       "zh": "结束",
+       "en": "End"
+      },
       "shape": "date",
       "distinct": 1,
       "nulls": 0,
@@ -342,6 +422,10 @@
      },
      {
       "column": "category",
+      "name": {
+       "zh": "品类",
+       "en": "Category"
+      },
       "shape": "unique",
       "distinct": 1,
       "nulls": 0,
@@ -351,6 +435,10 @@
      },
      {
       "column": "change",
+      "name": {
+       "zh": "变动",
+       "en": "Change"
+      },
       "shape": "number",
       "distinct": 1,
       "nulls": 0,
@@ -362,6 +450,10 @@
      },
      {
       "column": "reason",
+      "name": {
+       "zh": "原因",
+       "en": "Reason"
+      },
       "shape": "unique",
       "distinct": 1,
       "nulls": 0,
@@ -395,6 +487,10 @@
     "profile": [
      {
       "column": "sku",
+      "name": {
+       "zh": "商品编号",
+       "en": "SKU"
+      },
       "shape": "unique",
       "distinct": 12,
       "nulls": 0,
@@ -408,6 +504,10 @@
      },
      {
       "column": "category",
+      "name": {
+       "zh": "品类",
+       "en": "Category"
+      },
       "shape": "category",
       "distinct": 4,
       "nulls": 0,
@@ -420,6 +520,10 @@
      },
      {
       "column": "name",
+      "name": {
+       "zh": "名称",
+       "en": "Name"
+      },
       "shape": "unique",
       "distinct": 12,
       "nulls": 0,
@@ -433,6 +537,10 @@
      },
      {
       "column": "list_price",
+      "name": {
+       "zh": "标价",
+       "en": "List price"
+      },
       "shape": "number",
       "distinct": 7,
       "nulls": 0,
@@ -469,6 +577,10 @@
     "profile": [
      {
       "column": "start",
+      "name": {
+       "zh": "开始",
+       "en": "Start"
+      },
       "shape": "date",
       "distinct": 2,
       "nulls": 0,
@@ -479,6 +591,10 @@
      },
      {
       "column": "end",
+      "name": {
+       "zh": "结束",
+       "en": "End"
+      },
       "shape": "date",
       "distinct": 2,
       "nulls": 0,
@@ -489,6 +605,10 @@
      },
      {
       "column": "campaign",
+      "name": {
+       "zh": "活动",
+       "en": "Campaign"
+      },
       "shape": "unique",
       "distinct": 2,
       "nulls": 0,
@@ -499,6 +619,10 @@
      },
      {
       "column": "category",
+      "name": {
+       "zh": "品类",
+       "en": "Category"
+      },
       "shape": "unique",
       "distinct": 2,
       "nulls": 0,
@@ -509,6 +633,10 @@
      },
      {
       "column": "customer_type",
+      "name": {
+       "zh": "客户类型",
+       "en": "Customer Type"
+      },
       "shape": "category",
       "distinct": 1,
       "nulls": 1,
@@ -541,6 +669,10 @@
     "profile": [
      {
       "column": "date",
+      "name": {
+       "zh": "日期",
+       "en": "Date"
+      },
       "shape": "date",
       "distinct": 663,
       "nulls": 0,
@@ -554,6 +686,10 @@
      },
      {
       "column": "channel",
+      "name": {
+       "zh": "渠道",
+       "en": "Channel"
+      },
       "shape": "category",
       "distinct": 3,
       "nulls": 0,
@@ -565,6 +701,10 @@
      },
      {
       "column": "visits",
+      "name": {
+       "zh": "访问量",
+       "en": "Visits"
+      },
       "shape": "number",
       "distinct": 1465,
       "nulls": 0,
@@ -601,6 +741,10 @@
     "profile": [
      {
       "column": "date",
+      "name": {
+       "zh": "日期",
+       "en": "Date"
+      },
       "shape": "date",
       "distinct": 663,
       "nulls": 0,
@@ -614,6 +758,10 @@
      },
      {
       "column": "region",
+      "name": {
+       "zh": "大区",
+       "en": "Region"
+      },
       "shape": "category",
       "distinct": 4,
       "nulls": 0,
@@ -626,6 +774,10 @@
      },
      {
       "column": "rainfall_mm",
+      "name": {
+       "zh": "降雨量（毫米）",
+       "en": "Rainfall mm"
+      },
       "shape": "number",
       "distinct": 167,
       "nulls": 0,
@@ -778,6 +930,10 @@
   "joined_profile": [
    {
     "column": "order_id",
+    "name": {
+     "zh": "订单编号",
+     "en": "Order ID"
+    },
     "shape": "unique",
     "distinct": 226814,
     "nulls": 0,
@@ -791,6 +947,10 @@
    },
    {
     "column": "order_date",
+    "name": {
+     "zh": "订单日期",
+     "en": "Order Date"
+    },
     "shape": "date",
     "distinct": 663,
     "nulls": 0,
@@ -804,6 +964,10 @@
    },
    {
     "column": "sku",
+    "name": {
+     "zh": "商品编号",
+     "en": "SKU"
+    },
     "shape": "category",
     "distinct": 12,
     "nulls": 0,
@@ -817,6 +981,10 @@
    },
    {
     "column": "channel",
+    "name": {
+     "zh": "渠道",
+     "en": "Channel"
+    },
     "shape": "category",
     "distinct": 3,
     "nulls": 0,
@@ -828,6 +996,10 @@
    },
    {
     "column": "city",
+    "name": {
+     "zh": "城市",
+     "en": "City"
+    },
     "shape": "category",
     "distinct": 8,
     "nulls": 0,
@@ -841,6 +1013,10 @@
    },
    {
     "column": "delivery",
+    "name": {
+     "zh": "配送方式",
+     "en": "Delivery"
+    },
     "shape": "category",
     "distinct": 3,
     "nulls": 0,
@@ -852,6 +1028,10 @@
    },
    {
     "column": "customer_type",
+    "name": {
+     "zh": "客户类型",
+     "en": "Customer Type"
+    },
     "shape": "category",
     "distinct": 2,
     "nulls": 0,
@@ -862,6 +1042,10 @@
    },
    {
     "column": "revenue",
+    "name": {
+     "zh": "营收",
+     "en": "Revenue"
+    },
     "shape": "number",
     "distinct": 36392,
     "nulls": 0,
@@ -877,6 +1061,10 @@
    },
    {
     "column": "gross_profit",
+    "name": {
+     "zh": "毛利",
+     "en": "Gross Profit"
+    },
     "shape": "number",
     "distinct": 21022,
     "nulls": 0,
@@ -892,6 +1080,10 @@
    },
    {
     "column": "category",
+    "name": {
+     "zh": "品类",
+     "en": "Category"
+    },
     "shape": "category",
     "distinct": 4,
     "nulls": 0,
@@ -904,6 +1096,10 @@
    },
    {
     "column": "name",
+    "name": {
+     "zh": "名称",
+     "en": "Name"
+    },
     "shape": "category",
     "distinct": 12,
     "nulls": 0,
@@ -917,6 +1113,10 @@
    },
    {
     "column": "list_price",
+    "name": {
+     "zh": "标价",
+     "en": "List price"
+    },
     "shape": "number",
     "distinct": 7,
     "nulls": 0,
@@ -932,6 +1132,10 @@
    },
    {
     "column": "region",
+    "name": {
+     "zh": "大区",
+     "en": "Region"
+    },
     "shape": "category",
     "distinct": 4,
     "nulls": 0,
@@ -962,7 +1166,7 @@
    },
    {
     "id": "kind:cities",
-    "ask": "「cities」这张表是什么？（8 行；日期列 无；唯一编号列 ['city']）",
+    "ask": "「cities」这张表是什么？（8 行；日期列 无；唯一编号列 城市）",
     "options": [
      {
       "value": "lookup",
@@ -994,11 +1198,11 @@
      }
     ],
     "suggested": "lookup",
-    "evidence": "8 行；日期列 无；唯一编号列 ['city']"
+    "evidence": "8 行；日期列 无；唯一编号列 城市"
    },
    {
     "id": "kind:holidays",
-    "ask": "「holidays」这张表是什么？（10 行；日期列 ['start', 'end']；唯一编号列 无；每行「start」都不晚于「end」，像是起止日期）",
+    "ask": "「holidays」这张表是什么？（10 行；日期列 开始, 结束；唯一编号列 无；每行「开始」都不晚于「结束」，像是起止日期）",
     "options": [
      {
       "value": "lookup",
@@ -1030,11 +1234,11 @@
      }
     ],
     "suggested": "calendar",
-    "evidence": "10 行；日期列 ['start', 'end']；唯一编号列 无；每行「start」都不晚于「end」，像是起止日期"
+    "evidence": "10 行；日期列 开始, 结束；唯一编号列 无；每行「开始」都不晚于「结束」，像是起止日期"
    },
    {
     "id": "kind:market",
-    "ask": "「market」这张表是什么？（663 行；日期列 ['date']；唯一编号列 无；每个日期只有一行）",
+    "ask": "「market」这张表是什么？（663 行；日期列 日期；唯一编号列 无；每个日期只有一行）",
     "options": [
      {
       "value": "lookup",
@@ -1066,11 +1270,11 @@
      }
     ],
     "suggested": "series",
-    "evidence": "663 行；日期列 ['date']；唯一编号列 无；每个日期只有一行"
+    "evidence": "663 行；日期列 日期；唯一编号列 无；每个日期只有一行"
    },
    {
     "id": "kind:price_changes",
-    "ask": "「price_changes」这张表是什么？（1 行；日期列 ['start', 'end']；唯一编号列 无；每行「start」都不晚于「end」，像是起止日期）",
+    "ask": "「price_changes」这张表是什么？（1 行；日期列 开始, 结束；唯一编号列 无；每行「开始」都不晚于「结束」，像是起止日期）",
     "options": [
      {
       "value": "lookup",
@@ -1102,11 +1306,11 @@
      }
     ],
     "suggested": "events",
-    "evidence": "1 行；日期列 ['start', 'end']；唯一编号列 无；每行「start」都不晚于「end」，像是起止日期"
+    "evidence": "1 行；日期列 开始, 结束；唯一编号列 无；每行「开始」都不晚于「结束」，像是起止日期"
    },
    {
     "id": "kind:products",
-    "ask": "「products」这张表是什么？（12 行；日期列 无；唯一编号列 ['sku', 'name']）",
+    "ask": "「products」这张表是什么？（12 行；日期列 无；唯一编号列 商品编号, 名称）",
     "options": [
      {
       "value": "lookup",
@@ -1138,11 +1342,11 @@
      }
     ],
     "suggested": "lookup",
-    "evidence": "12 行；日期列 无；唯一编号列 ['sku', 'name']"
+    "evidence": "12 行；日期列 无；唯一编号列 商品编号, 名称"
    },
    {
     "id": "kind:promotions",
-    "ask": "「promotions」这张表是什么？（2 行；日期列 ['start', 'end']；唯一编号列 无；每行「start」都不晚于「end」，像是起止日期）",
+    "ask": "「promotions」这张表是什么？（2 行；日期列 开始, 结束；唯一编号列 无；每行「开始」都不晚于「结束」，像是起止日期）",
     "options": [
      {
       "value": "lookup",
@@ -1174,11 +1378,11 @@
      }
     ],
     "suggested": "events",
-    "evidence": "2 行；日期列 ['start', 'end']；唯一编号列 无；每行「start」都不晚于「end」，像是起止日期"
+    "evidence": "2 行；日期列 开始, 结束；唯一编号列 无；每行「开始」都不晚于「结束」，像是起止日期"
    },
    {
     "id": "kind:traffic",
-    "ask": "「traffic」这张表是什么？（1,989 行；日期列 ['date']；唯一编号列 无；每个日期和「channel」只有一行）",
+    "ask": "「traffic」这张表是什么？（1,989 行；日期列 日期；唯一编号列 无；每个日期和「channel」只有一行）",
     "options": [
      {
       "value": "lookup",
@@ -1210,11 +1414,11 @@
      }
     ],
     "suggested": "business",
-    "evidence": "1,989 行；日期列 ['date']；唯一编号列 无；每个日期和「channel」只有一行"
+    "evidence": "1,989 行；日期列 日期；唯一编号列 无；每个日期和「channel」只有一行"
    },
    {
     "id": "kind:weather",
-    "ask": "「weather」这张表是什么？（2,652 行；日期列 ['date']；唯一编号列 无；每个日期和「region」只有一行）",
+    "ask": "「weather」这张表是什么？（2,652 行；日期列 日期；唯一编号列 无；每个日期和「region」只有一行）",
     "options": [
      {
       "value": "lookup",
@@ -1246,7 +1450,7 @@
      }
     ],
     "suggested": "series",
-    "evidence": "2,652 行；日期列 ['date']；唯一编号列 无；每个日期和「region」只有一行"
+    "evidence": "2,652 行；日期列 日期；唯一编号列 无；每个日期和「region」只有一行"
    },
    {
     "id": "link:orders.sku>products.sku",
@@ -1482,13 +1686,16 @@
     "id": "date_column",
     "ask": "按哪一列的日期统计？",
     "options": [
-     "order_date"
+     {
+      "value": "order_date",
+      "label": "订单日期"
+     }
     ]
    },
    {
     "id": "role:revenue",
     "column": "revenue",
-    "ask": "「revenue」这一列是什么？例子：332.54, 185.35, 397.7",
+    "ask": "「营收」这一列是什么？例子：332.54, 185.35, 397.7",
     "options": [
      {
       "value": "amount",
@@ -1520,7 +1727,7 @@
    {
     "id": "role:gross_profit",
     "column": "gross_profit",
-    "ask": "「gross_profit」这一列是什么？例子：182.9, 101.94, 218.74",
+    "ask": "「毛利」这一列是什么？例子：182.9, 101.94, 218.74",
     "options": [
      {
       "value": "amount",
@@ -1552,7 +1759,7 @@
    {
     "id": "role:list_price",
     "column": "list_price",
-    "ask": "「list_price」这一列是什么？例子：249.0, 248.0, 115.0",
+    "ask": "「标价」这一列是什么？例子：249.0, 248.0, 115.0",
     "options": [
      {
       "value": "amount",
@@ -1585,7 +1792,10 @@
     "id": "order_id",
     "ask": "哪一列是一笔订单（或一笔交易、一个订阅）的编号？",
     "options": [
-     "order_id",
+     {
+      "value": "order_id",
+      "label": "订单编号"
+     },
      "none"
     ]
    },

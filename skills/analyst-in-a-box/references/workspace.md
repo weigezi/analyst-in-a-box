@@ -130,15 +130,20 @@ relations:     # belongs_to, supplies, goes_through, ...
   - {id: rel_1, subject: city_shanghai, predicate: belongs_to, object: region_east, source: {kind: data}, status: confirmed}
 mechanisms:    # why a slice is naturally different
   - {id: mech_commission, entities: [ch_marketplace], metrics: [margin_rate], direction: lower,
-     claim: {en: "...", zh: "..."}, source: {kind: user, date: 2026-10-30, quote: "..."}, status: confirmed}
+     claim: {en: "...", zh: "..."}, refuted_by: {en: "...", zh: "..."},
+     source: {kind: user, date: 2026-10-30, quote: "..."}, status: confirmed}
 events:        # what happened, when; end is optional (missing = still going)
   - {id: ev_rain, kind: external, start: 2026-10-21, end: 2026-10-23, entities: [region_east, deliv_same_day],
      what: {en: "...", zh: "..."}, evidence: {source: weather, filters: {region: east}},
-     source: {kind: document, ref: "https://..."}, status: proposed}
+     refuted_by: {en: "...", zh: "..."}, source: {kind: document, ref: "https://...", label: {en: "...", zh: "..."}}, status: proposed}
 actions:       # who can do what
   - {id: act_1, entities: [ch_marketplace], action: {en: "...", zh: "..."}, owner: {en: Channel manager, zh: 渠道负责人},
      source: {kind: user}, status: confirmed}
 ```
+
+`refuted_by` says, in plain words, what data would show the entry is wrong. It is printed under every citation so
+the reader knows what to check; the engine's own checks (the fit of a reason to the change, the three checks for
+outside events) run regardless. `source.label` is the readable name of a source in each language.
 
 An entry is cited for a slice only if **all** its entities are in that slice's context (filters, drill path,
 the slice itself, compared sides). Mechanisms also need a matching metric; events must overlap the window.

@@ -1,0 +1,71 @@
+{#- Shared shell for every page, both languages.
+    Blocks: title, description, head, content (plus body_class, scripts).
+    Context: lang ("zh" | "en"), root ("" | "../" | "../../", prefix from this page back to the output root),
+             alt_href (same page in the other language), nav_active, path (page path inside its language root).
+    Globals (build.py): NAV, NAV_REPORTS, T (zh/en picker), site_meta. -#}
+{%- set zh = lang == "zh" -%}
+{%- set home = root ~ ("" if zh else "en/") -%}
+{%- set assets = root ~ "assets/" -%}
+<!doctype html>
+<html lang="{{ 'zh-CN' if zh else 'en' }}"{% if currency is defined and currency != "CNY" %} data-currency="{{ currency }}"{% endif %}>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}analyst-in-a-box{% endblock %}</title>
+<meta name="description" content="{% block description %}{% endblock %}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="analyst-in-a-box">
+<meta property="og:title" content="{{ self.title() | trim }}">
+<meta property="og:description" content="{{ self.description() | trim }}">
+<meta property="og:locale" content="{{ 'zh_CN' if zh else 'en_GB' }}">
+<link rel="icon" type="image/svg+xml" href="{{ assets }}favicon.svg">
+<link rel="alternate" hreflang="{{ 'en' if zh else 'zh-CN' }}" href="{{ alt_href }}">
+<link rel="stylesheet" href="{{ assets }}site.css">
+{% block head %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+<a class="skip" href="#main">{{ "跳到正文" if zh else "Skip to content" }}</a>
+<header class="nav"><div class="wrap">
+  <a class="brand" href="{{ home }}index.html"><i aria-hidden="true"></i>analyst-in-a-box</a>
+  <nav aria-label="{{ '主导航' if zh else 'Main' }}">
+    {%- for item in NAV %}
+    {%- if item.key == "reports" %}
+    <details class="nav-drop"><summary class="{{ 'on' if nav_active in ('reports', 'public') }}">{{ T(item.label, lang) }}</summary>
+      <div class="menu">
+        {%- for r in NAV_REPORTS %}
+        <a href="{{ home }}{{ r.path }}"{% if path == r.path %} aria-current="page"{% endif %}>{{ T(r.label, lang) }}<small>{{ T(r.note, lang) }}</small></a>
+        {%- endfor %}
+      </div></details>
+    {%- else %}
+    <a href="{{ home }}{{ item.path }}"{% if nav_active == item.key %} aria-current="page"{% endif %}>{{ T(item.label, lang) }}</a>
+    {%- endif %}
+    {%- endfor %}
+  </nav>
+  <div class="right">
+    <a class="lang" href="{{ alt_href }}" hreflang="{{ 'en' if zh else 'zh-CN' }}" lang="{{ 'en' if zh else 'zh-CN' }}">{{ "English" if zh else "中文" }}</a>
+    <span class="gh" title="{{ '仓库还没公开' if zh else 'Repository not public yet' }}">GitHub <small>{{ "待公开" if zh else "not public yet" }}</small></span>
+    <details class="nav-mobile"><summary>{{ "目录" if zh else "Menu" }}</summary>
+      <div class="menu">
+        <a href="{{ home }}index.html"{% if nav_active == 'home' %} aria-current="page"{% endif %}>{{ "首页" if zh else "Home" }}</a>
+        {%- for item in NAV if item.key != "reports" %}
+        <a href="{{ home }}{{ item.path }}"{% if nav_active == item.key %} aria-current="page"{% endif %}>{{ T(item.label, lang) }}</a>
+        {%- endfor %}
+        <span class="grp">{{ T((NAV | selectattr("key", "equalto", "reports") | first).label, lang) }}</span>
+        {%- for r in NAV_REPORTS %}
+        <a href="{{ home }}{{ r.path }}"{% if path == r.path %} aria-current="page"{% endif %}>{{ T(r.label, lang) }}</a>
+        {%- endfor %}
+      </div></details>
+  </div>
+</div></header>
+
+<main id="main">
+{% block content %}{% endblock %}
+</main>
+
+<footer class="foot"><div class="wrap">
+  <span>{{ T(site_meta.footer, lang) }}</span>
+  <span>Apache-2.0 · {{ "构建于" if zh else "Built from" }} <span class="tnum">{{ site_meta.git_head }}</span> · {{ "字体 Geist（OFL）" if zh else "Font: Geist (OFL)" }}</span>
+</div></footer>
+{% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,6 +1,9 @@
 north_star: gross_profit
 measures:
   m_revenue:
+    label: &id002
+      zh: 营收
+      en: Revenue
     source: orders
     agg: sum
     column: revenue
@@ -13,6 +16,9 @@ measures:
     - delivery
     - customer_type
   m_gross_profit:
+    label: &id003
+      zh: 毛利
+      en: Gross Profit
     source: orders
     agg: sum
     column: gross_profit
@@ -25,6 +31,9 @@ measures:
     - delivery
     - customer_type
   m_visits:
+    label: &id005
+      zh: 访问量
+      en: Visits
     source: traffic
     agg: sum
     column: visits
@@ -46,27 +55,27 @@ measures:
     additive_over: *id001
 metrics:
   revenue:
-    label: revenue
+    label: *id002
     measure: m_revenue
     unit: currency
     role: amount
-    source: &id002
+    source: &id004
       kind: user
       date: '2026-10-31'
     status: confirmed
   gross_profit:
-    label: gross_profit
+    label: *id003
     measure: m_gross_profit
     unit: currency
     role: profit
-    source: *id002
+    source: *id004
     status: confirmed
   visits:
-    label: visits
+    label: *id005
     measure: m_visits
     unit: count
     role: visits
-    source: *id002
+    source: *id004
     status: confirmed
   id_count:
     label:
@@ -74,7 +83,7 @@ metrics:
       zh: 订单数
     measure: m_count
     unit: count
-    source: *id002
+    source: *id004
     status: confirmed
   per_id:
     label:
@@ -142,22 +151,34 @@ identities:
   status: confirmed
 dimensions:
   channel:
-    label: channel
+    label:
+      zh: 渠道
+      en: Channel
     column: channel
   category:
-    label: category
+    label:
+      zh: 品类
+      en: Category
     column: category
   region:
-    label: region
+    label:
+      zh: 大区
+      en: Region
     column: region
   city:
-    label: city
+    label:
+      zh: 城市
+      en: City
     column: city
   delivery:
-    label: delivery
+    label:
+      zh: 配送方式
+      en: Delivery
     column: delivery
   customer_type:
-    label: customer_type
+    label:
+      zh: 客户类型
+      en: Customer Type
     column: customer_type
 priorities:
   revenue:

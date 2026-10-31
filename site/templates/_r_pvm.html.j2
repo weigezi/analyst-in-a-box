@@ -1,0 +1,64 @@
+{#- Body of the June report: revenue split into how much was sold (volume), what was sold (mix) and at what price. -#}
+{% set p = v.pvm %}
+{% set top = p.segments | selectattr("key", "equalto", p.top_price_key) | first %}
+{% set f0, f1 = v.factors[0], v.factors[1] %}
+<h1 class="r-title">{% if zh %}<span class="ph">6 月营收同比 {{ v.total.growth | pct }}：</span><span class="ph">卖得多带来 {{ p.volume_total | wan(true) }}，</span><span class="ph">卖得贵带来 {{ p.price_total | wan(true) }}</span>{% else %}June revenue {{ v.total.growth | pct }} on last year: selling more added {{ p.volume_total | wan(true) }}, higher prices {{ p.price_total | wan(true) }}{% endif %}</h1>
+<p class="r-dek">{% if zh %}问题是「卖得多了，还是卖得贵了」。两样都有，以卖得多为主：订单数 {{ p.quantity_base | num }} → {{ p.quantity_cur | num }}。价格涨得最多的是{{ top.label | t }}，单价 {{ top.price_base | money(false, 2) }} → {{ top.price_cur | money(false, 2) }}。{% else %}The question is “did we sell more, or charge more?” Both, mostly selling more: orders {{ p.quantity_base | num }} → {{ p.quantity_cur | num }}. The largest price rise is {{ top.label | t | lower }}, {{ top.price_base | money(false, 2) }} → {{ top.price_cur | money(false, 2) }} per order.{% endif %}</p>
+
+<div class="r-summary">
+  <div class="r-figure"><div class="big {{ v.total.growth | tone }}">{{ v.total.growth | pct }}</div>
+    <div class="big-sub tnum">{{ v.total.base | money }} → {{ v.total.cur | money }}{{ "，" if zh else ", " }}{{ v.total.delta | money(true) }}</div>
+    <div class="r-spark" data-chart="{{ v.id }}.spark" data-label="{{ '过去几个月的同比变化和 6 月' if zh else 'Past monthly changes and June' }}"></div>
+    <div class="r-sparkcap">{% if zh %}每月同比，过去 {{ v.history_n }} 个可比的月 + 6 月{% else %}Monthly change on last year, {{ v.history_n }} comparable months + June{% endif %}</div></div>
+  <ul class="r-points">
+    <li>{% if zh %}<b>以卖得多为主。</b>量 {{ p.volume_total | money(true) }}，价格 {{ p.price_total | money(true) }}，结构 {{ p.mix_total | money(true) }}，三项加起来正好是 {{ p.delta | money(true) }}。{% else %}<b>Mostly selling more.</b> Volume {{ p.volume_total | money(true) }}, price {{ p.price_total | money(true) }}, mix {{ p.mix_total | money(true) }}; the three add up to exactly {{ p.delta | money(true) }}.{% endif %}</li>
+    <li>{% if zh %}<b>涨价集中在{{ top.label | t }}。</b>它一项的价格部分就有 {{ top.price | money(true) }}；其他品类的单价几乎没动。{% else %}<b>The price rise sits in {{ top.label | t | lower }}.</b> Its price part alone is {{ top.price | money(true) }}; other categories' prices barely moved.{% endif %}</li>
+    <li>{% if zh %}<b>三个渠道一起涨，没有哪个突出。</b>所以不往下找「是哪个渠道」。{% else %}<b>All three channels grew together; none stands out.</b> So it does not look for “which channel”.{% endif %}</li>
+  </ul>
+</div>
+
+<section class="r-sec" id="s-tree">
+  <h2>{{ "这道题是怎么拆的" if zh else "How this question was broken down" }}</h2>
+  <p>{% if zh %}三条路：按公式拆（营收 = 订单数 × 客单价），按品类拆量、价、结构，按渠道切。量价结构那一条是这道题要的答案。{% else %}Three paths: by formula (revenue = orders × order value), volume / price / mix by category, and by channel. The volume / price / mix path answers this question.{% endif %}</p>
+  {{ tree.whole(v) }}
+</section>
+
+<section class="r-sec" id="s-pvm">
+  <h2>{% if zh %}<span class="ph">卖得多 {{ p.volume_total | wan(true) }}，</span><span class="ph">卖得贵 {{ p.price_total | wan(true) }}，</span><span class="ph">卖的东西变了 {{ p.mix_total | wan(true) }}</span>{% else %}Selling more {{ p.volume_total | wan(true) }}, higher prices {{ p.price_total | wan(true) }}, a different mix {{ p.mix_total | wan(true) }}{% endif %}</h2>
+  <p>{% if zh %}「量」是订单数变了带来的变化（各品类按去年的比例和单价）；「结构」是各品类占订单的比例变了；「价格」是每个品类自己的单价变了。三项加起来等于营收变化。{% else %}Volume is what changed because the number of orders changed (at last year's mix and prices); mix is what changed because categories took a different share of orders; price is what changed because each category's own price moved. The three add up to the revenue change.{% endif %}</p>
+  <figure class="r-fig"><figcaption class="r-figtitle">{{ "营收变化：量、价、结构（单位：元）" if zh else "Revenue change: volume, price, mix (¥)" }}</figcaption>
+    <div data-chart="{{ v.id }}.pvm" data-total="{{ '营收变化' if zh else 'Revenue change' }}" data-label="{{ '营收变化按量、价、结构拆开' if zh else 'Revenue change split into volume, price and mix' }}"></div></figure>
+  <div class="r-scroll"><table class="r-table small tnum"><thead><tr><th>{{ p.dimension_label | t }}</th><th>{{ "订单数" if zh else "Orders" }}</th><th>{{ "单价" if zh else "Price per order" }}</th><th>{{ "量" if zh else "Volume" }}</th><th>{{ "价格" if zh else "Price" }}</th><th>{{ "结构" if zh else "Mix" }}</th></tr></thead><tbody>
+    {% for g in p.segments %}<tr><td>{{ g.label | t }}</td><td>{{ g.q0 | num }} → {{ g.q1 | num }}</td><td>{{ g.price_base | num(2) }} → {{ g.price_cur | num(2) }}</td>
+      <td class="{{ g.volume | tone }}">{{ g.volume | money(true) }}</td><td class="{{ g.price | tone }}">{{ g.price | money(true) }}</td><td class="{{ g.mix | tone }}">{{ g.mix | money(true) }}</td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+
+<section class="r-sec" id="s-unusual">
+  <h2>{{ "比平时高得多，但能比的月份只有 " ~ v.history_n ~ " 个" if zh else "Far above normal, but only " ~ v.history_n ~ " months to compare with" }}</h2>
+  <p>{% if zh %}离常态是平时波动的 {{ q.robust_z | times }} 倍，超过 {{ v.z_line | times }} 倍算异常。但按月比，前面只有 {{ v.history_n }} 个两年都对得上的月份（另有 {{ v.left_out | length }} 个因为春节没放进来），「平时」是从很少的数里估的。{% else %}{{ q.robust_z | times }}× the usual wobble; {{ v.z_line | times }}× counts as unusual. But month by month there are only {{ v.history_n }} earlier months that line up across both years ({{ v.left_out | length }} more left out for Spring Festival), so “usual” rests on very few numbers.{% endif %}</p>
+  <figure class="r-fig wide"><figcaption class="r-figtitle">{{ "每月营收同比变化" if zh else "Monthly revenue change on last year" }}</figcaption>
+    <div data-chart="{{ v.id }}.range" data-last="{{ '6 月' if zh else 'June' }}" data-label="{{ '过去每月的同比变化和 6 月' if zh else 'Past monthly changes and June' }}"></div>
+    <ul class="legend"><li><i class="l-th"></i>{% if zh %}超出这两条线才算异常（{{ rg.unusual_below | pct }} / {{ rg.unusual_above | pct }}）{% else %}Outside these lines counts as unusual ({{ rg.unusual_below | pct }} / {{ rg.unusual_above | pct }}){% endif %}</li></ul>
+    <p class="r-note">{% if zh %}只有 {{ v.history_n }} 个月可比，算不出「中间那一半」，所以图上没有浅色带。{% else %}With only {{ v.history_n }} comparable months there is no middle half to shade.{% endif %}</p></figure>
+  <figure class="r-fig"><figcaption class="r-figtitle">{{ "营收变化按渠道拆开（单位：元）" if zh else "Revenue change by channel (¥)" }}</figcaption>
+    <div data-chart="{{ v.id }}.waterfall" data-total="{{ '合计变化' if zh else 'Total change' }}" data-others="{{ '其余 {n} 组' if zh else 'Other {n} groups' }}" data-label="{{ '营收变化按渠道拆开' if zh else 'Revenue change by channel' }}"></div>
+    <p class="r-note">{{ "三个渠道各涨了差不多的钱，没有哪个突出，所以停在这一层。" if zh else "The three channels added similar amounts and none stands out, so it stops at this layer." }}</p></figure>
+  <figure class="r-fig wide"><figcaption class="r-figtitle">{{ "每天营收：今年 6 月和去年 6 月（单位：元）" if zh else "Daily revenue: this June and last June (¥)" }}</figcaption>
+    <div data-chart="{{ v.id }}.daily" data-cur="{{ '今年 6 月' if zh else 'This June' }}" data-base="{{ '去年 6 月' if zh else 'Last June' }}" data-label="{{ '6 月每天营收' if zh else 'Daily revenue in June' }}"></div>
+    <p class="r-note">{{ "按日期对齐：今年 6 月 1 日对去年 6 月 1 日，星期几不一定相同。" if zh else "Aligned by date: 1 June against 1 June, so weekdays do not always match." }}</p></figure>
+</section>
+
+<section class="r-sec" id="s-unchecked">
+  <h2>{{ "这次没核实的" if zh else "What this report did not check" }}</h2>
+  <ul class="r-list">
+    <li>{% if zh %}{{ top.label | t }}为什么涨价。这次运行用的演示店工作区里没有调价记录，所以报告只说「涨在哪」，不说「为什么」。{% else %}Why {{ top.label | t | lower }} got more expensive. The demo shop's workspace used for this run has no price-change record, so the report says where the price rose, not why.{% endif %}</li>
+    <li>{% if zh %}订单多了 {{ p.quantity_growth | pct }}，是来的人多了还是买的比例高了：按公式拆，访问量带来大部分，转化率几乎没变（见拆解树）。为什么来的人多了，这次没查。{% else %}Orders rose {{ p.quantity_growth | pct }}. By formula, most of it came from more visits and conversion barely moved (see the tree). Why more people came was not checked.{% endif %}</li>
+    <li>{% if zh %}「比平时高得多」只基于 {{ v.history_n }} 个可比的月份，这个判断不稳。{% else %}“Far above normal” rests on only {{ v.history_n }} comparable months; treat it as weak.{% endif %}</li>
+  </ul>
+</section>
+
+<section class="r-sec" id="s-act">
+  <h2>{{ "谁该做什么" if zh else "Who should act" }}</h2>
+  <p>{% if zh %}这道题问的是「是什么在涨」，答案是卖得多为主、{{ top.label | t }}涨价为辅，没有记下的负责人和动作。{% else %}This question asks what grew: mostly volume, then the {{ top.label | t | lower }} price rise. No owner or action is on record.{% endif %}</p>
+</section>

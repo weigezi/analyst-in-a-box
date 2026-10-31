@@ -17,6 +17,7 @@ from __future__ import annotations
 import json
 import shutil
 import sys
+import datetime as dt
 from pathlib import Path
 
 import yaml
@@ -49,6 +50,10 @@ QUESTIONS = {
 }
 
 
+# The demo is dated, so that rebuilding it gives the same files; a real intake uses today's date.
+DEMO_DAY = dt.date(2026, 10, 31)
+
+
 def main(ws: Path = WS, runs: Path = RUNS, tables: Path | None = None):
     tables = tables or HERE / "tables"
     build_tables.main(tables)
@@ -56,10 +61,10 @@ def main(ws: Path = WS, runs: Path = RUNS, tables: Path | None = None):
         shutil.rmtree(ws)
     d = intake.init([tables], ws, lang="zh")
     answers = yaml.safe_load((HERE / "answers.yaml").read_text(encoding="utf-8"))
-    out = intake.confirm(ws, answers)
+    out = intake.confirm(ws, answers, today=DEMO_DAY)
     problems = all_problems(Workspace(ws))
     spec = yaml.safe_load((HERE / "proposals.yaml").read_text(encoding="utf-8"))
-    proposed = intake.propose(ws, HERE / spec["doc"], spec["items"])
+    proposed = intake.propose(ws, HERE / spec["doc"], spec["items"], today=DEMO_DAY)
     states = {}
     for k, cfg in QUESTIONS.items():
         states[k] = run(ws, {**cfg, "id": k}, out_dir=runs / k)

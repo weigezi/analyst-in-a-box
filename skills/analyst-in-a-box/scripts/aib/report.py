@@ -37,7 +37,7 @@ T = {
         "overlap": "重叠 {n} 天", "slice_text": "占变化 {v}（门槛 {t}）", "size_text": "事件那几天占这一块变化的 {v}（门槛 {t}）",
         "refute": "推翻条件：剔除事件那几天后这一块仍然同样下滑，这个推测就不成立。",
         "gap": "数据上看到「{seg}」的变化，原因待你确认。直接告诉我原因，我会记下来，下次不再问。",
-        "status_confirmed": "已确认", "status_proposed": "待确认", "source": "出处", "owner": "负责人",
+        "status_confirmed": "已确认", "status_proposed": "待确认", "source": "出处", "refuted_by": "什么数据出现就推翻它", "owner": "负责人",
         "no_action": "还没有登记可做的动作。", "coverage": "需要业务解释的地方：{e}/{n} 处有记录可引（覆盖率 {p}）。",
         "definitions": "口径版本", "decisions": "命中的规则", "checks": "交付前自检", "pass": "通过", "fail": "未通过",
         "blocked": "⚠️ 交付前自检没通过，以下结论不能用：", "you_may_not_know": "你可能还不知道",
@@ -140,7 +140,7 @@ T = {
         "overlap": "{n} days overlap", "slice_text": "{v} of the change (threshold {t})", "size_text": "{v} of the slice's change falls on the event's days (threshold {t})",
         "refute": "Refuted if, without the event's days, this slice still falls just as much.",
         "gap": "The data shows a change in \"{seg}\"; the reason is waiting for you. Tell me the reason and I will record it and not ask again.",
-        "status_confirmed": "confirmed", "status_proposed": "to confirm", "source": "source", "owner": "owner",
+        "status_confirmed": "confirmed", "status_proposed": "to confirm", "source": "source", "refuted_by": "what data would refute it", "owner": "owner",
         "no_action": "No actions recorded yet.", "coverage": "Places that need a business explanation: {e} of {n} can cite a record (coverage {p}).",
         "definitions": "Definitions version", "decisions": "Rules that fired", "checks": "Pre-delivery checks", "pass": "pass", "fail": "FAIL",
         "blocked": "⚠️ Pre-delivery checks failed; do not use the conclusions below:", "you_may_not_know": "You may not know",
@@ -451,7 +451,8 @@ def find_entry(ws, eid):
 def source_text(entry, lang):
     src = entry.get("source") or {}
     kind = SOURCE_KINDS[lang].get(src.get("kind"), src.get("kind", ""))
-    return f"{kind} · {src['ref']}" if src.get("ref") else kind
+    name = label(src["label"], lang) if src.get("label") else src.get("ref")
+    return f"{kind} · {name}" if name else kind
 
 
 def _cite_line(ws, c, lang, unit=None):
@@ -467,6 +468,8 @@ def _cite_line(ws, c, lang, unit=None):
     fl = _fit_line(c, ws, lang)
     if fl:
         lines.append(f"  - {fl}")
+    if entry.get("refuted_by"):
+        lines.append(f'  - {t["refuted_by"]}{p["colon"]}{label(entry["refuted_by"], lang)}')
     ck = c.get("checks") or {}
     if "slice" in ck:
         sz = ck["size"]

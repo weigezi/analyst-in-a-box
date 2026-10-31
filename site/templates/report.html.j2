@@ -1,0 +1,37 @@
+{% extends "base.html.j2" %}
+{#- One case report. The opening, the tree and the appendix are shared; the body is one partial per kind of question,
+    because each kind is broken down differently (_r_<kind>.html.j2). -#}
+{% import "_tree.html.j2" as tree with context %}
+{% set mk = v.main_label | t if v.main_label else "" %}
+{% set q = v.q %}
+{% set rg = v.range %}
+{% set base_word = {"yoy": ("去年同期", "the same period last year"), "pop": ("上一周", "the week before")} %}
+{% set DESC = {
+  "revenue_last_week": ("演示店上周营收同比下滑：只有电商平台在跌，原因是平台调整了费用条款。附拆解树、瀑布图和每天的数据。",
+                        "The demo shop's revenue fell year on year last week: only the marketplace fell, after it changed its fee terms. With the breakdown tree, waterfall and daily data."),
+  "east_last_week": ("华东上周跌得多：集中在当日达。连下三天暴雨是推测，过了时间、范围、量级三道检查，仍待确认。",
+                     "Why the east region fell more last week: it sits in same-day delivery. Three days of heavy rain is a hypothesis that passed the timing, slice and size checks, still to be confirmed."),
+  "aov_last_week": ("客单价下降主要是结构变了：新客里果篮多了。已有记录解释不了为什么，报告照实写了。",
+                    "Order value fell mainly because the mix changed: more fruit baskets among new customers. No record on file explains why, and the report says so."),
+  "june_price_volume": ("6 月营收同比上涨，拆成卖得多少、卖了什么、卖多少钱三部分：主要是卖得多。",
+                        "June revenue rose year on year, split into how much was sold, what was sold and at what price: mostly selling more."),
+  "app_vs_web": ("近四周 App 比网页长得慢，差在同样的东西在 App 上卖得差，集中在绿植。",
+                 "Over four weeks the app grew slower than the web because the same things sold worse in the app, mostly plants."),
+} %}
+{% block title %}{{ v.question | t }} · {{ "analyst-in-a-box 案例报告" if zh else "analyst-in-a-box case report" }}{% endblock %}
+{% block description %}{{ DESC[v.id][0] if zh else DESC[v.id][1] }}{% endblock %}
+{% block body_class %}report-page{% endblock %}
+{% block content %}
+<article class="report" id="report">
+<p class="r-meta"><a href="../index.html">{{ "首页" if zh else "Home" }}</a> / {{ "案例报告" if zh else "Case report" }} · {{ data.meta.shop | t }}<br>
+  <span class="tnum">{% if zh %}本期 {{ v.current | daterange }}，对比{{ base_word[v.base_kind][0] }} {{ v.base | daterange }}{% else %}{{ v.current | daterange }}, against {{ base_word[v.base_kind][1] }}, {{ v.base | daterange }}{% endif %}</span></p>
+<p class="r-q">{{ "问题" if zh else "Question" }}{{ "：" if zh else ": " }}{{ v.question | t }}</p>
+{% include "_r_" ~ v.kind ~ ".html.j2" %}
+{% include "_appendix.html.j2" %}
+</article>
+{% endblock %}
+{% block scripts %}
+<script src="{{ root }}assets/site-data.js"></script>
+<script src="{{ root }}assets/fmt.js"></script>
+<script src="{{ root }}assets/charts.js"></script>
+{% endblock %}

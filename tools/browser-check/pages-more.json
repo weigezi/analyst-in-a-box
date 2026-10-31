@@ -1,0 +1,134 @@
+{
+  "about": "Pages built by site/pages_more.py. Each entry: path inside dist, and the extra checks for that page. Selectors and states are the page's own; a self-test implementing these lives with the page author (see /tmp/aib-more/check.mjs while the site is in review).",
+  "pages": [
+    {
+      "path": "graph.html",
+      "pair": "en/graph.html",
+      "states": {
+        "views": {
+          "select": "[data-view]",
+          "values": [
+            "tree",
+            "world"
+          ]
+        },
+        "questions": {
+          "select": "#gm-case",
+          "values": [
+            "",
+            "revenue_last_week",
+            "east_last_week",
+            "aov_last_week",
+            "june_price_volume",
+            "app_vs_web"
+          ]
+        },
+        "deep_link": "#view=world&q=east_last_week"
+      },
+      "checks": [
+        {
+          "what": "at >= 1180px, no two visible nodes, group headings or lane headings overlap, in either view, with or without a question",
+          "selector": "#view-tree .gm-node, #view-world .gm-node, #view-world .gm-group, #view-world .gm-lane-h"
+        },
+        {
+          "what": "at >= 1180px, no month label on the time axis sits under an event card",
+          "selector": "#view-world .gm-ticktext"
+        },
+        {
+          "what": "no node's text overflows its card (scrollHeight/Width <= clientHeight/Width + 1), and no chip label is cut",
+          "selector": ".gm-node, .gm-chip span, .gm-hit > span"
+        },
+        {
+          "what": "picking each question lights more than one node or dimension chip on the tree view; on the world view too, except june_price_volume, which stops at the first cut and finds no cause, so only the metric lights",
+          "selector": ".gm-node.lit, .gm-chip.lit, .gm-chip.scope"
+        },
+        {
+          "what": "picking a question shows its path panel with at least 4 steps and a link to its report",
+          "selector": "#gm-path:not([hidden]) #gm-steps li"
+        },
+        {
+          "what": "clicking a node opens the detail panel with at least: what it is, source, status, what would overturn it; Escape closes it and focus returns to the node",
+          "selector": "#gm-detail"
+        },
+        {
+          "what": "below 1180px the canvas becomes a list: SVG edges hidden, no horizontal scroll at 390",
+          "selector": ".gm-edges"
+        },
+        {
+          "what": "contrast >= 4.5 for all text, except nodes faded on purpose while a question or a node is picked (.gm-on/.gm-sel .gm-node:not(.lit, .near, .picked))"
+        },
+        {
+          "what": "no internal words or field names in the page text, the step templates or the detail data (#gm-data): ontology, 切一刀, 槽位, 覆盖率, slot, snake_case ids, dimension=value"
+        }
+      ]
+    },
+    {
+      "path": "intake.html",
+      "pair": "en/intake.html",
+      "checks": [
+        {
+          "what": "390: no horizontal scroll; wide tables scroll inside their own box (.ik-scroll), not the page"
+        },
+        {
+          "what": "no internal words or field names, with every <details> opened: column names of the shop's own tables are shown as code in the table previews and questions, as the user's data; question ids, record ids and engine field names are not"
+        },
+        {
+          "what": "9 table cards, each with its column names and 3 sample rows",
+          "selector": "#ik-tables .ik-table"
+        },
+        {
+          "what": "each accepted sentence is highlighted in the weekly report and numbered to match its record",
+          "selector": "#ik-doc .ik-mark, #ik-doc .ik-recs li:not(.ik-skip)"
+        },
+        {
+          "what": "the four counts, the comparison with the hand-written workspace and the list of differences are shown",
+          "selector": "#ik-formed .ik-counts li, #ik-gaps .ik-cmp tr, #ik-gaps .ik-gaplist li"
+        },
+        {
+          "what": "the formed workspace's answers table has one row per question asked of it",
+          "selector": "#ik-runs .ik-runs tbody tr"
+        }
+      ]
+    },
+    {
+      "path": "learning.html",
+      "pair": "en/learning.html",
+      "checks": [
+        {
+          "what": "390: no horizontal scroll; wide tables scroll inside their own box (.ik-scroll), not the page"
+        },
+        {
+          "what": "no internal words or field names, with every <details> opened: column names of the shop's own tables are shown as code in the table previews and questions, as the user's data; question ids, record ids and engine field names are not"
+        },
+        {
+          "what": "three columns at 1440 (before, the user's words, after), stacked at 390",
+          "selector": "#lr-compare .lr-col"
+        },
+        {
+          "what": "the regression case passes after learning and fails once the record is deleted",
+          "selector": "#lr-forget .lr-reg.ok, #lr-forget .lr-reg.no"
+        }
+      ]
+    },
+    {
+      "path": "architecture.html",
+      "pair": "en/architecture.html",
+      "checks": [
+        {
+          "what": "390: no horizontal scroll; wide tables scroll inside their own box (.ik-scroll), not the page"
+        },
+        {
+          "what": "no internal words or field names, with every <details> opened: column names of the shop's own tables are shown as code in the table previews and questions, as the user's data; question ids, record ids and engine field names are not"
+        },
+        {
+          "what": "at >= 1180px no two state-machine steps overlap and no step's text overflows its box",
+          "selector": "#ar-flow .ar-step"
+        },
+        {
+          "what": "every method card has a name and a source",
+          "selector": "#ar-methods .ar-card h3, #ar-methods .ar-src"
+        }
+      ]
+    }
+  ]
+}

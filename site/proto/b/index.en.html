@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>analyst-in-a-box · Why did this number move?</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<p class="en-only">Prototype: only this first screen exists in English. The rest of the site is in Chinese for now.</p>
+<header class="nav"><div class="wrap">
+  <a class="brand" href="index.en.html"><i aria-hidden="true"></i>analyst-in-a-box</a>
+  <div class="right"><a class="lang" href="index.html">中文</a>
+    <a class="gh" href="#" title="Repository not public yet">GitHub <small>not public yet</small></a></div>
+</div></header>
+
+<main>
+<section class="hero"><div class="wrap">
+  <div class="hero-copy">
+    <p class="kicker">Open source · runs inside your AI tool</p>
+    <h1>Why did this number move? <span class="dim">And who should act next?</span></h1>
+    <p class="lede">Ask once in your AI tool. It runs local scripts to do the arithmetic: <b>is it unusual, where did it happen, why, and who owns the fix</b>. Every figure has a source; your data never leaves your machine.</p>
+  </div>
+  <div class="hero-try">
+    <div class="ctas"><a class="btn" href="#install">Copy the install command</a></div>
+    <p class="install-note">Install: put the skill folder in your AI tool's skills directory, then ask.</p>
+  </div>
+  <div class="hero-cmd">
+    <div class="install" id="install"><code><span class="p">$ </span><span class="k">git clone &lt;repository, not public yet&gt; aib &amp;&amp; cp -r aib/skills/analyst-in-a-box ~/your-tool/skills/</span></code>
+      <button class="copy" type="button" data-copy="install">Copy</button></div>
+    <ul class="trust"><li>Apache-2.0</li><li>Data stays on your machine</li><li>CSV, Excel, databases</li></ul>
+  </div>
+
+  <div class="session" aria-label="A session in an AI tool">
+    <div class="sess-bar"><span>AI tool · session</span><button class="replay" type="button" id="replay">Replay</button></div>
+    <div class="sess-body">
+      <div class="msg-user reveal" data-v="question" data-f="t"></div>
+      <ol class="progress reveal"><li id="sess-r1"></li><li id="sess-r2"></li><li id="sess-r3"></li><li id="sess-r4"></li></ol>
+      <article class="rcard reveal">
+        <p class="rcard-head"><span data-v="shop" data-f="t"></span> · <span class="tnum" data-v="current" data-f="range"></span>, against the same week last year</p>
+        <h2 id="ans-title"></h2>
+        <div class="figure-row">
+          <div><div class="big" data-v="total.growth" data-f="pct"></div>
+            <div class="big-sub tnum"><span data-v="total.base" data-f="money"></span> → <span data-v="total.cur" data-f="money"></span></div></div>
+          <div class="spark-wrap"><p class="spark-chip"><span class="chip" id="ans-chip"></span></p><div id="ans-spark"></div>
+            <div class="spark-cap">Weekly growth, 26 weeks; grey = Mid-Autumn week shifted</div></div>
+        </div>
+        <div class="ans-cut"><p class="sub-h">Revenue change by channel</p><div id="ans-cut"></div></div>
+        <p class="ans-cause"><span class="tag">Reason on record</span><span id="ans-cause"></span></p>
+      </article>
+    </div>
+  </div>
+</div></section>
+</main>
+
+<script src="../shared/data.js"></script>
+<script src="../shared/fmt.js"></script>
+<script src="../shared/charts.js"></script>
+<script src="../shared/demo.js"></script>
+<script src="../shared/page-index.js"></script>
+</body>
+</html>

@@ -49,6 +49,8 @@ mechanisms:
     metrics: [margin_rate, gross_profit]
     direction: lower
     claim: {en: "Marketplace orders pay the operator a commission, so their margin is lower.", zh: "电商平台的订单要给平台方付佣金，所以毛利率低。"}
+    refuted_by: {en: "Marketplace orders no longer have a lower margin than other channels for the same category and period.",
+                 zh: "同一时期、同一品类比，电商平台订单的毛利率不再低于其他渠道。"}
     source: {kind: demo_setting}
     status: confirmed
   - id: mech_fruit_basket_cheaper
@@ -56,6 +58,8 @@ mechanisms:
     metrics: [aov]
     direction: lower
     claim: {en: "Fruit baskets are the cheapest category; more of them pulls the average order value down.", zh: "果篮是最便宜的品类，果篮占比一高，客单价就被拉低。"}
+    refuted_by: {en: "Fruit baskets stop being the category with the lowest average price.",
+                 zh: "果篮不再是各品类里平均单价最低的。"}
     source: {kind: demo_setting}
     status: confirmed
   - id: mech_same_day_weather
@@ -63,6 +67,8 @@ mechanisms:
     metrics: [revenue, orders]
     direction: sensitive
     claim: {en: "Same-day courier orders need riders on the road; heavy rain cuts them.", zh: "当日达要骑手上路，大雨会让当日达订单下滑。"}
+    refuted_by: {en: "On days of heavy rain same-day orders do not fall, or scheduled delivery and pickup fall just as much (then it is not about riders).",
+                 zh: "下大雨的那几天当日达订单没有变少；或者预约配送、到店自提也跌得一样多（那就不是骑手的问题）。"}
     source: {kind: demo_setting}
     status: confirmed
 
@@ -72,7 +78,9 @@ events:
     start: 2026-10-12
     entities: [ch_marketplace]
     what: {en: "The marketplace changed its fee terms and our listing lost its placement.", zh: "电商平台调整了费用条款，我们的商品失去了推荐位。"}
-    source: {kind: system_record, ref: "partner contract log"}
+    refuted_by: {en: "Marketplace revenue does not break around 12 October, or other channels fall just as much at the same time.",
+                 zh: "电商平台营收在 10 月 12 日前后没有断开；或者其他渠道同期跌得一样多。"}
+    source: {kind: system_record, ref: "partner contract log", label: {en: "partner contract log", zh: "合作方合同记录"}}
     status: confirmed
   - id: ev_east_rainstorm
     kind: external
@@ -81,14 +89,19 @@ events:
     entities: [region_east, deliv_same_day]
     what: {en: "Three days of heavy rain in the east region.", zh: "华东连续三天暴雨。"}
     evidence: {source: weather, filters: {region: east}}
-    source: {kind: general_knowledge, note: "Reported by the weather source; the link to our orders is a hypothesis until it passes the three checks."}
+    refuted_by: {en: "Leave out the three rainy days and same-day orders in the east still fall as much; or the fall is not in the east, or is far larger than the rain could explain.",
+                 zh: "剔除下雨的三天，华东当日达照样跌这么多；或者跌的不在华东；或者跌得远比下雨能解释的多。"}
+    source: {kind: general_knowledge, label: {en: "weather records", zh: "天气记录"},
+             note: "Reported by the weather source; the link to our orders is a hypothesis until it passes the three checks."}
     status: proposed
   - id: ev_app_homepage_change
     kind: internal
     start: 2026-09-01
     entities: [ch_app, cat_plant]
     what: {en: "The app home page dropped its plants slot.", zh: "App 首页撤掉了绿植的推荐位。"}
-    source: {kind: system_record, ref: "app release notes"}
+    refuted_by: {en: "Plants orders in the app do not change around 1 September, or plants fall just as much on the website.",
+                 zh: "App 上绿植的订单在 9 月 1 日前后没有变化；或者网页上的绿植也跌得一样多。"}
+    source: {kind: system_record, ref: "app release notes", label: {en: "app release notes", zh: "App 发版记录"}}
     status: confirmed
 
 actions:

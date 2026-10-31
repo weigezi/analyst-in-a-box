@@ -1,0 +1,98 @@
+{% extends "base.html.j2" %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block description %}{{ description }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ root }}assets/graphmap.css">{% endblock %}
+{% macro card_lines(lines) %}{% for t, px, lh in lines %}<span class="gm-l{{ loop.index }} gm-px{{ px }}">{{ t }}</span>{% endfor %}{% endmacro %}
+{% block content %}
+<section class="gm-hero"><div class="wrap">
+  <p class="eyebrow">{{ w.eyebrow }}</p>
+  <h1>{% for ph in w.h1 %}<span class="ph">{{ ph }}</span>{% if not loop.last %} {% endif %}{% endfor %}</h1>
+  <p class="gm-lede">{{ w.lede }}</p>
+</div></section>
+
+<section class="gm"><div class="wrap">
+  <div class="gm-bar">
+    <div class="gm-views" role="tablist" aria-label="{{ w.title }}">
+      <button type="button" role="tab" id="tab-tree" aria-controls="view-tree" aria-selected="true" data-view="tree">{{ w.views.tree }}</button>
+      <button type="button" role="tab" id="tab-world" aria-controls="view-world" aria-selected="false" data-view="world" tabindex="-1">{{ w.views.world }}</button>
+    </div>
+    <label class="gm-pick"><span>{{ w.pick }}</span>
+      <select id="gm-case">
+        <option value="">{{ w.none }}</option>
+        {% for q in questions %}<option value="{{ q.id }}">{{ q.text }}</option>{% endfor %}
+      </select>
+    </label>
+  </div>
+
+  <div class="gm-path" id="gm-path" hidden>
+    <div class="gm-path-h"><h2>{{ w.path_h }}</h2><button type="button" class="gm-clear" id="gm-clear">{{ w.clear_btn }}</button></div>
+    <ol class="gm-steps" id="gm-steps"></ol>
+  </div>
+  {% for q in questions %}
+  <template id="steps-{{ q.id }}">{% for t, body in steps[q.id] %}<li><span class="gm-step-t">{{ t }}</span><p>{{ body | safe }}</p></li>{% endfor %}{% if q.report %}<li class="gm-step-more"><a href="{{ q.report }}">{{ w.report }} →</a></li>{% endif %}</template>
+  {% endfor %}
+
+  <ul class="gm-legend">
+    <li><i class="lg-lit"></i>{{ w.legend.lit }}</li>
+    <li><i class="lg-scope"></i>{{ w.legend.scope }}</li>
+    <li><i class="lg-proposed"></i>{{ w.legend.proposed }}</li>
+    <li class="gm-world-only"><i class="lg-belongs"></i>{{ w.legend.belongs }}</li>
+  </ul>
+
+  {# ---------------- metric tree #}
+  <div class="gm-view" id="view-tree" role="tabpanel" aria-labelledby="tab-tree">
+    <p class="gm-hint">{{ w.hint_tree }}</p>
+    <div class="gm-canvas gm-tree" style="--w:{{ tree.w }}px;--h:{{ tree.h }}px">
+      <svg class="gm-edges" viewBox="0 0 {{ tree.w }} {{ tree.h }}" width="{{ tree.w }}" height="{{ tree.h }}" aria-hidden="true">
+        {% for e in tree.edges %}<path class="gm-e" data-id="{{ e.id }}" data-from="{{ e.from }}" data-to="{{ e.to }}" d="{{ e.d }}"/>{% endfor %}
+        {% for o in tree.ops %}<g class="gm-op" data-from="{{ o.from }}"><circle cx="{{ o.x }}" cy="{{ o.y }}" r="9"/><text x="{{ o.x }}" y="{{ o.y + 4 }}" text-anchor="middle">×</text></g>{% endfor %}
+      </svg>
+      {% for c in tree.cards %}
+      <div class="gm-node gm-mcard{% if c.ns %} gm-ns{% endif %}" data-id="{{ c.id }}" style="--x:{{ c.box.x }}px;--y:{{ c.box.y }}px;--bw:{{ c.box.w }}px;--bh:{{ c.box.h }}px;--d:{{ c.depth }}">
+        <button type="button" class="gm-hit" data-node="{{ c.id }}" aria-haspopup="dialog"><span class="gm-title">{{ c.title }}</span><span class="gm-val" data-val="{{ c.id }}"></span></button>
+        <p class="gm-sub">{{ c.sub }}</p>
+        <ul class="gm-chips{% if c.box.chip_cols == 2 %} two{% endif %}">
+          {% for ch in c.chips %}<li class="gm-chip" data-chip="{{ ch.id }}">{% if ch.rank %}<b>{{ ch.rank }}</b>{% else %}<b class="any">·</b>{% endif %}<span>{{ ch.label }}</span></li>{% endfor %}
+        </ul>
+        <p class="gm-rule">{{ c.rule }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  {# ---------------- world description #}
+  <div class="gm-view" id="view-world" role="tabpanel" aria-labelledby="tab-world" hidden>
+    <p class="gm-hint">{{ w.hint_world }}</p>
+    <div class="gm-canvas gm-world" style="--w:{{ world.w }}px;--h:{{ world.h }}px">
+      <svg class="gm-edges" viewBox="0 0 {{ world.w }} {{ world.h }}" width="{{ world.w }}" height="{{ world.h }}" aria-hidden="true">
+        <rect class="gm-window" id="gm-window" x="{{ world.axis.x - 6 }}" y="0" width="12" height="0"/>
+        <line class="gm-axis" x1="{{ world.axis.x }}" x2="{{ world.axis.x }}" y1="{{ world.axis.y0 }}" y2="{{ world.axis.y1 }}"/>
+        {% for t in world.axis.ticks %}<line class="gm-tick" x1="{{ world.axis.x - 4 }}" x2="{{ world.axis.x + 4 }}" y1="{{ t.y }}" y2="{{ t.y }}"/><text class="gm-ticktext" x="{{ world.axis.x - 8 }}" y="{{ t.y + 4 }}" text-anchor="end">{{ t.text }}</text>{% endfor %}
+        {% for l in world.axis.leaders %}<line class="gm-evspan" data-from="{{ l.for }}" x1="{{ world.axis.x }}" x2="{{ world.axis.x }}" y1="{{ l.t0 }}" y2="{{ l.t1 }}"/><path class="gm-e gm-leader" data-from="{{ l.for }}" data-to="{{ l.for }}" d="{{ l.d }}"/>{% endfor %}
+        {% for e in world.edges %}<path class="gm-e k-{{ e.kind }}{% if not e.shown %} gm-hidden{% endif %}" data-id="{{ e.id }}" data-from="{{ e.from }}" data-to="{{ e.to }}" d="{{ e.d }}"/>{% endfor %}
+      </svg>
+      {% for lane in world.lanes %}
+      <div class="gm-lane gm-lane-{{ lane.kind }}" style="--x:{{ lane.x }}px;--lw:{{ lane.w }}px">
+        <h3 class="gm-lane-h">{{ lane.text }}</h3>
+        {% for it in lane.entries %}
+          {% if it.type == 'head' %}<p class="gm-group" style="--x:{{ it.box.x - lane.x }}px;--y:{{ it.box.y }}px;--bw:{{ it.box.w }}px">{{ it.text }}</p>
+          {% else %}<div class="gm-node gm-card{% if it.pill %} gm-pill{% endif %}{% if it.sub %} gm-subcol{% endif %}{% if it.proposed %} gm-proposed{% endif %}{% if it.external %} gm-ext{% endif %}" data-id="{{ it.id }}" style="--x:{{ it.box.x - lane.x }}px;--y:{{ it.box.y }}px;--bw:{{ it.box.w }}px;--bh:{{ it.box.h }}px">
+            <button type="button" class="gm-hit" data-node="{{ it.id }}" aria-haspopup="dialog">{{ card_lines(it.lines) }}{% if it.proposed %}<span class="gm-tag">{{ w.status.proposed }}</span>{% endif %}</button>
+          </div>{% endif %}
+        {% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  <p class="gm-note">{{ w.ok_mobile }}</p>
+</div></section>
+
+<aside class="gm-detail" id="gm-detail" role="dialog" aria-modal="false" aria-labelledby="gm-detail-h" hidden>
+  <button type="button" class="gm-close" id="gm-close" aria-label="{{ w.detail.close }}">×</button>
+  <p class="gm-detail-k" id="gm-detail-k"></p>
+  <h2 id="gm-detail-h"></h2>
+  <dl id="gm-detail-dl"></dl>
+</aside>
+<script id="gm-data" type="application/json">{{ payload | safe }}</script>
+<script src="{{ root }}assets/graphmap.js" defer></script>
+{% endblock %}

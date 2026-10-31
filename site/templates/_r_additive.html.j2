@@ -1,0 +1,81 @@
+{#- Body of the revenue report (additive cut, cause on record). -#}
+{% set ev = v.cause.citations[0] %}
+{% set act = v.cause.actions[0] %}
+{% set web = v.offsets[0] %}
+{% set rest = v.rest %}
+{% set on = v.onset %}
+{% set wk_prev = v.recent_weeks[-2] %}
+<h1 class="r-title">{% if zh %}<span class="ph">上周营收同比 {{ v.total.growth | pct }}：</span><span class="ph">{{ mk }}少了 {{ -v.main.value | wan }}，</span><span class="ph">{{ web.label | t }}多了 {{ web.value | wan }}</span>{% else %}Revenue {{ v.total.growth | pct }} on last year: {{ mk }} lost {{ -v.main.value | wan }}, {{ web.label | t | lower }} gained {{ web.value | wan }}{% endif %}</h1>
+<p class="r-dek">{% if zh %}{{ ev.start | md }}起{{ ev.text | t | replace("。", "") }}，{{ mk }}每天的营收从那天起比去年同日少了一截。{{ act.owner | t }}需要{{ act.action | t | replace("。", "") }}。{% else %}On {{ ev.start | md }}: {{ ev.text | t }} From that day the marketplace's daily revenue sat well below the same day last year. Owner: {{ act.owner | t | lower }}. Next step: {{ act.action | t }}{% endif %}</p>
+
+<div class="r-summary">
+  <div class="r-figure"><div class="big {{ v.total.growth | tone }}">{{ v.total.growth | pct }}</div>
+    <div class="big-sub tnum">{{ v.total.base | money }} → {{ v.total.cur | money }}{{ "，" if zh else ", " }}{{ v.total.delta | money(true) }}</div>
+    <div class="r-spark" data-chart="{{ v.id }}.spark" data-label="{{ '过去每周的同比变化和本周' if zh else 'Past weekly changes and this week' }}"></div>
+    <div class="r-sparkcap">{% if zh %}每周同比，过去 {{ v.history_n }} 个可比的周 + 本周{% else %}Weekly change on last year, {{ v.history_n }} comparable weeks + this one{% endif %}</div></div>
+  <ul class="r-points">
+    <li>{% if zh %}<b>比平时低得多。</b>过去 {{ v.history_n }} 周的同比，中间那一半在 {{ rg.usual_range[0] | pct }} 到 {{ rg.usual_range[1] | pct }}；本周 {{ v.total.growth | pct }}，离常态是平时波动的 {{ q.robust_z | times }} 倍。{% else %}<b>Far below normal.</b> Over the past {{ v.history_n }} weeks the middle half of changes ran from {{ rg.usual_range[0] | pct }} to {{ rg.usual_range[1] | pct }}; this week is {{ v.total.growth | pct }}, {{ q.robust_z | times }}× the usual wobble from normal.{% endif %}</li>
+    <li>{% if zh %}<b>只有{{ mk }}在跌。</b>{{ mk }}自身 {{ rest.top_change | pct }}；去掉它，其余渠道 {{ rest.rest_change | pct }}，平时约 {{ rest.rest_usual_change | pct }}，和平时差不多。{% else %}<b>Only the marketplace fell.</b> The marketplace itself is {{ rest.top_change | pct }}; without it the other channels are {{ rest.rest_change | pct }}, against a usual {{ rest.rest_usual_change | pct }}.{% endif %}</li>
+    <li>{% if zh %}<b>其实上上周就开始了。</b>{{ wk_prev.window | daterange }}那周整店同比已经 {{ wk_prev.whole_change | pct }}，{{ mk }} {{ wk_prev.change | pct }}。这份报告只问了上周，那一周另见「这次没核实的」。{% else %}<b>It started the week before.</b> In the week of {{ wk_prev.window | daterange }} the whole shop was already {{ wk_prev.whole_change | pct }} and the marketplace {{ wk_prev.change | pct }}. This report only asks about last week; see “What this report did not check”.{% endif %}</li>
+  </ul>
+</div>
+
+<section class="r-sec" id="s-tree">
+  <h2>{{ "这道题是怎么拆的" if zh else "How this question was broken down" }}</h2>
+  <p>{% if zh %}从总变化出发，左边按公式拆，右边按渠道一层层切，只展开它走过的那条路；没走的合成「其余几组」，金额照样写上。{% else %}From the total change: by formula on one side, and by channel, layer by layer, on the other. Only the path it took is opened; the groups it did not follow are folded into “other groups”, with their amount.{% endif %}</p>
+  {{ tree.whole(v) }}
+  <p class="r-note">{% if zh %}按公式拆的两层，各项加起来正好等于上一层的变化（方法见附录）。「占全部变动」是这一组的变化占各组变化绝对值之和的比例，在 0 到 100% 之间。{% else %}At each formula level the parts add up exactly to the level above (method in the appendix). “Share of all movement” is this group's change as a share of the sum of every group's change regardless of sign, between 0 and 100%.{% endif %}</p>
+</section>
+{% set mkt = v.market %}
+<section class="r-sec" id="s-unusual">
+  <h2>{{ "这一周比平时低得多，不是正常波动" if zh else "This week is far below normal, not ordinary noise" }}</h2>
+  <p>{% if zh %}把过去 {{ v.history_n }} 个可比的周每周的同比排开，中间那一半落在 {{ rg.usual_range[0] | pct }} 到 {{ rg.usual_range[1] | pct }}。本周 {{ v.total.growth | pct }}，离常态的距离是平时波动幅度的 {{ q.robust_z | times }} 倍；超过 {{ v.z_line | times }} 倍才算异常，换成同比就是低于 {{ rg.unusual_below | pct }} 或高于 {{ rg.unusual_above | pct }}。另有 {{ v.left_out | length }} 周因为节日两年落在不同的周，同比失真，没放进来比。{% else %}Lay out the year-on-year change of each of the past {{ v.history_n }} comparable weeks: the middle half sits between {{ rg.usual_range[0] | pct }} and {{ rg.usual_range[1] | pct }}. This week is {{ v.total.growth | pct }}, {{ q.robust_z | times }} times the usual wobble from normal; {{ v.z_line | times }} times counts as unusual, which here means below {{ rg.unusual_below | pct }} or above {{ rg.unusual_above | pct }}. {{ v.left_out | length }} weeks whose holidays fell in different weeks across the two years are left out, because their year-on-year is distorted.{% endif %}</p>
+  <figure class="r-fig wide"><figcaption class="r-figtitle">{{ "每周营收同比变化" if zh else "Weekly revenue change on last year" }}</figcaption>
+    <div data-chart="{{ v.id }}.range" data-last="{{ '本周' if zh else 'This week' }}" data-label="{{ '过去每周的同比变化和本周' if zh else 'Past weekly changes and this week' }}"></div>
+    <ul class="legend"><li><i class="l-iqr"></i>{{ "过去这些周中间那一半" if zh else "Middle half of past weeks" }}（{{ rg.usual_range[0] | pct }} {{ "至" if zh else "to" }} {{ rg.usual_range[1] | pct }}）</li>
+      <li><i class="l-th"></i>{{ "超出这两条线才算异常" if zh else "Outside these two lines counts as unusual" }}（{{ rg.unusual_below | pct }} / {{ rg.unusual_above | pct }}）</li></ul>
+    <p class="r-note">{{ "横轴按周排开，跳过了节日没对上的周。" if zh else "Weeks are in order; the holiday weeks that did not line up are skipped." }}</p></figure>
+  <h3>{{ "和大盘比：大盘在涨，店里在跌" if zh else "Against the market: the market grew, the shop fell" }} <span class="est">{{ "估计" if zh else "estimate" }}</span></h3>
+  <p>{% if zh %}同期大盘同比 {{ q.market_growth | pct }}。这家店平时比大盘慢 {{ (-mkt.usual_gap * 100) | round(1) }} 个百分点，照这个速度，这周本该 {{ mkt.expected_growth | pct }}、{{ mkt.expected_part | money(true) }}；实际 {{ v.total.delta | money(true) }}，差出来的 {{ mkt.own_part | money(true) }} 是店里自己的问题。这是估计；不考虑平时的差距、直接按大盘算，是 {{ mkt.plain_own_part | money(true) }}。两种算法都说大盘解释不了这次的下跌。{% else %}The market grew {{ q.market_growth | pct }} over the same weeks. This shop usually grows {{ (-mkt.usual_gap * 100) | round(1) }} percentage points slower than the market; at that pace the week would have been {{ mkt.expected_growth | pct }}, {{ mkt.expected_part | money(true) }}. It was actually {{ v.total.delta | money(true) }}, so {{ mkt.own_part | money(true) }} is the shop's own. That is an estimate; measured straight against the market, ignoring the usual gap, it is {{ mkt.plain_own_part | money(true) }}. Either way the market does not explain the fall.{% endif %}</p>
+</section>
+
+<section class="r-sec" id="s-where">
+  <h2>{% if zh %}<span class="ph">去掉{{ mk }}，</span><span class="ph">其余渠道 {{ rest.rest_change | pct }}，和平时差不多</span>{% else %}Without the marketplace, the other channels are {{ rest.rest_change | pct }}, about as usual{% endif %}</h2>
+  <p>{% if zh %}{{ mk }}从 {{ rest.top_base | money }} 到 {{ rest.top_cur | money }}，{{ rest.top_change | pct }}。其余渠道从 {{ rest.rest_base | money }} 到 {{ rest.rest_cur | money }}，{{ rest.rest_change | pct }}，平时约 {{ rest.rest_usual_change | pct }}。{{ web.label | t }}多出来的 {{ web.value | money(true) }} 抵掉了一部分。{% else %}The marketplace went from {{ rest.top_base | money }} to {{ rest.top_cur | money }}, {{ rest.top_change | pct }}. The other channels went from {{ rest.rest_base | money }} to {{ rest.rest_cur | money }}, {{ rest.rest_change | pct }}, against a usual {{ rest.rest_usual_change | pct }}. The website's {{ web.value | money(true) }} offset part of the fall.{% endif %}</p>
+  <div class="r-stats">
+    <div><p class="r-stat-l">{{ mk }}</p><p class="r-stat-v {{ rest.top_change | tone }}">{{ rest.top_change | pct }}</p><p class="r-stat-s">{{ rest.top_base | money }} → {{ rest.top_cur | money }}</p></div>
+    <div><p class="r-stat-l">{{ "其余渠道" if zh else "Other channels" }}</p><p class="r-stat-v {{ rest.rest_change | tone }}">{{ rest.rest_change | pct }}</p><p class="r-stat-s">{{ rest.rest_base | money }} → {{ rest.rest_cur | money }}{{ "；平时约 " if zh else "; usually about " }}{{ rest.rest_usual_change | pct }}</p></div>
+  </div>
+  <figure class="r-fig"><figcaption class="r-figtitle">{{ "营收变化按渠道拆开（单位：元）" if zh else "Revenue change by channel (¥)" }}</figcaption>
+    <div data-chart="{{ v.id }}.waterfall" data-total="{{ '合计变化' if zh else 'Total change' }}" data-others="{{ '其余 {n} 组' if zh else 'Other {n} groups' }}" data-label="{{ '营收变化按渠道拆开' if zh else 'Revenue change by channel' }}"></div>
+    {% for r in v.ruled_out if r.kind == "cut_spread" %}
+    <p class="r-note">{% if zh %}再把{{ mk }}按{{ r.dimension_label | t }}切：各组一起跌，没有哪组突出，所以停在{{ mk }}这一层。{% else %}Cutting the marketplace further by {{ r.dimension_label | t | lower }}: the groups fell together and none stands out, so the breakdown stops at the marketplace.{% endif %}</p>
+    {% endfor %}</figure>
+</section>
+<section class="r-sec" id="s-why">
+  <h2>{% if zh %}<span class="ph">原因有记录：</span><span class="ph">{{ ev.text | t | replace("。", "") }}</span>{% else %}Cause on record: {{ ev.text | t | replace(".", "") }}{% endif %}</h2>
+  {% set fit %}{% if zh %}对得上这次的变化：记录说的正是{{ mk }}，也就是少掉钱的地方；{{ mk }}每天比去年同日的差额，正好从 {{ on.start | md }}起变了样，之前平均每天 {{ on.mean_before | money(true) }}，之后 {{ on.mean_after | money(true) }}，变化当天和记录的开始日期{{ "是同一天" if v.events and v.events[0].days_from_onset == 0 else "相差 " ~ v.events[0].days_from_onset ~ " 天" }}。{% else %}It fits this change: the record is about the marketplace, which is where the money went, and the marketplace's daily gap to last year changes on exactly {{ on.start | md }}: {{ on.mean_before | money(true) }} a day on average before, {{ on.mean_after | money(true) }} after. The change {{ "starts the same day as the record" if v.events and v.events[0].days_from_onset == 0 else "is " ~ v.events[0].days_from_onset ~ " days from the record" }}.{% endif %}{% endset %}
+  {{ tree.evidence(ev, fit) }}
+  <figure class="r-fig wide"><figcaption class="r-figtitle">{% if zh %}{{ mk }}每天比去年同日多或少多少（单位：元）{% else %}Marketplace: daily gap to the same day last year (¥){% endif %}</figcaption>
+    <div data-chart="{{ v.id }}.onset" data-start="{{ '{d} 起' if zh else 'From {d}' }}" data-label="{{ mk ~ ('每天比去年同日的差额' if zh else ': daily gap to the same day last year') }}"></div>
+    <p class="r-note">{% if zh %}横线是变化前后各自的平均。变化日期是程序自己找的：在过去 {{ on.lookback_days }} 天里找一个日子，让它前后两段各自最平；不是照着记录的日期画上去的。{% else %}The horizontal lines are the averages before and after. The program finds the date itself: the day in the last {{ on.lookback_days }} that splits the series into the two flattest halves. It is not drawn from the record's date.{% endif %}</p></figure>
+  <figure class="r-fig wide"><figcaption class="r-figtitle">{{ "整店每天营收：本周和去年同周（单位：元）" if zh else "Whole shop, daily revenue: this week and the same week last year (¥)" }}</figcaption>
+    <div data-chart="{{ v.id }}.daily" data-cur="{{ '本周' if zh else 'This week' }}" data-base="{{ '去年同周' if zh else 'Same week last year' }}" data-label="{{ '整店每天营收' if zh else 'Daily revenue' }}"></div>
+    <p class="r-note">{{ "按星期几对齐：本周的周一对去年同周的周一。" if zh else "Aligned by weekday: this Monday against the Monday of the same week last year." }}</p></figure>
+</section>
+
+<section class="r-sec" id="s-unchecked">
+  <h2>{{ "这次没核实的" if zh else "What this report did not check" }}</h2>
+  <ul class="r-list">
+    <li>{% if zh %}{{ web.label | t }}同期多了 {{ web.value | money(true) }}。是不是有{{ mk }}的客人转到{{ web.label | t }}来买了？这次没有验证，要按客人对一下才知道。如果是，{{ mk }}真正流失的钱比 {{ -v.main.value | wan }} 少。{% else %}The website gained {{ web.value | money(true) }}. Did some marketplace customers move to the website? Not checked; it needs a customer-level match. If they did, the marketplace's real loss is smaller than {{ -v.main.value | wan }}.{% endif %}</li>
+    <li>{% if zh %}记录只说明了时间和渠道对得上，没有说失去推荐位具体少了多少单。{{ -v.main.value | wan }} 里有没有别的原因，这份报告分不出来。{% else %}The record shows that the date and the channel match; it does not say how many orders the lost placement cost. Whether part of the {{ -v.main.value | wan }} has another cause, this report cannot tell.{% endif %}</li>
+    <li>{% if zh %}上上周（{{ wk_prev.window | daterange }}）整店已经 {{ wk_prev.whole_change | pct }}，也低于 {{ rg.unusual_below | pct }} 那条线。这份报告只问了上周，那一周当时有没有被报出来，这里看不到。{% else %}The week before ({{ wk_prev.window | daterange }}) the whole shop was already {{ wk_prev.whole_change | pct }}, also below the {{ rg.unusual_below | pct }} line. This report only asks about last week; whether that week was flagged at the time is not visible here.{% endif %}</li>
+    <li>{% if zh %}「和大盘比」用的是这家店过去 {{ q.usual_gap_n }} 周和大盘的平均差距，是估计。换一种算法，店里自己的那部分会变，但「大盘解释不了」这个结论不变。{% else %}“Against the market” uses this shop's average gap to the market over {{ q.usual_gap_n }} weeks: an estimate. Another method would change the shop's own part, not the conclusion that the market does not explain it.{% endif %}</li>
+  </ul>
+</section>
+
+<section class="r-sec" id="s-act">
+  <h2>{{ "谁该做什么" if zh else "Who should act" }}</h2>
+  <table class="r-table"><thead><tr><th>{{ "负责人" if zh else "Owner" }}</th><th>{{ "做什么" if zh else "What" }}</th><th>{{ "依据" if zh else "Basis" }}</th></tr></thead>
+    <tbody><tr><td><b>{{ act.owner | t }}</b></td><td>{{ act.action | t }}</td><td class="tnum">{% if zh %}{{ mk }}少了 {{ -v.main.value | wan }}；{{ ev.start | md }}起的条款变化有记录{% else %}{{ mk }} lost {{ -v.main.value | wan }}; the terms change from {{ ev.start | md }} is on record{% endif %}</td></tr></tbody></table>
+</section>

@@ -1,0 +1,47 @@
+{#- Report appendix: methods with their sources, the data checks and the self-checks, in plain words.
+    Expects v (case view) in context. -#}
+{% set CHECK = {
+  "workspace_valid": ("工作区的设置文件能读、没有矛盾", "The workspace settings load without contradictions"),
+  "data_quality": ("数据检查没有拦下这份报告", "The data checks did not stop this report"),
+  "windows_same_length": ("两段时间一样长", "Both periods are the same length"),
+  "base_has_data": ("对比的那一段有数据", "The comparison period has data"),
+  "identities_computable": ("公式里的每一项都算得出来", "Every term of the formula can be computed"),
+  "segments_add_up_to_total": ("各组加起来等于总数", "The groups add up to the total"),
+  "every_decomposition_closes": ("每一种拆法，各部分加起来都等于总变化", "Every breakdown adds up to the total change"),
+  "contribution_shares_sum_to_100pct": ("各部分的占比加起来是 100%", "The shares of each breakdown add up to 100%"),
+  "every_slot_explained_or_flagged": ("每个变化集中的地方，要么有原因，要么标明了没有", "Every place the change sits either has a cause or is flagged as not having one"),
+  "explanations_fit_the_change": ("引用的原因能解释这次的变化，两期都有的不算", "Every cited cause can explain this change; one present in both periods does not count"),
+  "outside_events_not_stated_as_fact": ("外部事件没有被当成事实写", "Outside events are not stated as fact"),
+  "every_cut_went_through_a_decision_table": ("每一步拆还是停，都按事先写好的规则定", "Every decision to go on or stop followed rules written down beforehand"),
+} %}
+{% set QCHECK = {
+  "calendar_complete": ("每一天都有数据", "Every day has data"),
+  "key_unique": ("订单编号没有重复", "No order number repeats"),
+  "daily_volume_steady": ("每天的单量没有突然跳", "Daily order counts do not jump"),
+  "daily_value_steady": ("每天的金额没有突然跳", "Daily amounts do not jump"),
+  "row_ratio": ("各张表的行数比例和平时一样", "The tables' row counts keep their usual ratio"),
+  "no_single_row_dominates": ("没有一笔订单大到左右结果", "No single order is big enough to drive the result"),
+  "dimension_values_stable": ("分组的名字没有中途改过", "Group names did not change halfway"),
+} %}
+{% set LEVEL = {"block": ("不过就停发报告", "stops the report if it fails"), "warn": ("不过就在开头提醒", "warns at the top if it fails")} %}
+{% macro p(pair) %}{{ pair[0] if zh else pair[1] }}{% endmacro %}
+<details class="r-appendix"><summary>{{ "附录：方法、出处和自检" if zh else "Appendix: methods, sources and self-checks" }}</summary>
+  <table class="r-table small"><thead><tr><th>{{ "正文里的说法" if zh else "In the text" }}</th><th>{{ "方法和数值" if zh else "Method and value" }}</th><th>{{ "出处" if zh else "Source" }}</th></tr></thead><tbody>
+    <tr><td>{{ "离常态是平时波动的几倍" if zh else "How many times the usual wobble" }}</td>
+      <td class="tnum">{% if zh %}本期变化减去过去各期变化的中位数，再除以 1.4826 × 中位数绝对偏差；本期是 {{ v.q.robust_z | num(2, true) }}{% else %}This period's change minus the median of past changes, divided by 1.4826 × the median absolute deviation; here {{ v.q.robust_z | num(2, true) }}{% endif %}</td>
+      <td>Iglewicz &amp; Hoaglin (1993), <i>How to Detect and Handle Outliers</i></td></tr>
+    <tr><td>{% if zh %}超过 {{ v.z_line | times }} 倍才算异常{% else %}{{ v.z_line | times }}× counts as unusual{% endif %}</td>
+      <td class="tnum">{% if zh %}写在工作区的设置里，不是现场定的{% else %}Stored in the workspace settings, not chosen on the spot{% endif %}</td><td>{{ "同上" if zh else "Same" }}</td></tr>
+    {% if v.formula %}<tr><td>{{ "按公式拆，各项加起来正好等于总变化" if zh else "Formula breakdown that adds up exactly" }}</td>
+      <td>{% if zh %}对数平均迪氏指数分解（LMDI-I）：每项按自己变化的对数比例分总变化{% else %}Log-mean Divisia index (LMDI-I): each factor takes a share in proportion to the log of its own ratio{% endif %}</td>
+      <td>B. W. Ang (2004, 2005), <i>Energy Policy</i></td></tr>{% endif %}
+    {% if v.onset.get("found") %}<tr><td>{{ "变化从哪天开始" if zh else "When the change started" }}</td>
+      <td>{% if zh %}在每日差额里找一个日期，让前后两段的平均各自最贴合（最小二乘），前后差到 2 个标准差以上才认；本次 {{ v.onset.shift_in_sd | num(1, true) }} 个{% else %}The date that best splits the daily gap into two flat halves (least squares), named only if the shift is at least 2 standard deviations; here {{ v.onset.shift_in_sd | num(1, true) }}{% endif %}</td>
+      <td>D. V. Hinkley (1970), <i>Biometrika</i> 57(1)</td></tr>{% endif %}
+  </tbody></table>
+  <h4>{{ "数据检查" if zh else "Data checks" }}</h4>
+  <ul class="r-checks">{% for c in v.quality.checks %}<li class="{{ 'ok' if c.status == 'ok' else 'no' }}">{{ p(QCHECK[c.check]) }}<small>（{{ p(LEVEL[c.level]) }}）</small></li>{% endfor %}</ul>
+  <h4>{% if zh %}交出报告前的自检（{{ v.checks | selectattr("pass") | list | length }} / {{ v.checks | length }} 通过）{% else %}Self-checks before the report goes out ({{ v.checks | selectattr("pass") | list | length }} of {{ v.checks | length }} pass){% endif %}</h4>
+  <ul class="r-checks">{% for c in v.checks %}<li class="{{ 'ok' if c.pass else 'no' }}">{{ p(CHECK[c.check]) }}</li>{% endfor %}</ul>
+  <p class="r-note">{% if zh %}每个数字都由脚本算出，构建于引擎版本 {{ data.meta.git_head }}。演示店「花果篮」是虚构的，数据由程序生成。{% else %}Every number is computed by a script, built from engine version {{ data.meta.git_head }}. The demo shop, Bloom &amp; Basket, is fictional and its data is generated.{% endif %}</p>
+</details>

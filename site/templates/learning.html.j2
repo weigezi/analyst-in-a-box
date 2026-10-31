@@ -1,0 +1,57 @@
+{% extends "base.html.j2" %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block description %}{{ description }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ root }}assets/graphmap.css">{% endblock %}
+{% block content %}
+<section class="gm-hero"><div class="wrap">
+  <p class="eyebrow">{{ w.eyebrow }}</p>
+  <h1>{% for ph in w.h1 %}<span class="ph">{{ ph }}</span>{% if not loop.last %} {% endif %}{% endfor %}</h1>
+  <p class="gm-lede">{{ lede }}</p>
+</div></section>
+
+<section class="ik-sec" id="lr-compare"><div class="wrap">
+  <h2>{{ w.s_cmp }}</h2><p class="ik-sub">{{ w.excerpt }}</p>
+  <div class="lr-three">
+    <article class="lr-col"><p class="lr-k">{{ w.before }}</p><div class="lr-rep">{{ before | safe }}</div></article>
+    <article class="lr-col lr-said">
+      <p class="lr-k">{{ w.said }}</p>
+      <blockquote>{{ quote }}</blockquote>
+      <h3>{{ w.rec_h }}</h3>
+      <p>{{ rec.text }}</p>
+      <dl class="lr-dl">
+        <div><dt>{{ w.rec_when }}</dt><dd>{{ rec.when }}</dd></div>
+        <div><dt>{{ w.rec_src }}</dt><dd>{{ rec.src }}</dd></div>
+        <div><dt>{{ w.rec_status }}</dt><dd>{{ rec.status }}</dd></div>
+      </dl>
+    </article>
+    <article class="lr-col lr-after"><p class="lr-k">{{ w.after }}</p><div class="lr-rep">{{ after | safe }}</div></article>
+  </div>
+  <div class="lr-share">
+    <p class="lr-k">{{ w.share_h }}</p>
+    <div class="lr-bars">{% for t, c in share %}
+      <div class="lr-bar"><span>{{ t }}</span><i style="--v:{{ c.share }}"></i><b>{{ c.explained }} / {{ c.slots }}</b></div>{% endfor %}
+    </div>
+    <p>{{ w.share_why }}</p>
+  </div>
+</div></section>
+
+<section class="ik-sec" id="lr-forget"><div class="wrap">
+  <h2>{{ w.s_forget }}</h2><p class="ik-sub">{{ w.forget_sub }}</p>
+  <ol class="lr-steps">
+    {% for st in steps %}
+    <li><p class="lr-k">{{ loop.index }} · {{ st.title }}</p>
+      {% for r in st.rows %}<div class="lr-reg {{ 'ok' if r.pass else 'no' }}"><b>{{ w.f_pass if r.pass else w.f_fail }}</b><p>{{ r.expect }}</p><p>{{ r.got }}</p></div>{% endfor %}
+    </li>
+    {% endfor %}
+  </ol>
+  {% if caught %}<p class="lr-caught">{{ w.f_caught }}</p>{% endif %}
+</div></section>
+
+<section class="ik-sec" id="lr-not"><div class="wrap">
+  <h2>{{ w.s_not }}</h2>
+  <ul class="ik-gaplist">{% for x in w.not %}<li>{{ x }}</li>{% endfor %}</ul>
+  <details class="ik-more"><summary>{{ w.ids }}</summary>
+    <dl class="lr-dl ids">{% for a, b in ids %}<div><dt>{{ a }}</dt><dd><code>{{ b }}</code></dd></div>{% endfor %}</dl>
+  </details>
+</div></section>
+{% endblock %}

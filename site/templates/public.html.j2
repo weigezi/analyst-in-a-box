@@ -1,0 +1,95 @@
+{% extends "base.html.j2" %}
+{#- Public-data report: a real retailer's invoices, first run after the getting-started questions. -#}
+{% import "_tree.html.j2" as tree with context %}
+{% set src = pub.source %}
+{% set init = pub.init[lang] %}
+{% set ans = pub.answers %}
+{% set q = v.q %}
+{% set rg = v.range %}
+{% set closed = init.quiet_weekdays[0] %}
+{% set WD = {"zh": ["周一", "周二", "周三", "周四", "周五", "周六", "周日"], "en": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]} %}
+{% set SHAPE = {"unique": ("每行都不同", "every row differs"), "date": ("日期", "date"), "category": ("分类", "category"), "number": ("数字", "number")} %}
+{% block title %}{{ "公开数据：一家英国网店的真实发票 · analyst-in-a-box" if zh else "Public data: a UK online shop's real invoices · analyst-in-a-box" }}{% endblock %}
+{% block description %}{% if zh %}用 UCI Online Retail 公开数据集（CC BY 4.0）跑一遍第一次使用的流程：看列、选择题、第一份报告。最后一整周比前一周 {{ v.total.growth | pct }}，在正常波动内。{% else %}The getting-started flow on the UCI Online Retail dataset (CC BY 4.0): read the columns, answer multiple-choice questions, get the first report. The last full week is {{ v.total.growth | pct }} on the week before: within the usual range.{% endif %}{% endblock %}
+{% block body_class %}report-page{% endblock %}
+{% block content %}
+<article class="report" id="report">
+<p class="r-meta"><a href="../index.html">{{ "首页" if zh else "Home" }}</a> / {{ "公开数据报告" if zh else "Public data report" }} · {{ src.title }}<br>
+  <span class="tnum">{% if zh %}本期 {{ v.current | daterange }}，对比上一周 {{ v.base | daterange }}{% else %}{{ v.current | daterange }}, against the week before, {{ v.base | daterange }}{% endif %}</span></p>
+<h1 class="r-title">{% if zh %}<span class="ph">真实数据，第一次运行：</span><span class="ph">这周比上周 {{ v.total.growth | pct }}，</span><span class="ph">在正常波动内</span>{% else %}Real data, first run: this week is {{ v.total.growth | pct }} on the last, within the usual range{% endif %}</h1>
+<p class="r-dek">{% if zh %}没有异常，它就说没有异常，不往下找原因。这一页记下从拿到一张表到第一份报告的全过程。{% else %}Nothing unusual, so it says so and does not look for a cause. This page records the whole path from one table to the first report.{% endif %}</p>
+<div class="r-summary">
+  <div class="r-figure"><div class="big {{ v.total.growth | tone }}">{{ v.total.growth | pct }}</div>
+    <div class="big-sub tnum">{{ v.total.base | money }} → {{ v.total.cur | money }}</div>
+    <div class="r-spark" data-chart="public.spark" data-label="{{ '过去每周比前一周的变化和本周' if zh else 'Past week-on-week changes and this week' }}"></div>
+    <div class="r-sparkcap">{% if zh %}每周比前一周，过去 {{ v.history_n }} 周 + 本周{% else %}Week on week, {{ v.history_n }} past weeks + this one{% endif %}</div></div>
+  <ul class="r-points">
+    <li>{% if zh %}<b>在正常波动内。</b>这家店每周起伏很大，过去 {{ v.history_n }} 周比前一周的变化，中间那一半在 {{ rg.usual_range[0] | pct }} 到 {{ rg.usual_range[1] | pct }}。本周 {{ v.total.growth | pct }}，离常态只有平时波动的 {{ q.robust_z | times }} 倍。{% else %}<b>Within the usual range.</b> This shop swings a lot: over {{ v.history_n }} weeks the middle half of week-on-week changes ran from {{ rg.usual_range[0] | pct }} to {{ rg.usual_range[1] | pct }}. This week is {{ v.total.growth | pct }}, only {{ q.robust_z | times }}× the usual wobble.{% endif %}</li>
+    <li>{% if zh %}<b>所以不往下找原因。</b>按国家分组看了一眼，各组有涨有跌，但总数正常，它按规则停在这里。{% else %}<b>So it does not look for a cause.</b> By country group some rose and some fell, but the total is normal, so by the rules it stops here.{% endif %}</li>
+    <li>{% if zh %}<b>周六当作不营业。</b>数据里 {{ closed.weeks }} 个周六一张发票都没有，选择题里确认为不营业。这是从数据推出来的，不是数据集说明里写的。{% else %}<b>Saturdays are treated as closed.</b> None of the {{ closed.weeks }} Saturdays in the data has a single invoice, confirmed as closed in the questions. This is inferred from the data, not stated by the dataset.{% endif %}</li>
+  </ul>
+</div>
+
+<section class="r-sec" id="s-steps">
+  <h2>{{ "从一张表到第一份报告" if zh else "From one table to the first report" }}</h2>
+  <p>{% if zh %}和你拿自己的数据第一次用时一样：它先看每一列长什么样，再出选择题问你每一列是什么，不按列名猜；答完马上跑第一份归因。{% else %}The same as your first time with your own data: it looks at what each column holds, asks multiple-choice questions about what each column means instead of guessing from the name, and runs the first analysis as soon as you answer.{% endif %}</p>
+  <h3>{{ "第一步：看列" if zh else "Step 1: look at the columns" }}</h3>
+  <p>{% if zh %}{{ init.rows | num }} 行，每行一张发票。{% else %}{{ init.rows | num }} rows, one invoice each.{% endif %}</p>
+  <div class="r-scroll"><table class="r-table small tnum"><thead><tr><th>{{ "列" if zh else "Column" }}</th><th>{{ "看上去是" if zh else "Looks like" }}</th><th>{{ "不同的值" if zh else "Distinct values" }}</th><th>{{ "例子" if zh else "Examples" }}</th></tr></thead><tbody>
+    {% for c in init.profile %}<tr><td>{{ (c.name.zh if zh else c.name.en) if c.name else c.column }}</td><td>{{ SHAPE[c.shape][0] if zh else SHAPE[c.shape][1] }}</td><td>{{ c.distinct | num }}</td><td>{{ c.examples[:3] | join(", ") }}</td></tr>{% endfor %}
+  </tbody></table></div>
+  <h3>{{ "第二步：选择题" if zh else "Step 2: multiple-choice questions" }}</h3>
+  <p>{% if zh %}一共 {{ init.questions | length }} 道。下面是其中几道，和这次选的答案。{% else %}{{ init.questions | length }} questions in all. A few of them, with the answers given here:{% endif %}</p>
+  <ul class="qa">
+    {% for qq in init.questions if qq.id in ("role:revenue", "role:customer_id", "order_id", "closed_weekdays") %}
+    {% set a = ans[qq.id] %}
+    <li><p class="qa-q">{{ qq.ask }}</p>
+      <p class="qa-a">{{ "选了：" if zh else "Answer: " }}{% if qq.id == "closed_weekdays" %}{{ a.days | map("string") | map("replace", "5", WD[lang][5]) | join("、" if zh else ", ") }}{% else %}{% set opt = qq.options | selectattr("value", "defined") | selectattr("value", "equalto", a) | first if qq.options[0] is mapping else none %}{{ opt.label if opt else a }}{% endif %}</p></li>
+    {% endfor %}
+  </ul>
+  <h3>{{ "第三步：第一次运行" if zh else "Step 3: the first run" }}</h3>
+  <p>{% if zh %}答完之后，它自己挑了最后一整周（{{ v.current | daterange }}）和前一周比营收。数据从 {{ src.first_day | md(true) }} 开始，去年同一周不在数据里，第一次运行比的是前一周。{% else %}After the answers it picked the last full week ({{ v.current | daterange }}) and compared revenue with the week before. The data starts on {{ src.first_day | md(true) }}, so the same week a year earlier is not in it; the first run compares week on week.{% endif %}</p>
+</section>
+
+<section class="r-sec" id="s-tree">
+  <h2>{{ "这道题是怎么拆的" if zh else "How this question was broken down" }}</h2>
+  {{ tree.whole(v) }}
+</section>
+
+<section class="r-sec" id="s-unusual">
+  <h2>{{ "这一周在正常波动内" if zh else "This week is within the usual range" }}</h2>
+  <figure class="r-fig wide"><figcaption class="r-figtitle">{{ "每周营收比前一周的变化" if zh else "Weekly revenue change on the week before" }}</figcaption>
+    <div data-chart="public.range" data-last="{{ '本周' if zh else 'This week' }}" data-label="{{ '过去每周的变化和本周' if zh else 'Past weekly changes and this week' }}"></div>
+    <ul class="legend"><li><i class="l-iqr"></i>{{ "过去这些周中间那一半" if zh else "Middle half of past weeks" }}（{{ rg.usual_range[0] | pct }} {{ "至" if zh else "to" }} {{ rg.usual_range[1] | pct }}）</li>
+      <li><i class="l-th"></i>{% if zh %}高于 {{ rg.unusual_above | pct }} 才算异常地高；这家店起伏太大，往下的那条线落在 −100% 以下，图上不画{% else %}Above {{ rg.unusual_above | pct }} counts as unusually high; the shop swings so much that the lower line falls below −100%, so it is not drawn{% endif %}</li></ul></figure>
+  <figure class="r-fig"><figcaption class="r-figtitle">{{ "营收变化按国家分组拆开（单位：英镑）" if zh else "Revenue change by country group (£)" }}</figcaption>
+    <div data-chart="public.waterfall" data-total="{{ '合计变化' if zh else 'Total change' }}" data-others="{{ '其余 {n} 组' if zh else 'Other {n} groups' }}" data-label="{{ '营收变化按国家分组拆开' if zh else 'Revenue change by country group' }}"></div>
+    <p class="r-note">{{ "只为了让你看到各组的样子；总数正常时，哪组涨哪组跌都不算原因。" if zh else "Shown only so you can see the groups; when the total is normal, which group rose or fell is not a cause." }}</p></figure>
+  <figure class="r-fig wide"><figcaption class="r-figtitle">{{ "每天营收：本周和前一周（单位：英镑）" if zh else "Daily revenue: this week and the week before (£)" }}</figcaption>
+    <div data-chart="public.daily" data-cur="{{ '本周' if zh else 'This week' }}" data-base="{{ '前一周' if zh else 'Week before' }}" data-label="{{ '每天营收' if zh else 'Daily revenue' }}"></div>
+    <p class="r-note">{{ "周六两周都是 0：数据里每个周六都没有发票，按不营业处理。" if zh else "Saturday is 0 in both weeks: no Saturday in the data has an invoice, so it is treated as closed." }}</p></figure>
+</section>
+
+<section class="r-sec" id="s-unchecked">
+  <h2>{{ "这次没核实的" if zh else "What this report did not check" }}</h2>
+  <ul class="r-list">
+    <li>{% if zh %}周六不营业是推断：数据集的说明没写这家店哪几天营业。如果其实是周六的数据丢了，那「缺数据」就该算问题。{% else %}Closed on Saturdays is an inference: the dataset's description does not say which days the shop traded. If Saturday data was lost instead, the missing days should count as a problem.{% endif %}</li>
+    <li>{% if zh %}没有大盘数据，所以没有「和大盘比」这一步。{% else %}There is no market data, so there is no “against the market” step.{% endif %}</li>
+    <li>{% if zh %}总数正常，所以只按国家分组看了一层；国内外、新老客这两种切法这次没用上。{% else %}The total is normal, so it looked at one layer only, by country group; the domestic/international and customer-type cuts were not used this time.{% endif %}</li>
+  </ul>
+</section>
+
+<section class="r-sec" id="s-source">
+  <h2>{{ "数据出处" if zh else "Data source" }}</h2>
+  <p>{{ "金额是英镑：数据集说明里单价的单位是 sterling。" if zh else "Amounts are pounds sterling, as the dataset states for unit price." }}</p>
+  <p class="cite">{{ src.citation }} <a href="{{ src.doi }}">{{ src.doi }}</a>{{ "。授权：" if zh else ". Licence: " }}{{ src.licence }}{{ "。" if zh else "." }}</p>
+  <p>{% if zh %}原始文件 {{ src.raw_file }} 有 {{ src.raw_lines | num }} 行商品明细（{{ src.first_day | md(true) }} 至 {{ src.last_day | md(true) }}），去掉取消的发票和数量或单价不为正的行后剩 {{ src.sales_lines | num }} 行，按发票合成 {{ src.invoices | num }} 张，整理脚本在仓库的 <code>demo/public/prepare.py</code>。{% else %}The raw file {{ src.raw_file }} has {{ src.raw_lines | num }} item lines ({{ src.first_day | md(true) }} to {{ src.last_day | md(true) }}); without cancelled invoices and lines with a non-positive quantity or price {{ src.sales_lines | num }} remain, grouped into {{ src.invoices | num }} invoices by <code>demo/public/prepare.py</code> in the repository.{% endif %} <a href="{{ src.page }}">UCI Machine Learning Repository</a></p>
+</section>
+{% include "_appendix.html.j2" %}
+</article>
+{% endblock %}
+{% block scripts %}
+<script src="{{ root }}assets/site-data.js"></script>
+<script src="{{ root }}assets/fmt.js"></script>
+<script src="{{ root }}assets/charts.js"></script>
+{% endblock %}
