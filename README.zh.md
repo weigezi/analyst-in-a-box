@@ -59,6 +59,7 @@
 uv run pytest                                   # 每种方法都精确闭合；每个埋好的原因都被找到
 uv run python site/build.py                     # 用真实运行结果构建演示站
 cd tools/browser-check && npm install && node check.mjs   # 无报错，动效时长达标（site/MOTION.zh.md）
+node tools/design-check/run.mjs                 # 用两个外部检查工具（impeccable、hallmark）查页面上的「AI 味」；例外要在 accepted.json 写理由
 uv run python tools/bilingual_check.py          # 每份文档都有中英两份，章节一一对应
 ```
 

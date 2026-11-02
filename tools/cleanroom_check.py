@@ -17,7 +17,7 @@ from pathlib import Path
 
 TOOLS = Path(__file__).resolve().parent
 ROOT = TOOLS.parent
-TEXT = {".py", ".md", ".yaml", ".yml", ".j2", ".html", ".js", ".mjs", ".css", ".sh", ".txt", ".sql", ".toml", ".json", ".csv"}
+TEXT = {".py", ".md", ".yaml", ".yml", ".j2", ".html", ".js", ".mjs", ".css", ".sh", ".txt", ".sql", ".toml", ".json", ".csv", ".lock"}
 SKIP_DIRS = {".git", ".venv", "node_modules", "dist", "raw", "__pycache__", ".pytest_cache", "runs", "outputs", "_backup"}
 MIN_LEN = 40
 # Third-party licence texts must be shipped word for word, so any other project carrying the same licence

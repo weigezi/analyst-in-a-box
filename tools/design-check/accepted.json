@@ -1,0 +1,7 @@
+[
+  {
+    "tool": "hallmark",
+    "rule": "20",
+    "reason": "Rule 20 asks for the stamp comment that hallmark's own design workflow writes on pages it produced. This site was not made with that workflow; writing the stamp would claim it was."
+  }
+]

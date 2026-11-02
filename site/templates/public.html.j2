@@ -14,7 +14,7 @@
 {% block body_class %}report-page{% endblock %}
 {% block content %}
 <article class="report" id="report">
-<p class="r-meta"><a href="../index.html">{{ "首页" if zh else "Home" }}</a> / {{ "公开数据报告" if zh else "Public data report" }} · {{ src.title }}<br>
+<p class="r-meta"><a href="../index.html">{{ "首页" if zh else "Home" }}</a> / {{ "公开数据报告" if zh else "Public data report" }}{{ "：" if zh else ": " }}{{ src.title }}<br>
   <span class="tnum">{% if zh %}本期 {{ v.current | daterange }}，对比上一周 {{ v.base | daterange }}{% else %}{{ v.current | daterange }}, against the week before, {{ v.base | daterange }}{% endif %}</span></p>
 <h1 class="r-title">{% if zh %}<span class="ph">真实数据，第一次运行：</span><span class="ph">这周比上周 {{ v.total.growth | pct }}，</span><span class="ph">在正常波动内</span>{% else %}Real data, first run: this week is {{ v.total.growth | pct }} on the last, within the usual range{% endif %}</h1>
 <p class="r-dek">{% if zh %}没有异常，它就说没有异常，不往下找原因。这一页记下从拿到一张表到第一份报告的全过程。{% else %}Nothing unusual, so it says so and does not look for a cause. This page records the whole path from one table to the first report.{% endif %}</p>

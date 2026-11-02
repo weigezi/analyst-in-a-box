@@ -13,7 +13,7 @@
 
 <div class="r-summary">
   <div class="r-figure"><div class="big {{ L0.total | tone }}">{{ L0.total | delta("points", 1) }}</div>
-    <div class="big-sub tnum">{{ a }} {{ L0.growth_a | pct }} · {{ b }} {{ L0.growth_b | pct }}</div>
+    <div class="big-sub tnum">{{ a }} {{ L0.growth_a | pct }}{{ "，" if zh else ", " }}{{ b }} {{ L0.growth_b | pct }}</div>
     <div class="r-spark" data-chart="{{ v.id }}.spark" data-label="{{ '整店过去几个四周的同比变化' if zh else 'Whole shop, past four-week changes' }}"></div>
     <div class="r-sparkcap">{% if zh %}整店每四周同比，过去 {{ v.history_n }} 段 + 本段{% else %}Whole shop, four-week change on last year, {{ v.history_n }} periods + this one{% endif %}</div></div>
   <ul class="r-points">

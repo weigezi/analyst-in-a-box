@@ -9,8 +9,11 @@
     var items = Array.prototype.slice.call(document.querySelectorAll(".session .reveal, .session .progress li"));
     var reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
     replay.addEventListener("click", function () {
-      items.forEach(function (el) { el.classList.add("hidden"); });
-      items.forEach(function (el, k) { setTimeout(function () { el.classList.remove("hidden"); }, reduce ? 0 : 160 + k * 260); });
+      if (reduce || !items.length || !items[0].animate) return;
+      items.forEach(function (el, k) {
+        el.animate([{ opacity: 0, transform: "translateY(4px)" }, { opacity: 1, transform: "none" }],
+                   { duration: 280, delay: 160 + k * 260, easing: "ease", fill: "backwards" });
+      });
     });
   }
 

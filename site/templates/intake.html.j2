@@ -5,7 +5,6 @@
 {% macro code_or(x) %}{% if x.code %}<code>{{ x.t }}</code>{% else %}{{ x.t }}{% endif %}{% endmacro %}
 {% block content %}
 <section class="gm-hero"><div class="wrap">
-  <p class="eyebrow">{{ w.eyebrow }}</p>
   <h1>{% for ph in w.h1 %}<span class="ph">{{ ph }}</span>{% if not loop.last %} {% endif %}{% endfor %}</h1>
 <p class="ws-badge">{{ "自动形成的工作区（从几张表和一份周报长出来的那一份）" if zh else "The workspace formed automatically (from a few tables and a weekly report)" }}</p>
 <p class="ws-note">{{ "案例报告用的是手写工作区。同一道题在两边可能不同：这里只有活动表和周报能引，所以有的原因只能标「推测，待确认」。" if zh else "The case reports use the hand-written workspace. The same question can differ here: only the campaign tables and the weekly report can be cited, so some causes stay a hypothesis." }}</p>
@@ -18,7 +17,7 @@
     {% for t in tables %}
     <article class="ik-table{% if t.suggested == 'main' %} main{% endif %}">
       <header><code class="ik-file">{{ t.file }}</code><span class="ik-kind">{{ t.label }}</span></header>
-      <p class="ik-meta">{{ t.rows_text }}{% if t.changed %} · <b>{{ t.changed }}</b>{% endif %}</p>
+      <p class="ik-meta">{{ t.rows_text }}{% if t.changed %}{{ "；" if zh else "; " }}<b>{{ t.changed }}</b>{% endif %}</p>
       <div class="ik-scroll" tabindex="0" role="region" aria-label="{{ t.file }}">
         <table><thead><tr>{% for c in t.columns %}<th title="{{ c.raw }}">{{ c.label.zh if zh else c.label.en }}</th>{% endfor %}</tr></thead>
         <tbody>{% for r in t.sample %}<tr>{% for v in r %}<td>{{ v }}</td>{% endfor %}</tr>{% endfor %}</tbody></table>
@@ -61,7 +60,7 @@
     </div>
     <ol class="ik-recs">
       {% for r in recs %}
-      <li><span class="ik-n">{{ r.n }}</span><div><p class="ik-rec-k">{{ w.rec_as }} · {{ r.kind }}</p><p>{{ r.text }}</p><p class="ik-tag">{{ w.to_confirm }}</p></div></li>
+      <li><span class="ik-n">{{ r.n }}</span><div><p class="ik-rec-k">{{ w.rec_as }}{{ "：" if zh else ": " }}{{ r.kind }}</p><p>{{ r.text }}</p><p class="ik-tag">{{ w.to_confirm }}</p></div></li>
       {% endfor %}
       <li class="ik-skip"><p>{{ w.not_proposed }}</p></li>
     </ol>
@@ -86,7 +85,7 @@
       <ul class="ik-list">{% for e in table_events %}<li><span class="ik-when">{{ e.when }}</span>{{ e.text }}</li>{% endfor %}</ul>
       <h3>{{ w.person_h }}</h3>
       <ul class="ik-list">{% for p in person %}<li><b>{{ p.what }}</b>{{ w.colon }}{{ p.why }}</li>{% endfor %}</ul>
-      <p><a class="ik-link" href="graph.html">{{ w.graph_link }} →</a></p>
+      <p><a class="ik-link" href="graph.html">{{ w.graph_link }}</a></p>
     </div>
   </div>
 </div></section>
@@ -108,7 +107,7 @@
     <tbody>{% for r in runs %}<tr>
       <td>{{ r.q | safe }}{% if r.first %}<br><span class="ik-flag">{{ w.first }}</span>{% endif %}</td>
       <td>{% for dim, v in r.path %}<span class="ik-path">{{ dim }} <code>{{ v }}</code></span>{% if not loop.last %} › {% endif %}{% endfor %}</td>
-      <td>{% for c in r.cites %}<p>{{ c.text }}<br><small>{{ c.src }}{% if c.checks %} · {{ c.checks }}{% endif %}</small></p>{% else %}—{% endfor %}</td>
+      <td>{% for c in r.cites %}<p>{{ c.text }}<br><small>{{ c.src }}{% if c.checks %}{{ "，" if zh else ", " }}{{ c.checks }}{% endif %}</small></p>{% else %}—{% endfor %}</td>
       <td class="{{ 'ok' if r.explained else '' }}">{{ r.status }}</td></tr>{% endfor %}</tbody></table>
   </div>
   <p class="ik-note">{{ note_east }}</p>

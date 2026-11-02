@@ -4,7 +4,6 @@
 {% block head %}<link rel="stylesheet" href="{{ root }}assets/graphmap.css">{% endblock %}
 {% block content %}
 <section class="gm-hero"><div class="wrap">
-  <p class="eyebrow">{{ w.eyebrow }}</p>
   <h1>{% for ph in w.h1 %}<span class="ph">{{ ph }}</span>{% if not loop.last %} {% endif %}{% endfor %}</h1>
   <p class="gm-lede">{{ lede }}</p>
 </div></section>
@@ -39,7 +38,7 @@
   <h2>{{ w.s_forget }}</h2><p class="ik-sub">{{ w.forget_sub }}</p>
   <ol class="lr-steps">
     {% for st in steps %}
-    <li><p class="lr-k">{{ loop.index }} · {{ st.title }}</p>
+    <li><p class="lr-k">{{ loop.index }}. {{ st.title }}</p>
       {% for r in st.rows %}<div class="lr-reg {{ 'ok' if r.pass else 'no' }}"><b>{{ w.f_pass if r.pass else w.f_fail }}</b><p>{{ r.expect }}</p><p>{{ r.got }}</p></div>{% endfor %}
     </li>
     {% endfor %}

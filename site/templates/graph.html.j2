@@ -5,7 +5,6 @@
 {% macro card_lines(lines) %}{% for t, px, lh in lines %}<span class="gm-l{{ loop.index }} gm-px{{ px }}">{{ t }}</span>{% endfor %}{% endmacro %}
 {% block content %}
 <section class="gm-hero"><div class="wrap">
-  <p class="eyebrow">{{ w.eyebrow }}</p>
   <h1>{% for ph in w.h1 %}<span class="ph">{{ ph }}</span>{% if not loop.last %} {% endif %}{% endfor %}</h1>
   <p class="gm-lede">{{ w.lede }}</p>
 </div></section>
@@ -29,7 +28,7 @@
     <ol class="gm-steps" id="gm-steps"></ol>
   </div>
   {% for q in questions %}
-  <template id="steps-{{ q.id }}">{% for t, body in steps[q.id] %}<li><span class="gm-step-t">{{ t }}</span><p>{{ body | safe }}</p></li>{% endfor %}{% if q.report %}<li class="gm-step-more"><a href="{{ q.report }}">{{ w.report }} →</a></li>{% endif %}</template>
+  <template id="steps-{{ q.id }}">{% for t, body in steps[q.id] %}<li><span class="gm-step-t">{{ t }}</span><p>{{ body | safe }}</p></li>{% endfor %}{% if q.report %}<li class="gm-step-more"><a href="{{ q.report }}">{{ w.report }}</a></li>{% endif %}</template>
   {% endfor %}
 
   <ul class="gm-legend">

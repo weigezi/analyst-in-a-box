@@ -98,7 +98,7 @@ def f_range(r, lang):
     first = f_md(a, lang, year=True)
     if lang == "zh":
         return first + " 至 " + f_md(b, lang, year=year)
-    return f_md(a, lang, year=year) + "\u2013" + f_md(b, lang, year=True)
+    return f_md(a, lang, year=year) + (" 至 " if lang == "zh" else " to ") + f_md(b, lang, year=True)
 
 
 def f_delta(x, lang, unit="currency", dp=0, signed=True, currency="CNY"):
@@ -559,7 +559,7 @@ def build():
     DIST.mkdir(parents=True)
     env = make_env()
     env.globals["skill_package"] = write_package()   # the downloadable copy the home page installs from
-    env.globals["site_meta"] = {**data["meta"], "footer": {
+    env.globals["site_meta"] = {**data["meta"], "font": "IBM Plex Sans", "footer": {
         "zh": "演示店「花果篮」是虚构的，数据由程序生成；页面上每个数字都来自这次构建时引擎的运行结果。",
         "en": "The demo shop, Bloom & Basket, is fictional and its data is generated; every number on this site comes from the engine's runs at build time."}}
     written = []

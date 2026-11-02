@@ -35,7 +35,8 @@
     <ul class="legend"><li><i class="l-iqr"></i>{{ "过去这些周中间那一半" if zh else "Middle half of past weeks" }}（{{ rg.usual_range[0] | pct }} {{ "至" if zh else "to" }} {{ rg.usual_range[1] | pct }}）</li>
       <li><i class="l-th"></i>{{ "超出这两条线才算异常" if zh else "Outside these two lines counts as unusual" }}（{{ rg.unusual_below | pct }} / {{ rg.unusual_above | pct }}）</li></ul>
     <p class="r-note">{{ "横轴按周排开，跳过了节日没对上的周。" if zh else "Weeks are in order; the holiday weeks that did not line up are skipped." }}</p></figure>
-  <h3>{{ "和大盘比：大盘在涨，店里在跌" if zh else "Against the market: the market grew, the shop fell" }} <span class="est">{{ "估计" if zh else "estimate" }}</span></h3>
+  <h3>{{ "和大盘比：大盘在涨，店里在跌" if zh else "Against the market: the market grew, the shop fell" }}</h3>
+  <p class="r-q"><span class="est">{{ "估计" if zh else "Estimate" }}</span></p>
   <p>{% if zh %}同期大盘同比 {{ q.market_growth | pct }}。这家店平时比大盘慢 {{ (-mkt.usual_gap * 100) | round(1) }} 个百分点，照这个速度，这周本该 {{ mkt.expected_growth | pct }}、{{ mkt.expected_part | money(true) }}；实际 {{ v.total.delta | money(true) }}，差出来的 {{ mkt.own_part | money(true) }} 是店里自己的问题。这是估计；不考虑平时的差距、直接按大盘算，是 {{ mkt.plain_own_part | money(true) }}。两种算法都说大盘解释不了这次的下跌。{% else %}The market grew {{ q.market_growth | pct }} over the same weeks. This shop usually grows {{ (-mkt.usual_gap * 100) | round(1) }} percentage points slower than the market; at that pace the week would have been {{ mkt.expected_growth | pct }}, {{ mkt.expected_part | money(true) }}. It was actually {{ v.total.delta | money(true) }}, so {{ mkt.own_part | money(true) }} is the shop's own. That is an estimate; measured straight against the market, ignoring the usual gap, it is {{ mkt.plain_own_part | money(true) }}. Either way the market does not explain the fall.{% endif %}</p>
 </section>
 

@@ -46,15 +46,15 @@
 {% set cit = c.citations[0] if c.citations else none %}
 <div class="tr-cause {{ c.status }}"><span class="tag">{{ pick(STATUS[c.status]) }}</span>
   {% for cit in c.citations %}<span>{% if cit.start %}{{ cit.start | md }}{{ "起，" if zh else ": " }}{% endif %}{{ cit.text | t }}
-  <span class="tr-src">{{ source_name(cit.source) }} · {{ pick(CHECK_STATUS[cit.checks.status]) if cit.get("checks") else pick(ENTRY_STATUS[cit.status]) }}{% if cit.explains in ("cannot_explain_change", "why_mix_matters") %} · {{ "解释不了这次的变化" if zh else "does not explain this change" }}{% endif %}</span></span>{% endfor %}
+  <span class="tr-src">{{ source_name(cit.source) }}{{ "，" if zh else ", " }}{{ pick(CHECK_STATUS[cit.checks.status]) if cit.get("checks") else pick(ENTRY_STATUS[cit.status]) }}{% if cit.explains in ("cannot_explain_change", "why_mix_matters") %}{{ "；解释不了这次的变化" if zh else "; does not explain this change" }}{% endif %}</span></span>{% endfor %}
   {% for a in c.actions %}<span class="tr-act"><b>{{ a.owner | t }}</b>{{ "：" if zh else ": " }}{{ a.action | t }}</span>{% endfor %}
 </div>
 {% endmacro %}
 
 {% macro group_note(op, g, v) %}
-{% if op == "additive" %}{{ "自身" if zh else "itself" }} {{ g.growth | pct }} · {{ "占各组变化合计（不看正负）" if zh else "share of the groups' movement added without signs" }} {{ g.abs_share | pct(0, false) }}
-{% elif op == "divisive" %}{{ "结构" if zh else "mix" }} {{ g.structure | delta(v.unit, v.dp) }} · {{ "各组自身" if zh else "own level" }} {{ g.rate | delta(v.unit, v.dp) }} · {{ "交叉" if zh else "overlap" }} {{ g.interaction | delta(v.unit, v.dp) }}
-{% else %}{{ v.cuts.sides[0] | t }} {{ g.growth_a | pct }} · {{ v.cuts.sides[1] | t }} {{ g.growth_b | pct }}{% endif %}
+{% if op == "additive" %}{{ "自身" if zh else "itself" }} {{ g.growth | pct }}{{ "，" if zh else "; " }}{{ "占各组变化合计（不看正负）" if zh else "share of the groups' movement added without signs" }} {{ g.abs_share | pct(0, false) }}
+{% elif op == "divisive" %}{{ "结构" if zh else "mix" }} {{ g.structure | delta(v.unit, v.dp) }}{{ "，" if zh else ", " }}{{ "各组自身" if zh else "own level" }} {{ g.rate | delta(v.unit, v.dp) }}{{ "，" if zh else ", " }}{{ "交叉" if zh else "overlap" }} {{ g.interaction | delta(v.unit, v.dp) }}
+{% else %}{{ v.cuts.sides[0] | t }} {{ g.growth_a | pct }}{{ "，" if zh else ", " }}{{ v.cuts.sides[1] | t }} {{ g.growth_b | pct }}{% endif %}
 {% endmacro %}
 
 {% macro cut_rows(L, v) %}
@@ -116,7 +116,7 @@
 {#- One cited world entry: what it says, when, source, status, how it fits, and what data would refute it. -#}
 {% macro evidence(cit, fit="") %}
 <div class="evidence big-ev{{ ' pending' if cit.status == 'proposed' }}">
-  <span class="tag">{{ ("机制" if zh else "Mechanism") if cit.bucket == "mechanisms" else ("事件" if zh else "Event") }}{% if cit.start %} · {{ cit.start | md }}{% if cit.end %}{{ " 至 " if zh else "–" }}{{ cit.end | md }}{% else %}{{ "起" if zh else " onwards" }}{% endif %}{% endif %} · {{ "出处：" if zh else "source: " }}{{ source_name(cit.source) }} · {{ pick(CHECK_STATUS[cit.checks.status]) if cit.get("checks") else pick(ENTRY_STATUS[cit.status]) }}</span>
+  <span class="tag">{{ ("机制" if zh else "Mechanism") if cit.bucket == "mechanisms" else ("事件" if zh else "Event") }}{% if cit.start %}{{ "，" if zh else ", " }}{{ cit.start | md }}{% if cit.end %}{{ " 至 " if zh else " to " }}{{ cit.end | md }}{% else %}{{ "起" if zh else " onwards" }}{% endif %}{% endif %}{{ "。出处：" if zh else ". Source: " }}{{ source_name(cit.source) }}{{ "，" if zh else ", " }}{{ pick(CHECK_STATUS[cit.checks.status]) if cit.get("checks") else pick(ENTRY_STATUS[cit.status]) }}</span>
   <p>{{ cit.text | t }}</p>
   {% if fit %}<p class="ev-fit">{{ fit }}</p>{% endif %}
   {% if cit.get("refuted_by") %}<p class="ev-refute"><b>{{ "什么数据出现就推翻它：" if zh else "What data would refute it: " }}</b>{{ cit.refuted_by | t }}</p>{% endif %}

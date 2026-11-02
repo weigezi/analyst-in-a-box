@@ -64,7 +64,7 @@
 
 <footer class="foot"><div class="wrap">
   <span>{{ T(site_meta.footer, lang) }}</span>
-  <span>Apache-2.0 · {{ "构建于" if zh else "Built from" }} <span class="tnum">{{ site_meta.git_head }}</span> · {{ "字体 Geist（OFL）" if zh else "Font: Geist (OFL)" }}</span>
+  <span>{% if zh %}Apache-2.0 许可。构建于提交 <span class="tnum">{{ site_meta.git_head }}</span>。字体 {{ site_meta.font }}，OFL 许可。{% else %}Apache-2.0 licence. Built from commit <span class="tnum">{{ site_meta.git_head }}</span>. Font: {{ site_meta.font }}, OFL licence.{% endif %}</span>
 </div></footer>
 {% block scripts %}{% endblock %}
 </body>

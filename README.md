@@ -66,6 +66,7 @@ one question: why did this number move. Details: [docs/decisions.en.md](docs/dec
 uv run pytest                                   # every method sums exactly; every planted cause is found
 uv run python site/build.py                     # build the demo site from real runs
 cd tools/browser-check && npm install && node check.mjs   # no errors, motion timings (site/MOTION.md)
+node tools/design-check/run.mjs                 # outside linters for machine-made page habits (impeccable, hallmark); exceptions need a reason in accepted.json
 uv run python tools/bilingual_check.py          # every document has both languages, section for section
 ```
 

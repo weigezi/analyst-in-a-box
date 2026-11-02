@@ -66,7 +66,7 @@
 <section class="r-sec" id="s-unchecked">
   <h2>{{ "这次没核实的" if zh else "What this report did not check" }}</h2>
   <ul class="r-list">
-    <li>{% if zh %}{{ seg }}从 {{ on.start | md }}起多买{{ cat }}的原因。最可能的问法是「{{ on.start | md }}前后，对{{ seg }}或{{ cat }}做过什么活动？」它会把你的回答记下来，下次同样的题直接引用。{% else %}Why {{ seg | lower }} began buying more {{ cat | lower }} from {{ on.start | md }}. The question to ask is “Was there any offer for {{ seg | lower }} or on {{ cat | lower }} around {{ on.start | md }}?” It records the answer and cites it next time.{% endif %} <a href="../learning.html">{{ "看它怎么学 →" if zh else "How it learns →" }}</a></li>
+    <li>{% if zh %}{{ seg }}从 {{ on.start | md }}起多买{{ cat }}的原因。最可能的问法是「{{ on.start | md }}前后，对{{ seg }}或{{ cat }}做过什么活动？」它会把你的回答记下来，下次同样的题直接引用。{% else %}Why {{ seg | lower }} began buying more {{ cat | lower }} from {{ on.start | md }}. The question to ask is “Was there any offer for {{ seg | lower }} or on {{ cat | lower }} around {{ on.start | md }}?” It records the answer and cites it next time.{% endif %} <a href="../learning.html">{{ "看它怎么学" if zh else "See how it learns" }}</a></li>
     <li>{% if zh %}整体在正常波动内。这份报告找的是「变在哪」，不是在说这一周出了异常。{% else %}The total is within the usual range. This report finds where the change sits; it does not say the week was unusual.{% endif %}</li>
     <li>{% if zh %}{{ off.label | t }}反方向带来 {{ off.value | money(true, 2) }}，这次没有查为什么。{% else %}{{ off.label | t }} pulled the other way by {{ off.value | money(true, 2) }}; why was not checked.{% endif %}</li>
   </ul>

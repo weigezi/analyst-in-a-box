@@ -12,12 +12,11 @@
 {% block content %}
 <section class="hero"><div class="wrap">
   <div class="hero-copy">
-    <p class="kicker">{{ "开源 skill · 装进你的 AI 工具用" if zh else "An open-source skill · runs inside your AI tool" }}</p>
     {% if zh %}
-    <h1><span class="ph">把你手上的几张表，</span><br><span class="dim ph">变成一套会答题的分析能力。</span></h1>
+    <h1><span class="ph">把你手上的几张表，</span><br><span class="ph">变成一套会答题的分析能力。</span></h1>
     <p class="lede">不用先学会怎么拆：把订单、商品、流量、活动几张表放进同一个文件夹，它自己认出哪张是主表、表之间怎么对上，问你几道选择题确认每列是什么，然后长出指标树、这家店的业务背景和第一份报告。你说一次「这里不对」，它记住，下次不再犯。</p>
     {% else %}
-    <h1>Turn the tables you already have <span class="dim">into something that can answer questions about them.</span></h1>
+    <h1>Turn the tables you already have into something that can answer questions about them.</h1>
     <p class="lede">No need to learn the method first: drop your orders, products, traffic and campaign tables into one folder. It works out which table is the main one and how they join, asks a few multiple-choice questions about what each column is, then grows a metric tree, a description of the business and a first report. Correct it once and it remembers.</p>
     {% endif %}
   </div>
@@ -33,7 +32,7 @@
   </div>
 
   <div class="session" aria-label="{{ '在 AI 工具里的一次会话' if zh else 'One session in an AI tool' }}">
-    <div class="sess-bar"><span>{{ "AI 工具里的一次会话 · 演示店数据" if zh else "A session in an AI tool · demo shop data" }}</span>
+    <div class="sess-bar"><span>{{ "AI 工具里的一次会话，用的是演示店数据" if zh else "A session in an AI tool, on the demo shop data" }}</span>
       <button class="replay" type="button" id="replay">{{ "重放" if zh else "Replay" }}</button></div>
     <div class="msg-user reveal">{{ r.question | t }}</div>
     <ol class="progress reveal">
@@ -45,7 +44,7 @@
       <li><b>{{ "找原因" if zh else "Find the reason" }}</b><span>{% if zh %}{{ ev.start | md }}起{{ ev.text | t | replace("。", "") }}{% else %}from {{ ev.start | md }}: {{ ev.text | t }}{% endif %}</span></li>
     </ol>
     <article class="answer reveal" aria-label="{{ '样例结论' if zh else 'Sample conclusion' }}">
-      <p class="answer-cap"><b>{{ data.meta.shop | t }}</b> · <span class="tnum">{{ r.current | daterange }}</span>{{ "，对比去年同周" if zh else ", against the same week last year" }}</p>
+      <p class="answer-cap"><b>{{ data.meta.shop | t }}</b>{{ "，" if zh else ", " }}<span class="tnum">{{ r.current | daterange }}</span>{{ "，对比去年同周" if zh else ", against the same week last year" }}</p>
       <h2>{% if zh %}<span class="ph">营收同比 {{ r.total.growth | pct }}：</span><br><span class="ph">{{ mk }}少了 {{ -r.main.value | wan }}，</span><span class="ph">{{ web.label | t }}多了 {{ web.value | wan }}</span>{% else %}<span class="ph">Revenue {{ r.total.growth | pct }} on last year:</span><br><span class="ph">{{ mk }} lost {{ -r.main.value | wan }},</span> <span class="ph">{{ web.label | t | lower }} gained {{ web.value | wan }}</span>{% endif %}</h2>
       <div class="figure-row">
         <div><div class="big {{ r.total.growth | tone }}">{{ r.total.growth | pct }}</div>
@@ -57,14 +56,13 @@
         </div>
       </div>
       <p class="ans-cause"><span class="tag">{{ "原因有记录" if zh else "Cause on record" }}</span>{% if zh %}{{ ev.start | md }}起，{{ ev.text | t }}{% else %}From {{ ev.start | md }}: {{ ev.text | t }}{% endif %}
-        <a href="reports/revenue_last_week.html">{{ "看完整报告 →" if zh else "Full report →" }}</a></p>
+        <a href="reports/revenue_last_week.html">{{ "看完整报告" if zh else "Read the full report" }}</a></p>
     </article>
   </div>
 </div></section>
 {% set u = h.unsure %}
 <section class="sec" id="gives"><div class="wrap">
   <div class="sec-h">
-    <p class="eyebrow">{{ "你能得到什么" if zh else "What you get" }}</p>
     <h2>{% if zh %}<span class="ph">不是一张报表，</span><span class="ph">是六件能直接用的事。</span>{% else %}<span class="ph">Not another dashboard:</span> <span class="ph">six things you can act on.</span>{% endif %}</h2>
     <p class="sec-sub">{{ "每一条后面都有一份真实产出作依据，点进去能核对数字。" if zh else "Each one points at a real output you can check, number by number." }}</p>
   </div>
@@ -85,14 +83,13 @@
       <p class="e-num tnum">1 → 1</p>
       <p>{% if zh %}你说一句「10 月 1 日起新客买果篮送贺卡」，这句话被记成带出处的事件，下次这题会引用它；把这条记录删掉，回归题立刻报错。{% else %}Say “from 1 October new customers get a card with a fruit basket” and it is recorded as an event with a source; the next run cites it, and a regression case fails if the record is removed.{% endif %}</p></a>
     <a class="entry" href="architecture.html"><p class="e-tag">{{ "换数据不改工具" if zh else "Works on your data" }}</p>
-      <p class="e-num tnum">CSV · Excel · SQL · DuckDB</p>
-      <p>{% if zh %}表可以分开放：订单、商品、流量、活动、调价、天气各一张，它自己找连接、认出哪些是事件记录。数据在本机算，不上传。{% else %}Tables can stay separate — orders, products, traffic, campaigns, price changes, weather — and it finds the joins and the event tables itself. Everything is computed on your machine.{% endif %}</p></a>
+      <p class="e-num tnum">{{ "CSV、Excel、SQL" if zh else "CSV, Excel, SQL" }}</p>
+      <p>{% if zh %}表可以分开放：订单、商品、流量、活动、调价、天气各一张，它自己找连接、认出哪些是事件记录。数据在本机算，不上传。{% else %}Tables can stay separate (orders, products, traffic, campaigns, price changes, weather), and it finds the joins and the event tables itself. Everything is computed on your machine.{% endif %}</p></a>
   </div>
 </section>
 
 <section class="sec" id="how"><div class="wrap">
   <div class="sec-h">
-    <p class="eyebrow">{{ "怎么形成" if zh else "How it forms" }}</p>
     <h2>{% if zh %}<span class="ph">五步，</span><span class="ph">从几张表到一套能答题的能力。</span>{% else %}<span class="ph">Five steps</span> <span class="ph">from a folder of tables to something that answers.</span>{% endif %}</h2>
     <p class="sec-sub">{{ "每一步的中间产物都摆在「怎么形成」那一页里，可以逐项核对。" if zh else "Every intermediate file is shown on the How it forms page, so you can check each step." }}</p>
   </div>
@@ -108,27 +105,26 @@
 
 <section class="sec" id="unsure"><div class="wrap">
   <div class="sec-h">
-    <p class="eyebrow">{{ "它什么时候说不确定" if zh else "When it says it is not sure" }}</p>
     {% if zh %}<h2><span class="ph">波动正常，就说正常；</span><span class="ph">数据有问题，</span><span class="ph">先说数据有问题。</span></h2>
     <p>下面三份数据是专门做出来考它的：一份只有正常波动，一份缺了两天，一份同一周导入了两次。第四张卡片是演示店里它答不出的一道题。</p>
-    {% else %}<h2>If the change is normal, it says so. <span class="dim">If the data is broken, it says that first.</span></h2>
+    {% else %}<h2>If the change is normal, it says so. If the data is broken, it says that first.</h2>
     <p>The first three are test data built to catch it out: one with only normal noise, one missing two days, one with the same week loaded twice. The fourth is a demo-shop question it cannot answer.</p>{% endif %}
   </div>
   <div class="unsure">
-    <article class="ucard"><p class="u-tag">{{ "正常波动" if zh else "Normal noise" }}</p>
-      <h3>{{ "「在正常波动内，不找原因」" if zh else "“Within the usual range; no cause to look for”" }}</h3>
+    <article class="ucard"><h3>{{ "只有正常波动" if zh else "Only normal noise" }}</h3>
+      <p class="u-say">{{ "它说「在正常波动内，不找原因」" if zh else "It says “Within the usual range; no cause to look for”" }}</p>
       <p>{% if zh %}离常态只有平时波动的 {{ u.noise.z | times }} 倍，不往下找原因。同一份纯噪音数据逐周问 {{ u.noise_weeks.weeks }} 周，有 {{ u.noise_weeks.drilled }} 周它还是往下拆了，这是误报。{% else %}Only {{ u.noise.z | times }}× the usual wobble from normal, so it does not look for a cause. Asked week by week over {{ u.noise_weeks.weeks }} weeks of the same noise, it still broke the number down in {{ u.noise_weeks.drilled }}: false alarms.{% endif %}</p></article>
-    <article class="ucard"><p class="u-tag">{{ "缺了两天" if zh else "Two days missing" }}</p>
-      <h3>{{ "「数据有问题，不出结论」" if zh else "“The data is in doubt; no conclusion”" }}</h3>
+    <article class="ucard"><h3>{{ "缺了两天" if zh else "Two days missing" }}</h3>
+      <p class="u-say">{{ "它说「数据有问题，不出结论」" if zh else "It says “The data is in doubt; no conclusion”" }}</p>
       <p>{% if zh %}{% for d in u.missing.days %}{{ d | md }}{{ "和 " if not loop.last }}{% endfor %}一笔订单都没有。它先报数据缺了，停发报告：缺数造成的「下跌」不是生意变差。{% else %}No orders at all on {% for d in u.missing.days %}{{ d | md }}{{ " and " if not loop.last }}{% endfor %}. It reports the gap and holds the report back: a fall made by missing days is not a business fall.{% endif %}</p></article>
-    <article class="ucard"><p class="u-tag">{{ "整周导了两遍" if zh else "A week loaded twice" }}</p>
-      <h3>{{ "「订单编号重复，不出结论」" if zh else "“Order numbers repeat; no conclusion”" }}</h3>
+    <article class="ucard"><h3>{{ "整周导了两遍" if zh else "A week loaded twice" }}</h3>
+      <p class="u-say">{{ "它说「订单编号重复，不出结论」" if zh else "It says “Order numbers repeat; no conclusion”" }}</p>
       <p>{% if zh %}{{ u.dup.rows | num }} 行订单里有 {{ u.dup.duplicates | num }} 行编号重复，像是同一周导入了两次。它报出重复，停发报告。{% else %}{{ u.dup.duplicates | num }} of {{ u.dup.rows | num }} order rows repeat an order number, as if the week was loaded twice. It reports the duplicates and holds the report back.{% endif %}</p></article>
     {% set av = data.cases.aov_last_week %}
-    <article class="ucard"><p class="u-tag">{{ "记录解释不了" if zh else "No record explains it" }}</p>
-      <h3>{{ "「找到了变在哪，没找到为什么」" if zh else "“Found where it moved, not why”" }}</h3>
+    <article class="ucard"><h3>{{ "记录解释不了" if zh else "No record explains it" }}</h3>
+      <p class="u-say">{{ "它说「找到了变在哪，没找到为什么」" if zh else "It says “Found where it moved, not why”" }}</p>
       <p>{% if zh %}演示店「{{ av.question | t }}」这道题：它定位到了变化集中的那一组，但已有的记录解释不了这次的变化，就照实说解释不了，并把问题留给你。{% else %}On the demo shop's “{{ av.question | t }}” it finds the group where the change sits, but no record on file explains this change, so it says so and leaves the question with you.{% endif %}
-        <a href="reports/aov_last_week.html">{{ "看这份报告 →" if zh else "Read this report →" }}</a></p></article>
+        <a href="reports/aov_last_week.html">{{ "看这份报告" if zh else "Read this report" }}</a></p></article>
   </div>
   <p class="caveat">{% if zh %}要说清楚的一点：演示店的另外几道题，原因是顺着它自己的拆法埋进数据的，答对了也证明不了它遇到别的情况也行。所以才有上面这几份考题，以及一份真实的公开数据。{% else %}One caveat: the causes in the other demo questions were planted along its own way of breaking numbers down, so getting them right does not prove it copes with anything else. That is why the test data above exists, and a real public dataset.{% endif %}</p>
 </div></section>
@@ -137,7 +133,6 @@
 {% set rest = r.rest %}
 <section class="sec" id="evidence"><div class="wrap">
   <div class="sec-h">
-    <p class="eyebrow">{{ "一个案子" if zh else "One case" }}</p>
     <h2>{{ "一步一步看它怎么查。" if zh else "Watch it work, one step at a time." }}</h2>
     <p>{% if zh %}同一道题「{{ r.question | t }}」，分五步。点一步看一步，也可以直接跳到结果。{% else %}The same question, “{{ r.question | t }}”, in five steps. Click through, or skip to the result.{% endif %}</p>
   </div>
@@ -181,7 +176,7 @@
       <div class="st-nav"><button type="button" class="btn ghost st-prev" disabled>{{ "上一步" if zh else "Back" }}</button>
         <button type="button" class="btn st-next">{{ "下一步" if zh else "Next" }}</button>
         <button type="button" class="btn link st-skip">{{ "直接看结果" if zh else "Skip to the result" }}</button>
-        <a class="btn link st-report" href="reports/revenue_last_week.html" hidden>{{ "看完整报告 →" if zh else "Full report →" }}</a></div>
+        <a class="btn link st-report" href="reports/revenue_last_week.html" hidden>{{ "看完整报告" if zh else "Read the full report" }}</a></div>
     </div>
   </div>
 </div></section>
@@ -190,15 +185,14 @@
 {% set ln = h.learning %}
 <section class="sec" id="more"><div class="wrap">
   <div class="sec-h">
-    <p class="eyebrow">{{ "往下看" if zh else "Keep reading" }}</p>
     <h2>{{ "一个案子讲不完，其余的在这几页。" if zh else "One case is not the whole story." }}</h2>
   </div>
   <div class="entries">
     <a class="entry" href="graph.html"><p class="e-tag">{{ "知识图谱" if zh else "Knowledge graph" }}</p>
-      <p class="e-num tnum">{{ w.metrics }} · {{ w.dimensions }} · {{ w.entities }}</p>
+      <p class="e-num tnum">{{ w.metrics ~ (" 个指标" if zh else " metrics") }}</p>
       <p>{% if zh %}{{ w.metrics }} 个指标怎么按公式拆，能按哪 {{ w.dimensions }} 个方面切；店里的 {{ w.entities }} 样东西、{{ w.mechanisms }} 条机制、{{ w.events }} 个事件和负责人。{% else %}How {{ w.metrics }} metrics split by formula and the {{ w.dimensions }} ways each can be cut; the shop's {{ w.entities }} things, {{ w.mechanisms }} mechanisms, {{ w.events }} events and owners.{% endif %}</p></a>
     <a class="entry" href="reports/revenue_last_week.html"><p class="e-tag">{{ "5 份案例报告" if zh else "Five case reports" }}</p>
-      <p class="e-num tnum">{{ h.confirmed }} · {{ h.pending }} · {{ h.none }}</p>
+      <p class="e-num tnum">{{ h.confirmed ~ (" 道已确认" if zh else " confirmed") }}</p>
       <p>{% if zh %}营收、华东、客单价、6 月量价、App 对比网页：{{ h.confirmed }} 道原因已确认，{{ h.pending }} 道是有记录但还没确认的推测，{{ h.none }} 道没有记录能解释，照实写了。{% else %}Revenue, the east region, order value, June price and volume, app against web: {{ h.confirmed }} with a confirmed cause, {{ h.pending }} with a record that is still a hypothesis, {{ h.none }} with no record that explains it.{% endif %}</p></a>
     <a class="entry" href="reports/public.html"><p class="e-tag">{{ "公开数据" if zh else "Public data" }}</p>
       <p class="e-num tnum">{{ pub.change | pct }}</p>
@@ -216,7 +210,7 @@
 </div></section>
 
 <section class="sec" id="faq"><div class="wrap faq-wrap">
-  <div class="sec-h"><p class="eyebrow">{{ "常见问题" if zh else "Questions" }}</p><h2>{{ "装之前想知道的。" if zh else "Before you install." }}</h2></div>
+  <div class="sec-h"><h2>{{ "装之前想知道的。" if zh else "Before you install." }}</h2></div>
   <div class="faq">
     {% set faq = [
       ("要付费吗？", "不用。skill 本身开源，Apache-2.0 许可。你用的 AI 工具本身收不收费，看那个工具。",
@@ -237,7 +231,7 @@
 </div></section>
 
 <section class="sec end" id="install-end"><div class="wrap">
-  <div class="sec-h"><p class="eyebrow">{{ "安装" if zh else "Install" }}</p><h2>{{ "装上，然后直接问。" if zh else "Install it, then just ask." }}</h2></div>
+  <div class="sec-h"><h2>{{ "装上，然后直接问。" if zh else "Install it, then just ask." }}</h2></div>
   <ol class="steps">
     <li><b>{{ "把包解压到你 AI 工具放 skill 的目录" if zh else "Unpack the package into the folder your AI tool loads skills from" }}</b>
       <div class="install"><code><span class="p">$ </span><span class="k">{{ "tar -xzf " ~ skill_package.name ~ " -C ~/.claude/skills/" }}</span></code>

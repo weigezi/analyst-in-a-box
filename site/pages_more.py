@@ -64,11 +64,11 @@ def span(a, b, lang):
     ya, yb = str(a)[:4], str(b)[:4]
     if lang == "zh":
         if ya == yb and str(a)[5:7] == str(b)[5:7]:
-            return f"{ya} 年 {int(str(a)[5:7])} 月 {int(str(a)[8:10])}–{int(str(b)[8:10])} 日"
+            return f"{ya} 年 {int(str(a)[5:7])} 月 {int(str(a)[8:10])} 日至 {int(str(b)[8:10])} 日"
         return f"{day(a, lang)} 至 {day(b, lang, year=ya != yb)}"
     if ya == yb and str(a)[5:7] == str(b)[5:7]:
-        return f"{MONTHS[int(str(a)[5:7]) - 1]} {int(str(a)[8:10])}–{int(str(b)[8:10])}, {ya}"
-    return f"{day(a, lang, year=ya != yb)} – {day(b, lang)}"
+        return f"{MONTHS[int(str(a)[5:7]) - 1]} {int(str(a)[8:10])} to {int(str(b)[8:10])}, {ya}"
+    return f"{day(a, lang, year=ya != yb)} to {day(b, lang)}"
 
 
 def month_tick(s, lang):
@@ -89,7 +89,7 @@ def join(items, lang):
 
 W = {
     "zh": {
-        "title": "知识图谱", "eyebrow": "知识图谱",
+        "title": "知识图谱", 
         "h1": ["指标树决定往哪拆，", "世界描述决定为什么、该谁去做。"],
         "lede": "这一页是演示店「花果篮」的全部底子。左边那张按公式把毛利一层层拆到底，每个指标下面写着能按什么切、先切哪个；"
                 "另一张记着这家店的世界：哪些渠道、品类、城市，发生过什么事，背后是什么道理，出了问题找谁。"
@@ -118,7 +118,7 @@ W = {
         "steps": {"scope": "定题", "formula": "按公式拆", "pvm": "量、价、结构", "cut": "按{d}切", "why": "为什么", "act": "该谁去做"},
     },
     "en": {
-        "title": "Knowledge graph", "eyebrow": "Knowledge graph",
+        "title": "Knowledge graph", 
         "h1": ["The metric tree decides where to break a number down;", "the world description decides why, and who acts."],
         "lede": "This page is everything the skill knows about the demo shop, Bloom & Basket. One view breaks gross profit down by "
                 "formula, level by level, and lists under each metric what it can be cut by and in which order. The other records "
@@ -567,7 +567,7 @@ def graph_context(data, lang) -> dict:
 # ---------------------------------------------------------------- intake page
 IW = {
     "zh": {
-        "title": "采集", "eyebrow": "采集", "colon": "：",
+        "title": "采集", "colon": "：",
         "h1": ["放进几张表，", "答几道选择题，", "就拿到第一份报告。"],
         "lede": "演示店「花果篮」的数据，拆成真实系统里常见的 {n} 张表，再加一份运营周报。skill 只看每张表长什么样，"
                 "不从列名猜含义；它认出哪张是主表、表和表怎么对上、哪张是活动和调价记录，每一条都问一句。"
@@ -607,7 +607,7 @@ IW = {
         "first_off": "反过来涨的有 {items}，抵掉了一部分。",
     },
     "en": {
-        "title": "Bringing data in", "eyebrow": "Bringing data in", "colon": ": ",
+        "title": "Bringing data in", "colon": ": ",
         "h1": ["Put in a few tables,", "answer a few multiple-choice questions,", "and get a first report."],
         "lede": "The demo shop Bloom & Basket, as {n} tables shaped like real system exports, plus a weekly operations report. "
                 "The skill reads only the shape of each table and never guesses a meaning from a column's name. It works out "
@@ -789,7 +789,7 @@ def intake_context(data, lang) -> dict:
 # ---------------------------------------------------------------- learning page
 LW = {
     "zh": {
-        "title": "它怎么学", "eyebrow": "它怎么学", "colon": "：",
+        "title": "它怎么学", "colon": "：",
         "h1": ["纠正一次，", "这道题下次会引用这条记录；", "忘掉它，回归题会抓到。"],
         "lede": "同一道题「{q}」跑两次，中间用户说了一句话。下面三栏：两份报告里讲原因的那一段原样摘出，中间是用户的原话。",
         "s_cmp": "纠正前、用户原话、纠正后", "before": "纠正前", "said": "用户原话", "after": "纠正后",
@@ -810,7 +810,7 @@ LW = {
         "ids": "存在哪里（给维护者看）", "ids_rows": [("记录", "where"), ("回归题", "case"), ("用户原话", "log"), ("纠正日期", "date")],
     },
     "en": {
-        "title": "How it learns", "eyebrow": "How it learns", "colon": ": ",
+        "title": "How it learns", "colon": ": ",
         "h1": ["Corrected once,", "this question cites that record next time;", "drop it and a regression case catches you."],
         "lede": "The same question, \u201c{q}\u201d, run twice; in between, the user said one sentence. Below: the paragraph about the cause "
                 "from each report, taken as it is, with the user's words in the middle.",
@@ -906,7 +906,7 @@ def learning_context(data, lang) -> dict:
 # ---------------------------------------------------------------- architecture page
 AW = {
     "zh": {
-        "title": "怎么搭的", "eyebrow": "怎么搭的",
+        "title": "怎么搭的", 
         "h1": ["数由脚本算，", "解释带出处，", "拿不准的由人定。"],
         "lede": "它是装进你 AI 工具里的一个 skill：一组本机运行的 Python 脚本，加上一份写给 AI 的做法说明。数据只读不写，不出你的电脑。",
         "s_roles": "谁算数、谁写解释、人确认什么",
@@ -943,7 +943,7 @@ AW = {
                                     "第一版一个人用，没有权限和多人协作。"],
     },
     "en": {
-        "title": "How it is built", "eyebrow": "How it is built",
+        "title": "How it is built", 
         "h1": ["Scripts do the arithmetic,", "explanations carry a source,", "and a person decides what is unclear."],
         "lede": "It is a skill you put into your AI tool: a set of Python scripts that run on your machine, and a written method for the AI to follow. It reads your data and never writes it; the data stays on your computer.",
         "s_roles": "Who computes, who explains, what a person confirms",

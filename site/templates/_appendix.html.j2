@@ -39,9 +39,9 @@
       <td>{% if zh %}在每日差额里找一个日期，让前后两段的平均各自最贴合（最小二乘），前后差到 2 个标准差以上才认；本次 {{ v.onset.shift_in_sd | num(1, true) }} 个{% else %}The date that best splits the daily gap into two flat halves (least squares), named only if the shift is at least 2 standard deviations; here {{ v.onset.shift_in_sd | num(1, true) }}{% endif %}</td>
       <td>D. V. Hinkley (1970), <i>Biometrika</i> 57(1)</td></tr>{% endif %}
   </tbody></table>
-  <h4>{{ "数据检查" if zh else "Data checks" }}</h4>
+  <h3>{{ "数据检查" if zh else "Data checks" }}</h3>
   <ul class="r-checks">{% for c in v.quality.checks %}<li class="{{ 'ok' if c.status == 'ok' else 'no' }}">{{ p(QCHECK[c.check]) }}<small>（{{ p(LEVEL[c.level]) }}）</small></li>{% endfor %}</ul>
-  <h4>{% if zh %}交出报告前的自检（{{ v.checks | selectattr("pass") | list | length }} / {{ v.checks | length }} 通过）{% else %}Self-checks before the report goes out ({{ v.checks | selectattr("pass") | list | length }} of {{ v.checks | length }} pass){% endif %}</h4>
+  <h3>{% if zh %}交出报告前的自检（{{ v.checks | selectattr("pass") | list | length }} / {{ v.checks | length }} 通过）{% else %}Self-checks before the report goes out ({{ v.checks | selectattr("pass") | list | length }} of {{ v.checks | length }} pass){% endif %}</h3>
   <ul class="r-checks">{% for c in v.checks %}<li class="{{ 'ok' if c.pass else 'no' }}">{{ p(CHECK[c.check]) }}</li>{% endfor %}</ul>
   <p class="r-note">{% if zh %}每个数字都由脚本算出，构建于引擎版本 {{ data.meta.git_head }}。演示店「花果篮」是虚构的，数据由程序生成。{% else %}Every number is computed by a script, built from engine version {{ data.meta.git_head }}. The demo shop, Bloom &amp; Basket, is fictional and its data is generated.{% endif %}</p>
 </details>
