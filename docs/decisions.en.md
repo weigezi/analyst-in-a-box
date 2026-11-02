@@ -28,6 +28,7 @@ The point of this project is to turn those two into a structure other people can
 
 - The core is a skill folder (Agent Skills format). Drop it into your own AI tool; scripts run locally and data never leaves your machine.
 - A demo page lets people see what it can do before they invest effort. It tells one case first, then opens the full graph.
+  - **Overturned (2026-11-01): it now leads with how you get there and what you get.** Why: after reading the case-first home page the maintainer said the page should show how a user can generate this in one go, and that the case it led with was thin, fictional and not very interesting. The demo shop is invented and its causes were planted along the skill's own way of breaking numbers down, so leading with it proves little. The home page now leads with the route (drop in a few tables, answer multiple-choice questions, get a metric tree and a first report) and the real output behind each capability; the case is one entry among several.
 - The skill and each company's knowledge live apart: the skill is generic; a company's metric tree, world description and corrections live in the user's own workspace. Upgrading the skill never overwrites the user's knowledge.
 
 ## 4. Data access
@@ -342,3 +343,27 @@ Now:
   from its name;
 - the person answering can override any name with `name:<column>`; words it does not know are kept as they are;
 - the raw column name stays in the data and in a hover tooltip, and is not shown as text on a page.
+
+## 18. Outside design checks; the font becomes IBM Plex (2026-11-02)
+
+Why: our own browser check passed all 177 items, but it checks whether pages are correct (contrast, overflow,
+internal words), not whether they look machine-made. The maintainer pointed at four design skills; two of them ship
+checkers with fixed rules and no model. On our 22 pages impeccable found 128 findings, hallmark 271 floor
+findings and 175 habitual defaults.
+
+What was decided:
+
+- After a build, run `node tools/design-check/run.mjs`: impeccable pinned at 4.8.0; hallmark's checker copied
+  unchanged into the repository with its MIT licence and source commit (`4f6a46c`).
+- Every impeccable finding and hallmark's floor and reflex tiers block; hallmark's finish tier is only reported.
+- A finding may stay only if `accepted.json` names it with a reason others can check. There is one: hallmark's
+  rule 20 asks for the stamp its own workflow writes; this site was not made with that workflow, so the stamp
+  would be a false claim.
+- Font: Geist is on impeccable's overused list; replaced with IBM Plex Sans / Mono (OFL, self-hosted Latin
+  subsets, about 70 KB). Chinese still uses system fonts.
+- Removed the small labels above headings, the arrows after link text and strings joined with middle dots; every
+  colour comes from a named variable in `:root`; pure white became a slight tint of the report navy; spacing sits
+  on a 4px grid.
+
+Not done: the 46 finish-tier notes from hallmark (pages over 450 words, straight quotes in English, long labels)
+were left alone. They do not block, but they say the pages still carry a lot of text.
