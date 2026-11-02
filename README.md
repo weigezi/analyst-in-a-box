@@ -2,93 +2,132 @@
 
 [中文](README.zh.md)
 
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![ci](https://github.com/weigezi/analyst-in-a-box/actions/workflows/ci.yml/badge.svg)](https://github.com/weigezi/analyst-in-a-box/actions/workflows/ci.yml)
+
 **Why did this number move, and who should act next?**
 
-A skill for AI tools that explains a moving business number the way a senior analyst would. It breaks the
-change down with published methods, decides when to stop, explains each point with the part of the world that
-causes it, and names who can act. When you correct it, it writes your words down and turns them into a
-regression case, so it does not make the same mistake twice.
+A skill for AI tools that explains a moving business number the way a senior analyst would. The breakdown is
+computed by scripts and adds up to the total, and a cause is never a result in disguise: it is a dated, sourced
+record that has to pass checks.
 
-## What it does
+<p align="center">
+  <a href="docs/assets/demo.mp4">
+    <img src="docs/assets/demo.gif" width="800" alt="Revenue fell 43,159. Split by formula and split by channel, both add up to exactly 43,159.">
+  </a>
+</p>
+<p align="center"><sub>Demo shop, generated data: last week's revenue against the same week a year ago, split two ways, both adding up to the total. On-screen text is in Chinese. <a href="docs/assets/demo.mp4">Watch the full 76-second film</a>.</sub></p>
 
-- **Breaks a change down exactly.** Formulas (revenue = orders × average order value), cuts by dimension, ratios
-  split into structure and rate, and second-order questions ("why is growth slower than last month", "why did
-  offline grow faster than online"). Every breakdown is computed by a script and checked to sum to the total.
-- **Qualifies before it attributes.** Is this period unusual against its own history? Did the market move the
-  same way? Do the two periods hold the same holidays?
-- **Explains with the world, not just the data.** Entities, relations, mechanisms, events, and actions with
-  owners, each with a source and a status. Outside events (weather, news) stay hypotheses until they pass three
-  checks: timing, affected slice, size.
-- **Learns from one person.** Business knowledge is asked when an answer needs it, not in an upfront survey.
-  Each correction becomes a regression case; coverage of explained points rises with use.
-- **Starts from a table.** Point it at a CSV, Excel, SQLite or DuckDB table; it asks what each column is
-  (it never guesses from names) and gives a first attribution in the same conversation.
+```bash
+npx skills add weigezi/analyst-in-a-box
+```
+
+## Who does what
+
+Three parties are named throughout this page.
+
+- **You** judge whether its understanding of your business is right (the tables, columns and joins it recognised,
+  the causes it read from your documents) and correct a few spots.
+- **The scripts** recognise tables, columns and joins, compute every number and run every check.
+- **The AI** understands the question, writes the explanation in plain words and proposes candidate causes from
+  your documents.
+
+You check that it understood. The analysis then runs in one go.
+
+## An explanation that adds up
+
+In the demo shop, last week's revenue was down 9.6% year on year, 4.5 times the usual swing across 22 comparable
+weeks. Only then does it break the change down, in two ways:
+
+- **By formula.** Conversion rate −35,366, order value −17,084, visits +9,291.
+- **By dimension.** Marketplace −79,168, web +34,816, app +1,193.
+
+Both add up to the total change, −43,159. The scripts use methods published elsewhere: BEA contributions to
+percent change for sums, LMDI-I for products (Shapley when a factor is zero or negative), Kitagawa for ratios. There
+are 12 methods in all, each with its citation in [`operators.md`](skills/analyst-in-a-box/references/operators.md).
+A report that fails any of its 12 pre-delivery checks is not delivered.
+
+**Where the money went and why are two separate layers.** The breakdown says the marketplace lost 79,168. It does
+not say why. A cause has to be a record with a date and a source, and the scripts check that it can explain this
+change: it must differ between the two periods, it must start on the same day the change did, and without it the
+other channels must look normal (they grew 10.8% against a usual 7.7%). In the demo the record reads: from 12 October
+the marketplace changed its fee terms and our listing lost its placement (source: partner contract log, confirmed).
+In that hand-written workspace the record also names an owner, the channel lead, and an action.
+
+If the data itself is in doubt, it says so first. Two missing days, or an order file loaded twice, stop the report
+with the reason instead of producing a cause.
+
+## Tangled tables become a business knowledge graph
+
+Give it several raw exports and a document. The scripts work out which table is the main one, which are lookups, how
+the tables join (with the coverage of each join) and which hold events, and every guess comes back to you as a
+multiple-choice question. What they build is the **business knowledge graph**, in two parts:
+
+- **Metric tree.** The north-star metric broken down by formula. Each metric lists the dimensions it can be cut by,
+  and in what order.
+- **Business world description.** Entities, relations, mechanisms, dated events, and actions with owners. Each
+  record carries its source, its status, and what data would overturn it.
+
+In the demo, nine exported tables (226,814 orders) and a weekly report became a workspace that answers questions and
+writes its first report in about 3 seconds of script time, once the shop owner's answers were in. A cause read from
+the weekly report is kept with the exact sentence it came from and marked "to confirm" until you confirm it. Owners
+and actions are added by you.
+
+## It learns your business
+
+Tell it once: "From 1 October, new customers get a greeting card with a fruit basket." It records your sentence as a
+dated record with your words as the source, uses it the next time that question comes up, and writes a regression
+check. In the demo, the share of the order-value change it could explain went from 0 to 100%. Delete the record and
+the check fails (1/1 becomes 0/1). The check guards the corrected question only.
+
+What it keeps is sorted by confidence. **Facts** are what you said, records from business systems, and what the data
+itself shows. **AI inference** is what was read from documents, general industry knowledge, and guesses. AI inference
+is not treated as knowledge until a person confirms it. Every record must carry a source and a status or it is
+refused, and a cause read from a document must quote its sentence word for word.
+
+## What was measured
+
+All of this was measured on generated data or one public dataset, not on a real business.
+
+- **30 of 30** planted causes found, on 6 generated shops (5 questions each) whose seeds it was never tuned on.
+- **15 trap cases** built to provoke false alarms and misses: 0 false alarms among the 12 with nothing planted,
+  0 misses among the 3 with a cause planted.
+- In 300 weeks of pure noise it still drilled into a single point in 15 weeks for revenue and 7 for order value
+  (5.0% and 2.3%).
+- Every breakdown sums to the total change: 178 tests pass, and the same check runs before each report.
+- The scripts take a median of 0.31 seconds per question on an Apple Silicon Mac. This leaves out the time the
+  AI tool spends reading and writing.
 
 ## Try it
 
-| You want to | Do |
-|---|---|
-| see it work | build the demo site: `uv run python site/build.py`, then open `site/dist/index.html` |
-| use it | copy `skills/analyst-in-a-box/` into your AI tool's skills folder and ask "why did revenue fall last week?" |
-| use it from a terminal | `python3 skills/analyst-in-a-box/scripts/aib_cli.py init your_data.csv --workspace ./aib-workspace` |
-| start from several tables | give `init` a folder: `... init ./my_exports/ --workspace ./aib-workspace` (orders, products, campaign calendar, price log...); it works out how they fit and asks you to confirm |
-| try it on your own business | follow the [trial guide](docs/trial.en.md) |
+Install the skill with the command at the top, then ask your AI tool something like:
 
-## The demo
+> Here is our order table (path). Why did revenue fall last week?
 
-The demo shop, Bloom & Basket, is fictional. Its data is generated with known causes planted in it: a marketplace
-that changed its terms, three days of heavy rain in one region, a promotion that shifted the mix, a home-page
-change that hit one category on one channel. The skill never reads the answer key; `tests/test_demo_store.py`
-checks that it finds every cause. A real public dataset (UCI Online Retail, CC BY 4.0) shows that real
-data loads and runs; see [demo/public](demo/public/README.md).
+It asks what each column is instead of guessing from names, then gives a first report in the same conversation.
 
-## How it differs from other systems
+- Several tables: give it a folder of exports, and a weekly report if you have one.
+- From a terminal: `python3 skills/analyst-in-a-box/scripts/aib_cli.py init your_data.csv --workspace ./aib-workspace`
+- See the runs behind this page: the demo site is built from real runs with `uv run python site/build.py`. A hosted
+  demo site will be linked here once it is published.
+- Run the tests: `uv run --frozen pytest`
 
-It is not more complete than either. One kind of system describes concepts and their logic; another describes what a company
-has and what can be done to it, and writes back to systems. This project only reads data, and is complete for
-one question: why did this number move. Details: [docs/decisions.en.md](docs/decisions.en.md).
+## Documentation
 
-## Layout
+- [Trial guide](docs/trial.en.md): trying it on your own business, and what to send back.
+- [Decisions](docs/decisions.en.md): why it is built this way, including the public names and rules.
+- [Several tables to a workspace](demo/intake/README.md) and [the public dataset](demo/public/README.md).
+- [Contributing](CONTRIBUTING.md) and [security](SECURITY.md).
 
-| Path | Contents |
-|---|---|
-| `skills/analyst-in-a-box/` | the skill: `SKILL.md`, `references/`, `scripts/aib/`, formula starters |
-| `demo/store/` | the fictional shop: generator, answer key, workspace |
-| `demo/public/` | the public dataset: preparation script, attribution |
-| `site/` | the demo site builder and its assets |
-| `tests/` | operators, decision tables, demo causes, learning, first use |
-| `tools/` | browser check, clean-room check, bilingual check |
-| `docs/` | decisions, trial guide |
-
-## Checks
-
-```bash
-uv run pytest                                   # every method sums exactly; every planted cause is found
-uv run python site/build.py                     # build the demo site from real runs
-cd tools/browser-check && npm install && node check.mjs   # no errors, motion timings (site/MOTION.md)
-node tools/design-check/run.mjs                 # outside linters for machine-made page habits (impeccable, hallmark); exceptions need a reason in accepted.json
-uv run python tools/bilingual_check.py          # every document has both languages, section for section
-```
+The skill itself is in `skills/analyst-in-a-box/`. The fictional shop and its answer key are in `demo/store/`.
 
 ## Status
 
-Version 0.2.1. Not yet tried by someone outside the project. Licence: [Apache-2.0](LICENSE). The data in
-`demo/public` keeps its own licence (CC BY 4.0, see [demo/public](demo/public/README.md)).
+First public release. It has been tested on a generated demo shop, six more generated shops, the trap cases, and
+one public dataset (UCI Online Retail, CC BY 4.0). That dataset shows real data loads and yields a checked report; it
+has no answer key, so it does not show the answers are right. Nobody outside the project has tried it on their own
+business yet, and the [trial guide](docs/trial.en.md) is how that changes. Not done yet: third-order questions, and
+news sources other than your own web search.
 
-What 0.2 adds, measured on the test data (`tests/`):
-
-- It checks the data first. Two missing days, or a week loaded twice, stop the report with the reason. A
-  sudden jump, a renamed value or one huge order is named at the top, and the conclusions still stand.
-- It tells noise from a cause. In 300 weeks of pure noise (10 seeds) it drilled into a single point in
-  15 weeks for revenue and 7 for average order value; 0.1 drilled in 18 of 30.
-- It starts from a folder of tables: it finds the main table, the lookups, the links (with their coverage), the
-  campaign and price records, and the outside series, and asks before using any of it. Causes read in a document
-  are kept only with the exact sentence they came from, as "to confirm". See [demo/intake](demo/intake/README.md).
-- It chooses which dimension to cut, reports one cause once, and checks it from the other side.
-- A record cited as a cause must be able to explain the change. Something true in both periods no longer counts.
-- The demo shop rebuilt with six unseen seeds: every planted answer found. One (seed 101, the rainstorm) passes
-  only narrowly; see `docs/decisions.en.md` section 15.
-- New breakdowns: the whole formula tree, price-volume-mix, growth accounting by customer, and `followup`.
-
-Not done: a third-order question; news sources other than the user's own web search; trying it with someone
-outside the project.
+Found a bug, or tried it on your data? Open an issue; there are templates for both. Licence: [Apache-2.0](LICENSE).
+The data in `demo/public` keeps its own licence.

@@ -88,17 +88,11 @@ How it joins the metric tree: every dimension value is an entity; relations deci
 
 When a slice needs explaining, it cites an entry if one exists. If none does, it writes "the data shows this change; the reason is waiting for your confirmation" and records a gap.
 
-### How it differs from other systems
+### Its scope
 
-| | What it answers | How it is built |
-|---|---|---|
-| A concept-logic system | What a concept is, and the logic between concepts | Written by experts in specialised tools |
-| A data-integration platform | What a company has and what you can do to it (actions write back to systems) | Built on top of an integrated data warehouse |
-| This project | Why this number moved, and who should do what next | Drafted by the machine from data and documents, confirmed and filled in by a person |
+It is complete for one question only, "why did this number move, and who should act next": every entity is a dimension value on the metric tree, every explanation carries a source, a status and a refutation condition, and it is cheap to build. It does not do general concept reasoning, does not write back to business systems, and does not handle permissions or large-scale data governance. That is how it is described in public too.
 
-**This project is not more complete than either.** It is far weaker in expressiveness, reasoning, write-back, permissions and data scale. It is complete for one question only, "why did this number move": every entity is a dimension value on the metric tree, every explanation carries a source, a status and a refutation condition, and it is cheap to build. That is how it is described in public too.
-
-It borrows only their structure: one canonical name per thing, other names kept as aliases; "business reasons" kept apart from "this run's hypotheses", each hypothesis stating what data would refute it; every entry carries a source and a status.
+Structurally it keeps to these rules: one canonical name per thing, other names kept as aliases; "business reasons" kept apart from "this run's hypotheses", each hypothesis stating what data would refute it; every entry carries a source and a status.
 
 ### Where it comes from: not only by asking people
 
