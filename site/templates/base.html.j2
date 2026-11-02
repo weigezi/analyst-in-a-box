@@ -43,7 +43,7 @@
   </nav>
   <div class="right">
     <a class="lang" href="{{ alt_href }}" hreflang="{{ 'en' if zh else 'zh-CN' }}" lang="{{ 'en' if zh else 'zh-CN' }}">{{ "English" if zh else "中文" }}</a>
-    <span class="gh" title="{{ '仓库还没公开' if zh else 'Repository not public yet' }}">GitHub <small>{{ "待公开" if zh else "not public yet" }}</small></span>
+    <a class="gh" href="https://github.com/weigezi/analyst-in-a-box">GitHub <small>{{ "源码" if zh else "source" }}</small></a>
     <details class="nav-mobile"><summary>{{ "目录" if zh else "Menu" }}</summary>
       <div class="menu">
         <a href="{{ home }}index.html"{% if nav_active == 'home' %} aria-current="page"{% endif %}>{{ "首页" if zh else "Home" }}</a>

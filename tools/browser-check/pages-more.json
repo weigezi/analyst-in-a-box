@@ -125,8 +125,8 @@
           "selector": "#ar-flow .ar-step"
         },
         {
-          "what": "every method card has a name and a source",
-          "selector": "#ar-methods .ar-card h3, #ar-methods .ar-src"
+          "what": "the methods line links to the full list with sources in the skill's references",
+          "selector": "#ar-methods a"
         }
       ]
     }

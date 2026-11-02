@@ -291,36 +291,24 @@
 }
 
 /* ======================================================= architecture page (ar-) */
-.ar-layers { display: grid; gap: 12px; margin-top: 24px; }
-.ar-roles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.ar-roles { list-style: none; margin: 20px 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .ar-role { background: var(--surface); border-radius: 12px; box-shadow: var(--ring); padding: 20px 20px; color: var(--r-ink); }
 .ar-who { margin: 0; font-size: 18px; line-height: 27px; font-weight: 600; }
-.ar-does { margin: 0 0 8px; font-size: 13px; line-height: 20px; color: var(--ink-3); }
-.ar-role ul { margin: 0; padding-left: 1.1em; } .ar-role li { font-size: 14px; line-height: 22px; margin: 0 0 4px; color: var(--r-body); }
-.ar-base { display: grid; grid-template-columns: 9em minmax(0, 1fr); gap: 16px; padding: 12px 20px; border-radius: 10px; background: var(--r-soft);
-  font-size: 14px; line-height: 22px; color: var(--r-ink); }
+.ar-does { margin: 8px 0 0; font-size: 15px; line-height: 24px; color: var(--r-body); }
 .ar-steps { list-style: none; margin: 0; padding: 0; }
+#ar-flow h2 { margin-bottom: 20px; }
+.ik-gaplist { margin-top: 16px; }
 .ar-step { box-sizing: border-box; padding: 8px 12px; border-radius: 8px; background: var(--surface); box-shadow: var(--ring); color: var(--r-ink);
   display: flex; flex-direction: column; justify-content: center; }
 .ar-step b { font-size: 14px; line-height: 20px; font-weight: 600; }
 .ar-step span { font-size: 13px; line-height: 18px; color: var(--r-ink-3); }
 .ar-e { fill: none; stroke: var(--c-edge-strong); stroke-width: 1.25; } .ar-e.branch { stroke-dasharray: 4 3; }
 #ar-arrow path { fill: var(--c-edge-strong); }
-.ar-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.ar-card { background: var(--surface); border-radius: 10px; box-shadow: var(--ring); padding: 16px 20px; color: var(--r-ink); }
-.ar-card h3 { margin: 0 0 4px !important; font-size: 15px; } .ar-card p { margin: 0; font-size: 14px; line-height: 22px; color: var(--r-body); }
-.ar-card .ar-src { margin-top: 8px; font-size: 12px; line-height: 18px; color: var(--ink-3); }
-.ar-us td { background: var(--r-soft); }
-.ar-strong { margin: 20px 0 0; max-width: 820px; font-size: 16px; line-height: 27px; font-weight: 600; color: var(--r-ink); }
-.ar-size { grid-template-columns: repeat(7, minmax(0, 1fr)); }
-.ar-h2b { margin-top: 40px !important; }
 @media (max-width: 1179px) {
   .ar-flow .ar-step { margin-left: calc(var(--d) * 20px); margin-bottom: 8px; }
 }
 @media (max-width: 960px) {
-  .ar-roles, .ar-cards { grid-template-columns: minmax(0, 1fr); }
-  .ar-size { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .ar-base { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .ar-roles { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* Moving only opacity keeps the graph off the paint path; with reduced motion the highlight is instant.
