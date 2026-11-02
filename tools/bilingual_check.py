@@ -15,7 +15,7 @@ from pathlib import Path
 TOOLS = Path(__file__).resolve().parent
 ROOT = TOOLS.parent
 SKIP = {".git", ".venv", "node_modules", "dist", "raw", "runs", "docs_generated", ".pytest_cache", "__pycache__"}
-SINGLE_LANGUAGE_OK = {"skills/analyst-in-a-box/scripts/requirements.txt"}
+SINGLE_LANGUAGE_OK = {"skills/analyst-in-a-box/scripts/requirements.txt", ".github/pull_request_template.md"}
 
 
 def headings(text: str) -> list[int]:
@@ -54,6 +54,8 @@ def main():
     problems, ok = [], 0
     for zh, en in pairs():
         if zh is None:
+            if str(en.relative_to(ROOT)) in SINGLE_LANGUAGE_OK:
+                continue
             problems.append(f"no Chinese version: {en.relative_to(ROOT)}")
             continue
         if en is None:

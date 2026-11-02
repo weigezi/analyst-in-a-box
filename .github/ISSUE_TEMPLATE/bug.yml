@@ -1,0 +1,12 @@
+name: Bug
+description: Something is wrong, for example a number that does not add up or a crash.
+labels: [bug]
+body:
+  - type: textarea
+    attributes:
+      label: What happened, and what did you expect?
+    validations: {required: true}
+  - type: textarea
+    attributes:
+      label: How can we see it?
+      description: The command or the question you asked, and the version (`git rev-parse --short HEAD` or the skill's version).

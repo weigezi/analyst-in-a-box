@@ -1,0 +1,35 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: Tests
+        run: uv run --frozen pytest -q
+      - name: Documents exist in both languages
+        run: uv run --frozen python tools/bilingual_check.py
+
+  engine-on-python-3-10:
+    # The skill documents Python 3.10+, the project's dev setup uses 3.11. This keeps the documented floor honest.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: Answer the demo question on 3.10
+        run: |
+          uv run --no-project --python 3.10 --with pandas --with pyyaml --with openpyxl python - <<'PY'
+          import sys
+          sys.path.insert(0, "skills/analyst-in-a-box/scripts")
+          from aib.run import run
+          from aib.workspace import Workspace
+          s = run(Workspace("demo/store/workspace"), {"metric": "revenue", "current": ["2026-10-19", "2026-10-25"], "base": "yoy"}, write=False)
+          assert s["slots"], "no cause found on the demo question"
+          print("ok", s["qualify"]["robust_z"])
+          PY

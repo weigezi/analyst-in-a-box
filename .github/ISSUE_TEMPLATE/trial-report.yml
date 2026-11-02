@@ -1,0 +1,20 @@
+name: Trial report
+description: You tried it on your own data. Tell us how it went.
+labels: [trial]
+body:
+  - type: textarea
+    attributes:
+      label: What did you ask?
+      description: The question, in your words, and the data it was about (kind of table, how many columns; no private data).
+    validations: {required: true}
+  - type: textarea
+    attributes:
+      label: What did it get right, and what did it get wrong?
+    validations: {required: true}
+  - type: textarea
+    attributes:
+      label: What did you have to correct?
+      description: Each correction, in the words you used.
+  - type: input
+    attributes:
+      label: Your AI tool and model
