@@ -27,8 +27,13 @@ import pandas as pd
 import yaml
 
 from . import defaults, draft
+from .sources import derive_dates
 
 TABLE_SUFFIXES = (".csv", ".csv.gz", ".xlsx", ".xls")
+
+
+class NoTimeAxis(ValueError):
+    """No table has dates together with an amount to add up, so there is no 'this period against that one'."""
 # Thresholds are named params (defaults.PARAMS, with their reasons); a workspace's rules.yaml may override them.
 def _param(name, ws_dir=None):
     if ws_dir is not None:
@@ -73,18 +78,25 @@ def _table_facts(name, path, df):
     prof = draft.profile(df)
     shape = {p["column"]: p["shape"] for p in prof}
     dates = [c for c, k in shape.items() if k == "date"]
-    nums = [c for c, k in shape.items() if k == "number"]
+    comps = draft.composite_dates(df)
+    parts = {c for cd in comps for c in cd["columns"]}
+    nums = [c for c, k in shape.items() if k == "number" and c not in parts]
     words = [c for c, k in shape.items() if k in ("category", "text", "unique")]
     # Keys are looked for only in tables without dates: in a two-row campaign table every column is "unique".
     keys = [c for c in df.columns if not dates and _is_key(df[c])]
     facts = {"name": name, "path": str(path), "rows": len(df), "profile": prof, "date_columns": dates,
-             "number_columns": nums, "word_columns": words, "keys": keys}
+             "composite_dates": comps, "number_columns": nums, "measure_columns": draft.measure_columns(df, nums),
+             "id_columns": [c for c in nums if draft.is_identifier(df[c])],
+             "word_columns": words, "keys": keys}
     if len(dates) >= 2:
         a, b = dates[:2]
         da, db = pd.to_datetime(df[a]), pd.to_datetime(df[b])
-        if (da <= db).all():
+        # Two dates in order on every row are a start and an end only for a small table or one with no amounts.
+        # An orders table (ordered, shipped) passes the order test too, but it is a fact table with two dates.
+        small = len(df) <= _param("intake_event_table_max_rows") or not facts["measure_columns"]
+        if small and (da <= db).all():
             facts["start_end"] = [a, b]
-        elif (db <= da).all():
+        elif small and (db <= da).all():
             facts["start_end"] = [b, a]
     if len(dates) == 1:
         d = dates[0]
@@ -100,8 +112,12 @@ def _suggest_kind(t, main, links, df):
     if t["name"] == main:
         return "main"
     linked = any(lk["left_table"] == t["name"] for lk in links)
-    if not t["date_columns"]:
+    if not t["date_columns"] and not t["composite_dates"]:
         return "lookup" if t["keys"] else "ignore"
+    if not t["date_columns"]:   # dated only by a composite (year + month)
+        if any(lk["right_table"] == t["name"] and lk["right_is_key"] for lk in links):
+            return "lookup"     # other tables point at its key: it describes them (a member list with an enrolment month)
+        return "business" if t["measure_columns"] else "ignore"
     if t.get("start_end"):
         return "events" if linked else "calendar"
     if "per_date" in t and t["number_columns"]:
@@ -172,6 +188,19 @@ def _joined(main_df, links, frames, main, use=lambda lk: lk["suggested"] == "yes
     return df, joins
 
 
+def _no_time_axis(tables, lang) -> str:
+    """Plain words for data that cannot answer 'why did this number change': no dates, or dates with nothing to add up."""
+    dated = [n for n, t in tables.items() if t["date_columns"] or t["composite_dates"]]
+    if lang == "zh":
+        why = ("这些表里没有日期列" if not dated else f"有日期的表（{'、'.join(dated)}）里既没有可以加总的数（金额、数量），也没有能数个数的编号列")
+        return (f"这份数据回答不了「这个数为什么变了」：{why}，没法把这一期和另一期放在一起比。"
+                "如果你有按天、按周或按月的记录，请把它们一起给我。")
+    why = ("none of the tables has a date column" if not dated else
+           f"the tables with dates ({', '.join(dated)}) have no amount to add up and no identifier column to count")
+    return (f"This data cannot answer \"why did this number change\": {why}, so there is no period to set against another. "
+            "If you have records by day, week or month, give them to me as well.")
+
+
 def _rn(col, lang):
     """Readable name of a column, for question text (the ids keep the raw names)."""
     return draft.readable(col)[lang]
@@ -196,11 +225,18 @@ def init(paths, workspace, lang="zh", main=None) -> dict:
             n += "_2"
         frames[n] = df
         tables[n] = _table_facts(n, os.path.relpath(f.resolve(), ws.resolve()), df)
-    facts = [t for t in tables.values() if t["date_columns"] and t["number_columns"] and not t.get("start_end")]
+    dated = [t for t in tables.values() if (t["date_columns"] or t["composite_dates"]) and (t["measure_columns"] or t["id_columns"])]
+    # A table whose two dates are in order on every row looks like a start and an end (a campaign, a holiday). It is
+    # passed over for a real fact table, but when it is the only table with something to analyse (a small orders
+    # table: ordered, shipped) it is the main table: the row-count line between the two cannot be drawn reliably.
+    facts = [t for t in dated if not t.get("start_end")] or dated
     if main is None:
         if not facts:
-            raise ValueError("no table has both a date and numbers; name the main table with --main")
-        main = max(facts, key=lambda t: t["rows"])["name"]
+            raise NoTimeAxis(_no_time_axis(tables, lang))
+        # amounts first, size second: an event log of keys only (page views) is a main table only when nothing has amounts
+        main = max(facts, key=lambda t: (bool(t["measure_columns"]), t["rows"]))["name"]
+    elif main not in tables:
+        raise ValueError(f"--main {main}: no table of that name; the tables are {', '.join(tables)}")
     links = _links(tables, frames, main)
     for t in tables.values():
         t["suggested_kind"] = _suggest_kind(t, main, links, frames[t["name"]])
@@ -261,12 +297,29 @@ def init(paths, workspace, lang="zh", main=None) -> dict:
             qs.append(_q(f"market_compares:{t['name']}", f"如果「{t['name']}」是行业大盘，拿它和主表的哪一列比？不是大盘就选 none。",
                          f"If \"{t['name']}\" is a market benchmark, which main-table column does it compare with? none if it is not one.",
                          ["none", *tables[main]["number_columns"]], lang, suggested="none"))
+    comps = tables[main]["composite_dates"]
+    for cd in comps:
+        joined[cd["name"]] = derive_dates(joined, cd)
     prof = draft.profile(joined)
     # "belongs to" is between groups; a measured number (a list price) is an attribute, not a group to belong to
     cats = [p["column"] for p in prof if p["shape"] in ("category", "unique") and p["distinct"] <= draft.MAX_DIM_VALUES]
     fds = draft.belongs_to_candidates(joined, cats)
-    quiet = draft.quiet_weekdays(joined, tables[main]["date_columns"][0]) if len(tables[main]["date_columns"]) == 1 else []
-    main_qs = draft.questions(prof, fds, lang, quiet)
+    only_date = (tables[main]["date_columns"] + [cd["name"] for cd in comps])
+    quiet = draft.quiet_weekdays(joined, only_date[0]) if len(only_date) == 1 else []
+    parts = {c for cd in comps for c in cd["columns"]}
+    ids = {c for c in tables[main]["number_columns"] if c in joined.columns and draft.is_identifier(joined[c])}
+    attributes = {c for j in joins for c in j["columns"] if c in joined.columns}
+    row_keys = {c for c in ids if joined[c].is_unique and not joined[c].isna().any()}   # asked as "which column identifies one record"
+    main_qs = draft.questions(prof, fds, lang, quiet, exclude=parts | row_keys | attributes, id_columns=ids - row_keys | row_keys)
+    for q in main_qs:
+        if q["id"] == "date_column":
+            # composite dates are offered as composite:<name>; the single derived column is not offered twice
+            q["options"] = [o for o in q["options"] if (o["value"] if isinstance(o, dict) else o) not in {cd["name"] for cd in comps}]
+            for cd in comps:
+                label = " + ".join(_rn(c, lang) for c in cd["columns"])
+                q["options"].append({"value": f"composite:{cd['name']}", "label": label + (("（合起来是一个日期）" if zh else " (together one date)"))})
+            if len(q["options"]) == 1:
+                q["suggested"] = q["options"][0]["value"] if isinstance(q["options"][0], dict) else q["options"][0]
     for q in main_qs:
         if q["id"].startswith("role:"):
             q["table"] = main
@@ -317,6 +370,13 @@ def confirm(workspace, answers: dict, today: dt.date | None = None) -> dict:
 
     mt = tables[main]
     date_col = answers.get("date_column") or (mt["date_columns"][0] if len(mt["date_columns"]) == 1 else None)
+    derive = []
+    if date_col and str(date_col).startswith("composite:"):
+        cd = next((c for c in mt["composite_dates"] if f"composite:{c['name']}" == date_col), None)
+        if cd is None:
+            raise ValueError(f"'{date_col}' is not a date found in '{main}'")
+        derive, date_col = [cd], cd["name"]
+        joined[date_col] = derive_dates(joined, cd)
     if not date_col:
         raise ValueError("answer 'date_column' first")
     dims = [x for x in answers.get("dimensions", []) if x in joined.columns]
@@ -324,6 +384,8 @@ def confirm(workspace, answers: dict, today: dt.date | None = None) -> dict:
 
     sources, external = {}, {}
     main_src = _spec(mt, ws)
+    if derive:
+        main_src["derive_dates"] = derive
     if joins:
         sources[f"{main}_rows"] = main_src
         for j in joins:
@@ -350,9 +412,10 @@ def confirm(workspace, answers: dict, today: dt.date | None = None) -> dict:
         df = frames[n]
         mine = [lk for lk in links if lk["left_table"] == n and lk["right_column"] in dims]
         if k == "business":
-            date = t["date_columns"][0]
+            cd = None if t["date_columns"] else t["composite_dates"][0]
+            date = t["date_columns"][0] if cd is None else cd["name"]
             cols = {lk["right_column"]: lk["left_column"] for lk in mine}
-            src = {**_spec(t, ws), "date_columns": [date]}
+            src = {**_spec(t, ws), "date_columns": [date], **({"derive_dates": [cd]} if cd else {})}
             if t.get("per_date") is not None:
                 src["key"] = [date, *t["per_date"]]
             sources[n] = src

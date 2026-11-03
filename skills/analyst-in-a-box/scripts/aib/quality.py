@@ -61,6 +61,17 @@ def _daily_rows(df, date):
     return df.groupby(date).size()
 
 
+def is_monthly(df, date) -> bool:
+    """Every date is the first of a month: the source was dated by year + month, so there are no days to check."""
+    d = pd.to_datetime(df[date]).dropna()
+    return d.nunique() >= 2 and bool((d.dt.day == 1).all())
+
+
+def expected_months(w) -> list:
+    """The first of each calendar month a window touches."""
+    return [m.date() for m in pd.date_range(pd.Timestamp(w[0]).replace(day=1), pd.Timestamp(w[1]), freq="MS")]
+
+
 def _status(items):
     return "fail" if any(x == "fail" for x in items) else "warn" if any(x == "warn" for x in items) else "ok"
 
@@ -115,8 +126,10 @@ def assess(ws, metric, base, cur, filters, holidays=frozenset(), metrics=None, p
     for src, (date, _) in srcs.items():
         df = ws.sources.frame(src)
         seen = set(pd.to_datetime(df[date]).dt.date.unique())
+        monthly = is_monthly(df, date)
         for tag, w in (("base", base), ("current", cur)):
-            missing[tag] += [x.isoformat() for x in expected_days(ws, w) if x not in seen and x.isoformat() not in missing[tag]]
+            expect = expected_months(w) if monthly else expected_days(ws, w)
+            missing[tag] += [x.isoformat() for x in expect if x not in seen and x.isoformat() not in missing[tag]]
     n_missing = len(missing["base"]) + len(missing["current"])
     add("calendar_complete", "fail" if n_missing > param(ws, "quality_missing_days_max") else "ok", missing=missing,
         closed_weekdays=sorted(closed_weekdays(ws)), closed_dates=sorted(x.isoformat() for x in closed_dates(ws)))
@@ -149,6 +162,8 @@ def assess(ws, metric, base, cur, filters, holidays=frozenset(), metrics=None, p
     vol, val = [], []
     for src, (date, measures) in srcs.items():
         df = ws.sources.frame(src)
+        if is_monthly(df, date):
+            continue   # a month is one row-set; there are no days to compare with their usual weekday
         lo_day = pd.Timestamp(min(base[0], cur[0]) - dt.timedelta(days=7 * weeks))
         part = df[(df[date] >= lo_day) & (df[date] <= pd.Timestamp(cur[1]))]
         for h in _jump(_daily_rows(part, date), check_days, holidays, weeks, hi, lo):

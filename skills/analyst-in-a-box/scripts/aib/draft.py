@@ -31,6 +31,70 @@ MAX_DIM_VALUES = 50
 
 
 ISO_DATE = r"^\d{4}-\d{1,2}-\d{1,2}([ T].*)?$"
+MONTH_NAMES = {"january", "february", "march", "april", "may", "june", "july", "august", "september", "october",
+               "november", "december"}
+MONTH_NAMES |= {m[:3] for m in MONTH_NAMES}
+
+
+def is_identifier(s: pd.Series, share: float | None = None) -> bool:
+    """A whole-number column (integer type) with mostly distinct values: an order, session or user number.
+    Decimals are never identifiers; a column of a few distinct values is never one either."""
+    share = defaults.PARAMS["intake_id_distinct_share"]["value"] if share is None else share
+    if not pd.api.types.is_integer_dtype(s) or pd.api.types.is_bool_dtype(s) or len(s) == 0:
+        return False
+    return s.nunique(dropna=True) / len(s) >= share
+
+
+def measure_columns(df: pd.DataFrame, number_columns: list[str]) -> list[str]:
+    """Numeric columns that can be added up: not identifier-like, and with more than a flag's worth of distinct values."""
+    lo = defaults.PARAMS["intake_measure_min_distinct"]["value"]
+    return [c for c in number_columns if not is_identifier(df[c]) and df[c].nunique(dropna=True) >= lo]
+
+
+def _int_between(s: pd.Series, lo: int, hi: int) -> bool:
+    v = s.dropna()
+    return bool(len(v)) and pd.api.types.is_numeric_dtype(s) and bool((v == v.round()).all()) and bool(v.between(lo, hi).all())
+
+
+def composite_dates(df: pd.DataFrame) -> list[dict]:
+    """Dates written over several columns, found by the values and by neighbouring columns, never by the names:
+    year + month (1..12), year + month name + day, or a yyyymmdd whole number. Returns
+    [{"name", "kind", "columns"}]; the name is the columns lowercased and joined with "+"."""
+    cols, out = list(df.columns), []
+    taken = set()
+    def name(cs):
+        return "+".join(re.sub(r"\W+", "_", str(c).strip().lower()) for c in cs)
+    for i, c in enumerate(cols):
+        s = df[c]
+        if pd.api.types.is_numeric_dtype(s) and _int_between(s, 1900, 2100) and s.nunique() >= 2 and i + 1 < len(cols):
+            m = df[cols[i + 1]]
+            if pd.api.types.is_object_dtype(m) or pd.api.types.is_string_dtype(m):
+                if m.dropna().astype(str).str.strip().str.lower().isin(MONTH_NAMES).all() and len(m.dropna()):
+                    day = next((cols[j] for j in range(i + 2, min(i + 4, len(cols))) if _int_between(df[cols[j]], 1, 31)
+                                and df[cols[j]].max() > 12), None)
+                    if day:
+                        trio = [c, cols[i + 1], day]
+                        out.append({"name": name(trio), "kind": "year_monthname_day", "columns": trio})
+                        taken |= set(trio)
+                        continue
+            elif _int_between(m, 1, 12) and m.nunique() >= 2:
+                nxt = cols[i + 2] if i + 2 < len(cols) else None
+                if nxt is not None and _int_between(df[nxt], 1, 31) and df[nxt].max() > 12:
+                    trio = [c, cols[i + 1], nxt]
+                    out.append({"name": name(trio), "kind": "year_month_day", "columns": trio})
+                    taken |= set(trio)
+                else:
+                    out.append({"name": name([c, cols[i + 1]]), "kind": "year_month", "columns": [c, cols[i + 1]]})
+                    taken |= {c, cols[i + 1]}
+    for c in cols:
+        s = df[c]
+        if c in taken or not pd.api.types.is_integer_dtype(s) or not _int_between(s, 19000101, 21001231):
+            continue
+        sample = s.dropna().astype("int64").astype(str).head(500)
+        if sample.str.len().eq(8).all() and pd.to_datetime(sample, format="%Y%m%d", errors="coerce").notna().all():
+            out.append({"name": name([c]), "kind": "yyyymmdd", "columns": [c]})
+            taken.add(c)
+    return out
 
 
 def _kind(s: pd.Series, n: int) -> str:
@@ -100,7 +164,7 @@ def profile(df: pd.DataFrame) -> list[dict]:
         s = df[col]
         k = _kind(s, n)
         item = {"column": col, "name": readable(col), "shape": k, "distinct": int(s.nunique(dropna=True)),
-                "nulls": int(s.isna().sum()), "examples": [str(x) for x in s.dropna().unique()[:5]]}
+                "nulls": int(s.isna().sum()), "filled": int(s.notna().sum()), "examples": [str(x) for x in s.dropna().unique()[:5]]}
         if k == "number":
             item["min"], item["max"] = float(s.min()), float(s.max())
         out.append(item)
@@ -120,7 +184,12 @@ def belongs_to_candidates(df: pd.DataFrame, cols: list[str]) -> list[dict]:
     return out
 
 
-def questions(prof: list[dict], fds: list[dict], lang: str = "zh", quiet: list[dict] | None = None) -> list[dict]:
+def questions(prof: list[dict], fds: list[dict], lang: str = "zh", quiet: list[dict] | None = None,
+              exclude: set | None = None, id_columns: set | None = None) -> list[dict]:
+    """`exclude`: columns that are not amounts to add up (parts of a composite date, identifiers): no role question,
+    and not offered as the number that matters most."""
+    exclude = exclude or set()
+    id_columns = id_columns or set()   # identifier-like whole numbers: asked about (suggested: not an amount), counted, never "the number that matters"
     zh = lang == "zh"
     qs = []
     dates = [p["column"] for p in prof if p["shape"] == "date"]
@@ -132,14 +201,19 @@ def questions(prof: list[dict], fds: list[dict], lang: str = "zh", quiet: list[d
         return (item.get("name") or {}).get(lg) or item["column"]
 
     for p in prof:
-        if p["shape"] == "number":
-            qs.append({"id": f"role:{p['column']}", "column": p["column"],
-                       "ask": (f"「{nm(p, 'zh')}」这一列是什么？例子：{', '.join(p['examples'][:3])}" if zh else
-                               f"What is the column \"{nm(p, 'en')}\"? Examples: {', '.join(p['examples'][:3])}"),
-                       "options": [{"value": k, "label": v[lang]} for k, v in ROLES.items()]})
+        if p["shape"] == "number" and p["column"] not in exclude:
+            empty = p["nulls"] / max(p["nulls"] + p.get("filled", 0), 1) if "filled" in p else None
+            note_zh = f"（有 {empty:.0%} 的格子是空的：空的不当 0 加，但这些单还在订单数里）" if empty else ""
+            note_en = f" ({empty:.0%} of the cells are empty: they are not added as 0, yet those orders still count in the order total)" if empty else ""
+            qs.append({"id": f"role:{p['column']}", "column": p["column"], **({"empty_share": empty} if empty else {}),
+                       "ask": (f"「{nm(p, 'zh')}」这一列是什么？例子：{', '.join(p['examples'][:3])}{note_zh}" if zh else
+                               f"What is the column \"{nm(p, 'en')}\"? Examples: {', '.join(p['examples'][:3])}{note_en}"),
+                       "options": [{"value": k, "label": v[lang]} for k, v in ROLES.items()],
+                       **({"suggested": "skip"} if p["column"] in id_columns else {})})
     rows = max((p["distinct"] + p["nulls"] for p in prof), default=0)
     ids = [p["column"] for p in prof if p["shape"] in ("unique", "text")
-           or (p["shape"] == "number" and p["distinct"] == rows and float(p.get("min", 0)).is_integer())]
+           or (p["shape"] == "number" and (p["column"] in id_columns
+                                           or (p["distinct"] == rows and float(p.get("min", 0)).is_integer())))]
     if ids:
         qs.append({"id": "order_id", "ask": "哪一列是一笔订单（或一笔交易、一个订阅）的编号？" if zh else
                    "Which column identifies one order (or one transaction, one subscription)?",
@@ -149,7 +223,7 @@ def questions(prof: list[dict], fds: list[dict], lang: str = "zh", quiet: list[d
                    "What does each row record? This only changes the names, not the arithmetic.",
                    "options": [{"value": "orders", "label": "订单（电商、零售、餐饮）" if zh else "Orders (e-commerce, retail, restaurants)"},
                                {"value": "subscription", "label": "订阅或会员" if zh else "Subscriptions or memberships"}]})
-    nums = [p["column"] for p in prof if p["shape"] == "number"]
+    nums = [p["column"] for p in prof if p["shape"] == "number" and p["column"] not in exclude | id_columns]
     if nums:
         qs.append({"id": "north_star", "ask": "这些数里，你最关心哪一个？" if zh else "Of these numbers, which matters most to you?",
                    "options": nums})
@@ -408,6 +482,14 @@ def first_run(workspace, metric) -> dict:
     m = w.measures[w.metric_measures(metric)[0]]
     dates = w.sources.frame(m["source"])[m["date"]]
     lo, hi = dates.min().date(), dates.max().date()
+    if (dates.dt.day == 1).all():
+        # dates that are all the first of a month (year + month): compare the last full month with the one before
+        # it, or with the same month a year earlier when the data reaches back that far
+        last = dates.max()
+        cur = (last.date(), (last + pd.offsets.MonthEnd(0)).date())
+        yoy = (last - pd.DateOffset(years=1)).date()
+        base = "yoy" if yoy >= lo else "pop"
+        return {"metric": metric, "current": [cur[0].isoformat(), cur[1].isoformat()], "base": base}
     end = hi - dt.timedelta(days=(hi.weekday() + 1) % 7 or 7)
     cur = (end - dt.timedelta(days=6), end)
     base = "yoy" if cur[0] - dt.timedelta(days=364) >= lo else "pop"

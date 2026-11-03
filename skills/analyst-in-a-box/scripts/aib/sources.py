@@ -6,6 +6,7 @@ nothing else in the skill changes.
 
 from __future__ import annotations
 
+import re
 import sqlite3
 from pathlib import Path
 
@@ -21,14 +22,65 @@ def loader(kind):
     return wrap
 
 
+# Words that mean "no value" to pandas by default but are real values in a business table ("None" as an offer type,
+# "NULL" as an agent code). Only an empty cell is missing.
+READ_AS_TEXT = {"keep_default_na": False, "na_values": [""]}
+CURRENCY = re.compile(r"^\s*[-+]?\s*[$€£¥]?\s*[-+]?\d{1,3}(,\d{3})*(\.\d+)?\s*$|^\s*[-+]?\s*[$€£¥]?\s*[-+]?\d+(\.\d+)?\s*$")
+MONTHS = {m: i for i, m in enumerate(["january", "february", "march", "april", "may", "june", "july", "august",
+                                      "september", "october", "november", "december"], 1)}
+MONTHS.update({m[:3]: i for m, i in list(MONTHS.items())})
+
+
+def clean(df: pd.DataFrame, derive: list | None = None) -> pd.DataFrame:
+    """The one place a table is tidied, for intake and for every later run: header cells lose their outer spaces,
+    a text column of amounts such as "$1,025.00 " becomes numbers, and the dates the workspace derived from
+    several columns (see `derive_dates`) are added. Columns that are not clearly amounts are left alone."""
+    stripped = {c: c.strip() for c in df.columns if isinstance(c, str) and c != c.strip()}
+    taken = set(df.columns)
+    # a header that would collide with another once its spaces are gone keeps its spaces
+    df = df.rename(columns={c: n for c, n in stripped.items() if n not in taken and list(stripped.values()).count(n) == 1})
+    for c in df.columns:
+        s = df[c]
+        if not (s.dtype == object or pd.api.types.is_string_dtype(s)):   # pandas 3 reads text as its own "str" type
+            continue
+        vals = s.dropna().astype(str)
+        if len(vals) and vals.str.contains(r"[$€£¥,]", regex=True).any() and vals.map(lambda v: bool(CURRENCY.match(v))).all():
+            df[c] = pd.to_numeric(s.astype(str).str.replace(r"[$€£¥,\s]", "", regex=True).replace({"nan": None, "": None}),
+                                  errors="coerce")
+    for d in derive or []:
+        df[d["name"]] = derive_dates(df, d)
+    return df
+
+
+def derive_dates(df: pd.DataFrame, spec: dict) -> pd.Series:
+    """A real date built from the columns of a composite date: year + month (the first of the month), year + month
+    name + day, or a yyyymmdd whole number."""
+    k, cols = spec["kind"], spec["columns"]
+    if k == "year_month":
+        y, m = pd.to_numeric(df[cols[0]], errors="coerce"), pd.to_numeric(df[cols[1]], errors="coerce")
+        return pd.to_datetime(dict(year=y, month=m, day=1), errors="coerce")
+    if k == "year_monthname_day":
+        m = df[cols[1]].astype(str).str.strip().str.lower().map(MONTHS)
+        return pd.to_datetime(dict(year=pd.to_numeric(df[cols[0]], errors="coerce"), month=m,
+                                   day=pd.to_numeric(df[cols[2]], errors="coerce")), errors="coerce")
+    if k == "year_month_day":
+        return pd.to_datetime(dict(year=pd.to_numeric(df[cols[0]], errors="coerce"), month=pd.to_numeric(df[cols[1]], errors="coerce"),
+                                   day=pd.to_numeric(df[cols[2]], errors="coerce")), errors="coerce")
+    if k == "yyyymmdd":
+        return pd.to_datetime(df[cols[0]].astype("Int64").astype(str), format="%Y%m%d", errors="coerce")
+    raise ValueError(f"unknown composite date kind: {k}")
+
+
 @loader("csv")
 def _csv(spec, root):
-    return pd.read_csv(root / spec["path"], **spec.get("options", {}))
+    opts = {**READ_AS_TEXT, **spec.get("options", {})}
+    return clean(pd.read_csv(root / spec["path"], **opts), spec.get("derive_dates"))
 
 
 @loader("excel")
 def _excel(spec, root):
-    return pd.read_excel(root / spec["path"], sheet_name=spec.get("sheet", 0), **spec.get("options", {}))
+    opts = {**READ_AS_TEXT, **spec.get("options", {})}
+    return clean(pd.read_excel(root / spec["path"], sheet_name=spec.get("sheet", 0), **opts), spec.get("derive_dates"))
 
 
 @loader("sqlite")

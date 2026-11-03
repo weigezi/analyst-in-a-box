@@ -9,7 +9,7 @@
 | 类 | 数量 |
 |---|---|
 | 机器从数据推出（再经选择题确认） | 45 |
-| 选择题（问了 / 答了） | 38 / 38 |
+| 选择题（问了 / 答了） | 37 / 37 |
 | 从文档抽出、待确认（收下 / 拒收） | 3 / 0 |
 | 只有人能补、目前空着 | 6 |
 
@@ -56,10 +56,9 @@
 | `role:traffic.visits` | — | visits |
 | `role:weather.rainfall_mm` | — | skip |
 | `market_compares:weather` | none | none |
-| `date_column` | — | order_date |
+| `date_column` | order_date | order_date |
 | `role:revenue` | — | amount |
 | `role:gross_profit` | — | profit |
-| `role:list_price` | — | skip |
 | `order_id` | — | order_id |
 | `template` | — | orders |
 | `north_star` | — | gross_profit |

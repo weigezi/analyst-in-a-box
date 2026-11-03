@@ -17,6 +17,7 @@
      "shape": "unique",
      "distinct": 8,
      "nulls": 0,
+     "filled": 8,
      "examples": [
       "Beijing",
       "Chengdu",
@@ -34,6 +35,7 @@
      "shape": "category",
      "distinct": 4,
      "nulls": 0,
+     "filled": 8,
      "examples": [
       "north",
       "west",
@@ -43,7 +45,10 @@
     }
    ],
    "date_columns": [],
+   "composite_dates": [],
    "number_columns": [],
+   "measure_columns": [],
+   "id_columns": [],
    "word_columns": [
     "city",
     "region"
@@ -67,6 +72,7 @@
      "shape": "category",
      "distinct": 5,
      "nulls": 0,
+     "filled": 10,
      "examples": [
       "spring_festival",
       "valentines_day",
@@ -84,6 +90,7 @@
      "shape": "category",
      "distinct": 5,
      "nulls": 0,
+     "filled": 10,
      "examples": [
       "春节送礼季",
       "情人节",
@@ -101,6 +108,7 @@
      "shape": "category",
      "distinct": 5,
      "nulls": 0,
+     "filled": 10,
      "examples": [
       "Spring Festival gifting",
       "Valentine's Day",
@@ -118,6 +126,7 @@
      "shape": "date",
      "distinct": 10,
      "nulls": 0,
+     "filled": 10,
      "examples": [
       "2025-01-28",
       "2025-02-10",
@@ -135,6 +144,7 @@
      "shape": "date",
      "distinct": 10,
      "nulls": 0,
+     "filled": 10,
      "examples": [
       "2025-02-04",
       "2025-02-14",
@@ -148,7 +158,10 @@
     "start",
     "end"
    ],
+   "composite_dates": [],
    "number_columns": [],
+   "measure_columns": [],
+   "id_columns": [],
    "word_columns": [
     "name",
     "label_zh",
@@ -175,6 +188,7 @@
      "shape": "date",
      "distinct": 663,
      "nulls": 0,
+     "filled": 663,
      "examples": [
       "2025-01-01",
       "2025-01-02",
@@ -192,6 +206,7 @@
      "shape": "number",
      "distinct": 659,
      "nulls": 0,
+     "filled": 663,
      "examples": [
       "116203.0",
       "117974.0",
@@ -206,9 +221,14 @@
    "date_columns": [
     "date"
    ],
+   "composite_dates": [],
    "number_columns": [
     "market_sales"
    ],
+   "measure_columns": [
+    "market_sales"
+   ],
+   "id_columns": [],
    "word_columns": [],
    "keys": [],
    "per_date": [],
@@ -228,6 +248,7 @@
      "shape": "unique",
      "distinct": 226814,
      "nulls": 0,
+     "filled": 226814,
      "examples": [
       "BB0000001",
       "BB0000002",
@@ -245,6 +266,7 @@
      "shape": "date",
      "distinct": 663,
      "nulls": 0,
+     "filled": 226814,
      "examples": [
       "2025-01-01",
       "2025-01-02",
@@ -262,6 +284,7 @@
      "shape": "category",
      "distinct": 12,
      "nulls": 0,
+     "filled": 226814,
      "examples": [
       "BQ-ROSE",
       "BQ-MIX",
@@ -279,6 +302,7 @@
      "shape": "category",
      "distinct": 3,
      "nulls": 0,
+     "filled": 226814,
      "examples": [
       "app",
       "marketplace",
@@ -294,6 +318,7 @@
      "shape": "category",
      "distinct": 8,
      "nulls": 0,
+     "filled": 226814,
      "examples": [
       "Beijing",
       "Tianjin",
@@ -311,6 +336,7 @@
      "shape": "category",
      "distinct": 3,
      "nulls": 0,
+     "filled": 226814,
      "examples": [
       "same_day",
       "scheduled",
@@ -326,6 +352,7 @@
      "shape": "category",
      "distinct": 2,
      "nulls": 0,
+     "filled": 226814,
      "examples": [
       "new",
       "returning"
@@ -340,6 +367,7 @@
      "shape": "number",
      "distinct": 36392,
      "nulls": 0,
+     "filled": 226814,
      "examples": [
       "332.54",
       "185.35",
@@ -359,6 +387,7 @@
      "shape": "number",
      "distinct": 21022,
      "nulls": 0,
+     "filled": 226814,
      "examples": [
       "182.9",
       "101.94",
@@ -373,10 +402,16 @@
    "date_columns": [
     "order_date"
    ],
+   "composite_dates": [],
    "number_columns": [
     "revenue",
     "gross_profit"
    ],
+   "measure_columns": [
+    "revenue",
+    "gross_profit"
+   ],
+   "id_columns": [],
    "word_columns": [
     "order_id",
     "sku",
@@ -402,6 +437,7 @@
      "shape": "date",
      "distinct": 1,
      "nulls": 0,
+     "filled": 1,
      "examples": [
       "2026-06-01"
      ]
@@ -415,6 +451,7 @@
      "shape": "date",
      "distinct": 1,
      "nulls": 0,
+     "filled": 1,
      "examples": [
       "2026-06-30"
      ]
@@ -428,6 +465,7 @@
      "shape": "unique",
      "distinct": 1,
      "nulls": 0,
+     "filled": 1,
      "examples": [
       "gift_box"
      ]
@@ -441,6 +479,7 @@
      "shape": "number",
      "distinct": 1,
      "nulls": 0,
+     "filled": 1,
      "examples": [
       "0.15"
      ],
@@ -456,6 +495,7 @@
      "shape": "unique",
      "distinct": 1,
      "nulls": 0,
+     "filled": 1,
      "examples": [
       "供应商涨价，礼盒售价上调 15%"
      ]
@@ -465,9 +505,12 @@
     "start",
     "end"
    ],
+   "composite_dates": [],
    "number_columns": [
     "change"
    ],
+   "measure_columns": [],
+   "id_columns": [],
    "word_columns": [
     "category",
     "reason"
@@ -493,6 +536,7 @@
      "shape": "unique",
      "distinct": 12,
      "nulls": 0,
+     "filled": 12,
      "examples": [
       "BQ-ROSE",
       "BQ-LILY",
@@ -510,6 +554,7 @@
      "shape": "category",
      "distinct": 4,
      "nulls": 0,
+     "filled": 12,
      "examples": [
       "bouquet",
       "fruit_basket",
@@ -526,6 +571,7 @@
      "shape": "unique",
      "distinct": 12,
      "nulls": 0,
+     "filled": 12,
      "examples": [
       "红玫瑰花束",
       "百合花束",
@@ -543,6 +589,7 @@
      "shape": "number",
      "distinct": 7,
      "nulls": 0,
+     "filled": 12,
      "examples": [
       "249.0",
       "248.0",
@@ -555,9 +602,14 @@
     }
    ],
    "date_columns": [],
+   "composite_dates": [],
    "number_columns": [
     "list_price"
    ],
+   "measure_columns": [
+    "list_price"
+   ],
+   "id_columns": [],
    "word_columns": [
     "sku",
     "category",
@@ -583,6 +635,7 @@
      "shape": "date",
      "distinct": 2,
      "nulls": 0,
+     "filled": 2,
      "examples": [
       "2026-02-07",
       "2026-10-01"
@@ -597,6 +650,7 @@
      "shape": "date",
      "distinct": 2,
      "nulls": 0,
+     "filled": 2,
      "examples": [
       "2026-02-14",
       "2026-10-31"
@@ -611,6 +665,7 @@
      "shape": "unique",
      "distinct": 2,
      "nulls": 0,
+     "filled": 2,
      "examples": [
       "情人节花束主推",
       "新客买果篮送贺卡"
@@ -625,6 +680,7 @@
      "shape": "unique",
      "distinct": 2,
      "nulls": 0,
+     "filled": 2,
      "examples": [
       "bouquet",
       "fruit_basket"
@@ -639,6 +695,7 @@
      "shape": "category",
      "distinct": 1,
      "nulls": 1,
+     "filled": 1,
      "examples": [
       "new"
      ]
@@ -648,7 +705,10 @@
     "start",
     "end"
    ],
+   "composite_dates": [],
    "number_columns": [],
+   "measure_columns": [],
+   "id_columns": [],
    "word_columns": [
     "campaign",
     "category",
@@ -675,6 +735,7 @@
      "shape": "date",
      "distinct": 663,
      "nulls": 0,
+     "filled": 1989,
      "examples": [
       "2025-01-01",
       "2025-01-02",
@@ -692,6 +753,7 @@
      "shape": "category",
      "distinct": 3,
      "nulls": 0,
+     "filled": 1989,
      "examples": [
       "app",
       "marketplace",
@@ -707,6 +769,7 @@
      "shape": "number",
      "distinct": 1465,
      "nulls": 0,
+     "filled": 1989,
      "examples": [
       "2311",
       "1509",
@@ -721,7 +784,12 @@
    "date_columns": [
     "date"
    ],
+   "composite_dates": [],
    "number_columns": [
+    "visits"
+   ],
+   "measure_columns": [],
+   "id_columns": [
     "visits"
    ],
    "word_columns": [
@@ -747,6 +815,7 @@
      "shape": "date",
      "distinct": 663,
      "nulls": 0,
+     "filled": 2652,
      "examples": [
       "2025-01-01",
       "2025-01-02",
@@ -764,6 +833,7 @@
      "shape": "category",
      "distinct": 4,
      "nulls": 0,
+     "filled": 2652,
      "examples": [
       "north",
       "east",
@@ -780,6 +850,7 @@
      "shape": "number",
      "distinct": 167,
      "nulls": 0,
+     "filled": 2652,
      "examples": [
       "2.1",
       "4.8",
@@ -794,9 +865,14 @@
    "date_columns": [
     "date"
    ],
+   "composite_dates": [],
    "number_columns": [
     "rainfall_mm"
    ],
+   "measure_columns": [
+    "rainfall_mm"
+   ],
+   "id_columns": [],
    "word_columns": [
     "region"
    ],
@@ -936,6 +1012,7 @@
    "shape": "unique",
    "distinct": 226814,
    "nulls": 0,
+   "filled": 226814,
    "examples": [
     "BB0000001",
     "BB0000002",
@@ -953,6 +1030,7 @@
    "shape": "date",
    "distinct": 663,
    "nulls": 0,
+   "filled": 226814,
    "examples": [
     "2025-01-01",
     "2025-01-02",
@@ -970,6 +1048,7 @@
    "shape": "category",
    "distinct": 12,
    "nulls": 0,
+   "filled": 226814,
    "examples": [
     "BQ-ROSE",
     "BQ-MIX",
@@ -987,6 +1066,7 @@
    "shape": "category",
    "distinct": 3,
    "nulls": 0,
+   "filled": 226814,
    "examples": [
     "app",
     "marketplace",
@@ -1002,6 +1082,7 @@
    "shape": "category",
    "distinct": 8,
    "nulls": 0,
+   "filled": 226814,
    "examples": [
     "Beijing",
     "Tianjin",
@@ -1019,6 +1100,7 @@
    "shape": "category",
    "distinct": 3,
    "nulls": 0,
+   "filled": 226814,
    "examples": [
     "same_day",
     "scheduled",
@@ -1034,6 +1116,7 @@
    "shape": "category",
    "distinct": 2,
    "nulls": 0,
+   "filled": 226814,
    "examples": [
     "new",
     "returning"
@@ -1048,6 +1131,7 @@
    "shape": "number",
    "distinct": 36392,
    "nulls": 0,
+   "filled": 226814,
    "examples": [
     "332.54",
     "185.35",
@@ -1067,6 +1151,7 @@
    "shape": "number",
    "distinct": 21022,
    "nulls": 0,
+   "filled": 226814,
    "examples": [
     "182.9",
     "101.94",
@@ -1086,6 +1171,7 @@
    "shape": "category",
    "distinct": 4,
    "nulls": 0,
+   "filled": 226814,
    "examples": [
     "bouquet",
     "fruit_basket",
@@ -1102,6 +1188,7 @@
    "shape": "category",
    "distinct": 12,
    "nulls": 0,
+   "filled": 226814,
    "examples": [
     "红玫瑰花束",
     "混搭花束",
@@ -1119,6 +1206,7 @@
    "shape": "number",
    "distinct": 7,
    "nulls": 0,
+   "filled": 226814,
    "examples": [
     "249.0",
     "248.0",
@@ -1138,6 +1226,7 @@
    "shape": "category",
    "distinct": 4,
    "nulls": 0,
+   "filled": 226814,
    "examples": [
     "north",
     "east",
@@ -1689,7 +1778,8 @@
      "value": "order_date",
      "label": "订单日期"
     }
-   ]
+   ],
+   "suggested": "order_date"
   },
   {
    "id": "role:revenue",
@@ -1756,38 +1846,6 @@
    "table": "orders"
   },
   {
-   "id": "role:list_price",
-   "column": "list_price",
-   "ask": "「标价」这一列是什么？例子：249.0, 248.0, 115.0",
-   "options": [
-    {
-     "value": "amount",
-     "label": "收入金额（卖了多少钱）"
-    },
-    {
-     "value": "profit",
-     "label": "利润金额"
-    },
-    {
-     "value": "cost",
-     "label": "成本金额"
-    },
-    {
-     "value": "quantity",
-     "label": "数量（件数）"
-    },
-    {
-     "value": "visits",
-     "label": "访问量（来过的人，不管买没买）"
-    },
-    {
-     "value": "skip",
-     "label": "不是要分析的数（编号、代码、名称），忽略"
-    }
-   ],
-   "table": "orders"
-  },
-  {
    "id": "order_id",
    "ask": "哪一列是一笔订单（或一笔交易、一个订阅）的编号？",
    "options": [
@@ -1817,8 +1875,7 @@
    "ask": "这些数里，你最关心哪一个？",
    "options": [
     "revenue",
-    "gross_profit",
-    "list_price"
+    "gross_profit"
    ]
   },
   {

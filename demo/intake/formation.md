@@ -9,7 +9,7 @@ The same data as the demo shop "Bloom & Basket", split into 9 tables shaped like
 | Kind | Count |
 |---|---|
 | inferred from the data (then confirmed in a question) | 45 |
-| questions (asked / answered) | 38 / 38 |
+| questions (asked / answered) | 37 / 37 |
 | from a document, to confirm (accepted / refused) | 3 / 0 |
 | only a person can add; empty so far | 6 |
 
@@ -56,10 +56,9 @@ The same data as the demo shop "Bloom & Basket", split into 9 tables shaped like
 | `role:traffic.visits` | — | visits |
 | `role:weather.rainfall_mm` | — | skip |
 | `market_compares:weather` | none | none |
-| `date_column` | — | order_date |
+| `date_column` | order_date | order_date |
 | `role:revenue` | — | amount |
 | `role:gross_profit` | — | profit |
-| `role:list_price` | — | skip |
 | `order_id` | — | order_id |
 | `template` | — | orders |
 | `north_star` | — | gross_profit |

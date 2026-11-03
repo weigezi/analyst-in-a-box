@@ -82,6 +82,15 @@ PARAMS = {
                                         "match in the other; below that it is a coincidence of codes, not a link. " + EXAMPLE),
     "intake_link_suggest_min": _p(0.95, note="At or above this share of matching rows the suggested answer is 'yes'; below "
                                              "it 'no'. Only the suggestion: the user answers every link. " + EXAMPLE),
+    "intake_id_distinct_share": _p(0.3, note="A whole-number column whose distinct values are at least 30% of the rows reads as an "
+                                             "identifier (an order, a session, a user), not as an amount: a measure repeats "
+                                             "its values far more than that. A heuristic that only decides which tables may be "
+                                             "offered as the main one; the user still answers every column. " + EXAMPLE),
+    "intake_measure_min_distinct": _p(3, note="A numeric column with fewer than 3 distinct values is a flag or a code (0/1), not an "
+                                              "amount to add up. Same limit: it only steers the offered main table. " + EXAMPLE),
+    "intake_event_table_max_rows": _p(200, note="Two dates in order on every row make a start and an end (a campaign, a holiday) "
+                                                "only when the table is small or has no amounts; a large table with amounts is a "
+                                                "fact table that carries two dates (ordered, shipped). " + EXAMPLE),
     "intake_quote_min_chars": _p(8, note="A quote shorter than this (spaces aside) proves nothing about where a claim came "
                                          "from, so a proposal citing it is refused. " + EXAMPLE),
 }
