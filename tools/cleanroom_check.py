@@ -5,6 +5,8 @@
 --denylist  a text file, one term per line (table names, people, internal links, company names). It is kept
             outside this repository on purpose: a list of internal names inside the repo would itself leak them.
 --compare   a folder of the earlier project; every line of 40 characters or more that appears in both is reported.
+It also looks for absolute paths into a person's home folder (/Users/<name>/, /home/<name>/, or a Windows Users folder) in every
+text file, with no list needed: they give away a user name and a folder layout.
 Exit code 1 if anything is found.
 """
 
@@ -20,6 +22,8 @@ ROOT = TOOLS.parent
 TEXT = {".py", ".md", ".yaml", ".yml", ".j2", ".html", ".js", ".mjs", ".css", ".sh", ".txt", ".sql", ".toml", ".json", ".csv", ".lock"}
 SKIP_DIRS = {".git", ".venv", "node_modules", "dist", "raw", "__pycache__", ".pytest_cache", "runs", "outputs", "_backup"}
 MIN_LEN = 40
+# A home-folder path names the person and the machine. Placeholders such as /Users/you/ or <name> are not matched.
+LOCAL_PATH = re.compile(r"(?:/Users/|/home/)(?!you\b|name\b|user\b|runner\b|<)[A-Za-z0-9._-]+/|[A-Za-z]:\\Users\\(?!you\b|name\b|user\b|<)[A-Za-z0-9._-]+")
 # Third-party licence texts must be shipped word for word, so any other project carrying the same licence
 # shares their lines. They are still scanned for denylist terms, only left out of the overlap comparison.
 LICENCE_TEXTS = {"ofl.txt", "license", "license.txt", "licence", "notice"}
@@ -46,12 +50,15 @@ def main(argv=None):
     a = ap.parse_args(argv)
     terms = [t.strip() for t in Path(a.denylist).read_text(encoding="utf-8").splitlines() if t.strip() and not t.startswith("#")]
     pattern = re.compile("|".join(re.escape(t) for t in terms), re.IGNORECASE) if terms else None
-    hits, overlap = [], []
+    hits, overlap, local_paths = [], [], []
     ours = list(files(ROOT))
     for p in ours:
         for i, line in enumerate(p.read_text(encoding="utf-8", errors="ignore").splitlines(), 1):
             if pattern and pattern.search(line):
                 hits.append(f"{p.relative_to(ROOT)}:{i}: {pattern.search(line).group(0)}")
+            m = LOCAL_PATH.search(line)
+            if m and p.name != "cleanroom_check.py":
+                local_paths.append(f"{p.relative_to(ROOT)}:{i}: {m.group(0)}")
     if a.compare:
         theirs = set()
         for p in files(Path(a.compare)):
@@ -71,6 +78,9 @@ def main(argv=None):
     print(f"denylist hits: {len(hits)}")
     for h in hits:
         print("  " + h)
+    print(f"local home-folder paths: {len(local_paths)}")
+    for h in local_paths:
+        print("  " + h)
     if a.compare:
         if STOCK_LINES:
             print("left out of the overlap comparison (standard idioms, listed in STOCK_LINES): "
@@ -81,7 +91,7 @@ def main(argv=None):
         print(f"lines of {MIN_LEN}+ characters shared with {a.compare}: {len(overlap)}")
         for o in overlap:
             print("  " + o)
-    return 1 if hits or overlap else 0
+    return 1 if hits or overlap or local_paths else 0
 
 
 if __name__ == "__main__":
