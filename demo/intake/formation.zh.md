@@ -9,7 +9,7 @@
 | 类 | 数量 |
 |---|---|
 | 机器从数据推出（再经选择题确认） | 45 |
-| 选择题（问了 / 答了） | 37 / 37 |
+| 选择题（问了 / 答了） | 46 / 37 |
 | 从文档抽出、待确认（收下 / 拒收） | 3 / 0 |
 | 只有人能补、目前空着 | 6 |
 
@@ -67,6 +67,15 @@
 | `belongs:city>region` | — | yes |
 | `belongs:name>category` | — | no |
 | `single_point_share` | — | 0.5 |
+| `reversal_column` | none | — |
+| `reversal_values:sku` | — | — |
+| `reversal_values:channel` | — | — |
+| `reversal_values:city` | — | — |
+| `reversal_values:delivery` | — | — |
+| `reversal_values:customer_type` | — | — |
+| `reversal_values:category` | — | — |
+| `reversal_values:name` | — | — |
+| `reversal_values:region` | — | — |
 
 靠用户指认含义才有的指标（金额、毛利、访问量、订单数）：revenue, gross_profit, visits, id_count
 

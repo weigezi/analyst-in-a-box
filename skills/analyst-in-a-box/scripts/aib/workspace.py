@@ -119,6 +119,8 @@ class Workspace:
             d = self.sources.frame(m["source"])
             for col, val in fcols.items():
                 d = d[d[col].isin(val if isinstance(val, (list, tuple, set)) else [val])]
+            if m.get("where_filled"):
+                d = d[d[m["where_filled"]].notna()]
             g = d.groupby([m["date"], *cols], dropna=True)
             s = g.size() if m["agg"] != "sum" else g[m["column"]].sum()
             s = s.astype(float)
@@ -143,7 +145,7 @@ class Workspace:
         if self.exclude_days:
             import pandas as pd
             df = df[~df[m["date"]].isin([pd.Timestamp(x) for x in self.exclude_days])]
-        return aggregate(df, m["agg"], m.get("column"), m["date"], w, cols, fcols)
+        return aggregate(df, m["agg"], m.get("column"), m["date"], w, cols, fcols, m.get("where_filled"))
 
     def excluding(self, days):
         """Context manager: leave these days out of every window until the block ends."""

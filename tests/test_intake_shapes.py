@@ -413,3 +413,107 @@ def test_the_amount_question_says_how_many_cells_are_empty(tmp_path):
     q = {x["id"]: x for x in d["questions"]}["role:amount"]
     assert q["empty_share"] == pytest.approx(0.30, abs=0.01)
     assert "30%" in q["ask"] and "empty" in q["ask"]
+
+
+# ---------- 7. blanks, reversals and duplicates (decided with the owner, 2026-11-03) ----------
+# A blank amount means the order has no amount: it is left out of the order total used for the average per order,
+# so the average is amount over the orders that HAVE an amount. A column that marks cancelled or refunded rows is
+# asked about at intake; the rows the user names are left out when the table is loaded, so every number, every check
+# and every group size sees the same table.
+
+def _blank_amount_table(rng, n=400, share=0.3):
+    amt = rng.normal(60, 9, n).round(2)
+    amt[rng.random(n) < share] = np.nan
+    return pd.DataFrame({"day": pd.date_range("2025-01-01", periods=n), "order_id": np.arange(n), "amount": amt})
+
+
+def test_the_average_per_order_ignores_orders_that_have_no_amount(tmp_path):
+    rng = _rng()
+    df = _blank_amount_table(rng)
+    ws = tmp_path / "ws"
+    df.to_csv(tmp_path / "b.csv", index=False)
+    intake.init([tmp_path / "b.csv"], ws, lang="en")
+    intake.confirm(ws, {"date_column": "day", "role:amount": "amount", "order_id": "order_id", "dimensions": []})
+    W = Workspace(ws)
+    w = (df.day.min().date(), df.day.max().date())
+    assert W.total("per_id", w) == pytest.approx(df.amount.dropna().mean(), rel=1e-9)      # was 0.7x of it
+    assert W.total("id_count", w) == df.amount.notna().sum()
+
+
+def _status_table(rng, n=300):
+    return pd.DataFrame({"day": pd.date_range("2025-01-01", periods=n), "order_id": np.arange(n),
+                         "amount": rng.normal(60, 9, n).round(2),
+                         "state": rng.choice(["paid", "cancelled", "refunded"], n, p=[0.8, 0.1, 0.1])})
+
+
+def test_a_column_that_could_mark_reversals_is_asked_about_with_its_values(tmp_path):
+    d = _init(tmp_path, {"sales": _status_table(_rng())})
+    q = {x["id"]: x for x in d["questions"]}
+    assert "reversal_column" in q
+    opts = [o["value"] if isinstance(o, dict) else o for o in q["reversal_column"]["options"]]
+    assert "state" in opts and "none" in opts
+    v = q["reversal_values:state"]
+    assert sorted(o["value"] if isinstance(o, dict) else o for o in v["options"]) == ["cancelled", "paid", "refunded"]
+    assert v.get("multi") is True
+
+
+def test_rows_the_user_marks_as_reversed_are_left_out_everywhere(tmp_path):
+    rng = _rng()
+    df = _status_table(rng)
+    ws = tmp_path / "ws"
+    df.to_csv(tmp_path / "s.csv", index=False)
+    intake.init([tmp_path / "s.csv"], ws, lang="en")
+    intake.confirm(ws, {"date_column": "day", "role:amount": "amount", "order_id": "order_id", "dimensions": ["state"],
+                        "reversal_column": "state", "reversal_values:state": ["cancelled", "refunded"]})
+    W = Workspace(ws)
+    kept = df[df.state == "paid"]
+    w = (df.day.min().date(), df.day.max().date())
+    assert W.total("amount", w) == pytest.approx(kept.amount.sum())
+    assert W.total("id_count", w) == len(kept)
+    assert len(W.sources.frame("s")) == len(kept)           # the same table for the checks and the group sizes
+
+
+def test_leaving_the_reversal_question_unanswered_changes_nothing(tmp_path):
+    rng = _rng()
+    df = _status_table(rng)
+    ws = tmp_path / "ws"
+    df.to_csv(tmp_path / "s.csv", index=False)
+    intake.init([tmp_path / "s.csv"], ws, lang="en")
+    intake.confirm(ws, {"date_column": "day", "role:amount": "amount", "order_id": "order_id", "dimensions": []})
+    assert len(Workspace(ws).sources.frame("s")) == len(df)
+
+
+def test_exact_duplicate_rows_in_a_table_without_a_key_are_named_in_the_draft(tmp_path):
+    rng = _rng()
+    base = pd.DataFrame({"day": pd.date_range("2025-01-01", periods=100).repeat(2)[:150],
+                         "amount": rng.normal(60, 9, 150).round(2), "grp": rng.choice(["a", "b"], 150)})
+    dup = pd.concat([base, base.iloc[:20]], ignore_index=True)       # 20 exact repeats
+    d = _init(tmp_path, {"lines": dup})
+    t = d["tables"]["lines"]
+    assert t["duplicate_rows"] == 20
+    q = {x["id"]: x for x in d["questions"]}["duplicate_rows"]     # asked even though no column could identify a row
+    assert "20" in q["ask"] and [o["value"] for o in q["options"]] == ["keep", "drop"] and q["suggested"] == "keep"
+
+
+def test_dropping_exact_copies_is_applied_when_the_table_is_loaded(tmp_path):
+    rng = _rng()
+    base = pd.DataFrame({"day": pd.date_range("2025-01-01", periods=100).repeat(2)[:150],
+                         "amount": rng.normal(60, 9, 150).round(2)})
+    dup = pd.concat([base, base.iloc[:20]], ignore_index=True)
+    dup.to_csv(tmp_path / "l.csv", index=False)
+    for choice, rows in (("drop", 150), ("keep", 170)):
+        ws = tmp_path / f"ws_{choice}"
+        intake.init([tmp_path / "l.csv"], ws, lang="en")
+        intake.confirm(ws, {"date_column": "day", "role:amount": "amount", "order_id": "none", "dimensions": [],
+                            "duplicate_rows": choice})
+        assert len(Workspace(ws).sources.frame("l")) == rows
+
+
+def test_a_zero_one_flag_column_is_offered_as_a_reversal_marker(tmp_path):
+    rng = _rng()
+    df = pd.DataFrame({"day": pd.date_range("2025-01-01", periods=300), "order_id": np.arange(300),
+                       "amount": rng.normal(60, 9, 300).round(2), "is_cancelled": rng.integers(0, 2, 300)})
+    d = _init(tmp_path, {"sales": df})
+    q = {x["id"]: x for x in d["questions"]}
+    assert "is_cancelled" in [o if isinstance(o, str) else o["value"] for o in q["reversal_column"]["options"]]
+    assert sorted(o["value"] for o in q["reversal_values:is_cancelled"]["options"]) == ["0", "1"]

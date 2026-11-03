@@ -87,6 +87,7 @@ def _table_facts(name, path, df):
     facts = {"name": name, "path": str(path), "rows": len(df), "profile": prof, "date_columns": dates,
              "composite_dates": comps, "number_columns": nums, "measure_columns": draft.measure_columns(df, nums),
              "id_columns": [c for c in nums if draft.is_identifier(df[c])],
+             "duplicate_rows": int(df.duplicated().sum()),
              "word_columns": words, "keys": keys}
     if len(dates) >= 2:
         a, b = dates[:2]
@@ -311,6 +312,30 @@ def init(paths, workspace, lang="zh", main=None) -> dict:
     attributes = {c for j in joins for c in j["columns"] if c in joined.columns}
     row_keys = {c for c in ids if joined[c].is_unique and not joined[c].isna().any()}   # asked as "which column identifies one record"
     main_qs = draft.questions(prof, fds, lang, quiet, exclude=parts | row_keys | attributes, id_columns=ids - row_keys | row_keys)
+    dups = tables[main]["duplicate_rows"]
+    if dups and not row_keys:
+        # asked on its own: a table with copies and no key often has no identifier column to hang the warning on
+        main_qs.append(_q("duplicate_rows",
+                          f"这张表有 {dups:,} 行与别的行完全相同，而且没有一列能唯一标识一行，没法判断它们是重复录入还是真的发生了两次。保留还是去掉这些重复的行？",
+                          f"{dups:,} rows are exact copies of other rows and no column identifies one row, so there is no telling "
+                          "whether they are double entries or two real events. Keep the copies or drop them?",
+                          [{"value": "keep", "label": "保留（当作真的发生了两次）" if zh else "Keep (two real events)"},
+                           {"value": "drop", "label": "去掉（当作重复录入）" if zh else "Drop (double entries)"}], lang, suggested="keep"))
+    # a column of a few words could say that a row was cancelled or refunded: ask, never assume
+    # a few words, or a two-valued number (0/1): either can mark a reversed row. Asked, never assumed.
+    flag_cols = [p["column"] for p in prof if p["column"] in joined.columns and p["column"] not in parts
+                 and ((p["shape"] == "category" and 2 <= p["distinct"] <= 12) or (p["shape"] == "number" and p["distinct"] == 2))]
+    if flag_cols:
+        main_qs.append(_q("reversal_column", "有没有一列说明这一行是被取消、退款或作废的？（选了的话，下一步选哪些取值算。）",
+                          "Is there a column that says a row was cancelled, refunded or voided? (If so, the next question lists its values.)",
+                          [*flag_cols, "none"], lang, suggested="none"))
+        for c in flag_cols:
+            vals = [str(v) for v in joined[c].dropna().unique()]
+            q = _q(f"reversal_values:{c}", f"「{c}」的哪些取值表示这一行是被取消、退款或作废的？这些行会从所有数字里去掉。",
+                   f"Which values of \"{c}\" mean the row was cancelled, refunded or voided? Those rows are left out of every number.",
+                   [{"value": v, "label": v} for v in sorted(vals)], lang)
+            q["multi"] = True
+            main_qs.append(q)
     for q in main_qs:
         if q["id"] == "date_column":
             # composite dates are offered as composite:<name>; the single derived column is not offered twice
@@ -386,6 +411,14 @@ def confirm(workspace, answers: dict, today: dt.date | None = None) -> dict:
     main_src = _spec(mt, ws)
     if derive:
         main_src["derive_dates"] = derive
+    if answers.get("duplicate_rows") == "drop":
+        main_src["drop_duplicates"] = True
+        joined = joined.drop_duplicates()
+    rc = answers.get("reversal_column")
+    rv = answers.get(f"reversal_values:{rc}") if rc and rc != "none" else None
+    if rv:
+        main_src["exclude_rows"] = {rc: list(rv)}
+        joined = joined[~joined[rc].astype(str).isin([str(v) for v in rv])]
     if joins:
         sources[f"{main}_rows"] = main_src
         for j in joins:

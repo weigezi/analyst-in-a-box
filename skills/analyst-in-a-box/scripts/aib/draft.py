@@ -375,6 +375,11 @@ def build_metrics(specs: list, id_spec: dict | None, template: str, said: dict, 
         d = list(id_spec["dimensions"])
         measures["m_count"] = {"source": id_spec["source"], "agg": "count_distinct", "column": id_spec["column"],
                                "date": id_spec["date"], "dimensions": d, "additive_over": d}
+        amount_col = next((s["column"] for s in specs if s.get("role") == "amount"), None)
+        if amount_col:
+            # a blank amount means the order has no amount: it is not an order of value, so it leaves the order total
+            # that the average is taken over (amount / orders with an amount)
+            measures["m_count"]["where_filled"] = amount_col
         metrics["id_count"] = {"label": names["id_count"], "measure": "m_count", "unit": "count", "source": said, "status": "confirmed"}
         by_role["id_column"] = "id_count"
     for f in tpl["formulas"]:

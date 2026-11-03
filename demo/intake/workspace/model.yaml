@@ -53,6 +53,7 @@ measures:
     - delivery
     - customer_type
     additive_over: *id001
+    where_filled: revenue
 metrics:
   revenue:
     label: *id002

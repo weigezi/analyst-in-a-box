@@ -9,7 +9,7 @@ The same data as the demo shop "Bloom & Basket", split into 9 tables shaped like
 | Kind | Count |
 |---|---|
 | inferred from the data (then confirmed in a question) | 45 |
-| questions (asked / answered) | 37 / 37 |
+| questions (asked / answered) | 46 / 37 |
 | from a document, to confirm (accepted / refused) | 3 / 0 |
 | only a person can add; empty so far | 6 |
 
@@ -67,6 +67,15 @@ The same data as the demo shop "Bloom & Basket", split into 9 tables shaped like
 | `belongs:city>region` | — | yes |
 | `belongs:name>category` | — | no |
 | `single_point_share` | — | 0.5 |
+| `reversal_column` | none | — |
+| `reversal_values:sku` | — | — |
+| `reversal_values:channel` | — | — |
+| `reversal_values:city` | — | — |
+| `reversal_values:delivery` | — | — |
+| `reversal_values:customer_type` | — | — |
+| `reversal_values:category` | — | — |
+| `reversal_values:name` | — | — |
+| `reversal_values:region` | — | — |
 
 Metrics that exist because the user named a column's meaning (amount, profit, visits, orders): revenue, gross_profit, visits, id_count
 

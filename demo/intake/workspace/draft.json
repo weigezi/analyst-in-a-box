@@ -49,6 +49,7 @@
    "number_columns": [],
    "measure_columns": [],
    "id_columns": [],
+   "duplicate_rows": 0,
    "word_columns": [
     "city",
     "region"
@@ -162,6 +163,7 @@
    "number_columns": [],
    "measure_columns": [],
    "id_columns": [],
+   "duplicate_rows": 0,
    "word_columns": [
     "name",
     "label_zh",
@@ -229,6 +231,7 @@
     "market_sales"
    ],
    "id_columns": [],
+   "duplicate_rows": 0,
    "word_columns": [],
    "keys": [],
    "per_date": [],
@@ -412,6 +415,7 @@
     "gross_profit"
    ],
    "id_columns": [],
+   "duplicate_rows": 0,
    "word_columns": [
     "order_id",
     "sku",
@@ -511,6 +515,7 @@
    ],
    "measure_columns": [],
    "id_columns": [],
+   "duplicate_rows": 0,
    "word_columns": [
     "category",
     "reason"
@@ -610,6 +615,7 @@
     "list_price"
    ],
    "id_columns": [],
+   "duplicate_rows": 0,
    "word_columns": [
     "sku",
     "category",
@@ -709,6 +715,7 @@
    "number_columns": [],
    "measure_columns": [],
    "id_columns": [],
+   "duplicate_rows": 0,
    "word_columns": [
     "campaign",
     "category",
@@ -792,6 +799,7 @@
    "id_columns": [
     "visits"
    ],
+   "duplicate_rows": 0,
    "word_columns": [
     "channel"
    ],
@@ -873,6 +881,7 @@
     "rainfall_mm"
    ],
    "id_columns": [],
+   "duplicate_rows": 0,
    "word_columns": [
     "region"
    ],
@@ -1927,6 +1936,270 @@
     0.7,
     "own value"
    ]
+  },
+  {
+   "id": "reversal_column",
+   "ask": "有没有一列说明这一行是被取消、退款或作废的？（选了的话，下一步选哪些取值算。）",
+   "options": [
+    "sku",
+    "channel",
+    "city",
+    "delivery",
+    "customer_type",
+    "category",
+    "name",
+    "region",
+    "none"
+   ],
+   "suggested": "none"
+  },
+  {
+   "id": "reversal_values:sku",
+   "ask": "「sku」的哪些取值表示这一行是被取消、退款或作废的？这些行会从所有数字里去掉。",
+   "options": [
+    {
+     "value": "BQ-LILY",
+     "label": "BQ-LILY"
+    },
+    {
+     "value": "BQ-MIX",
+     "label": "BQ-MIX"
+    },
+    {
+     "value": "BQ-ROSE",
+     "label": "BQ-ROSE"
+    },
+    {
+     "value": "FB-DELUXE",
+     "label": "FB-DELUXE"
+    },
+    {
+     "value": "FB-FAMILY",
+     "label": "FB-FAMILY"
+    },
+    {
+     "value": "FB-SMALL",
+     "label": "FB-SMALL"
+    },
+    {
+     "value": "GB-PREM",
+     "label": "GB-PREM"
+    },
+    {
+     "value": "GB-SWEET",
+     "label": "GB-SWEET"
+    },
+    {
+     "value": "GB-TEA",
+     "label": "GB-TEA"
+    },
+    {
+     "value": "PL-MONST",
+     "label": "PL-MONST"
+    },
+    {
+     "value": "PL-ORCH",
+     "label": "PL-ORCH"
+    },
+    {
+     "value": "PL-SUCC",
+     "label": "PL-SUCC"
+    }
+   ],
+   "multi": true
+  },
+  {
+   "id": "reversal_values:channel",
+   "ask": "「channel」的哪些取值表示这一行是被取消、退款或作废的？这些行会从所有数字里去掉。",
+   "options": [
+    {
+     "value": "app",
+     "label": "app"
+    },
+    {
+     "value": "marketplace",
+     "label": "marketplace"
+    },
+    {
+     "value": "web",
+     "label": "web"
+    }
+   ],
+   "multi": true
+  },
+  {
+   "id": "reversal_values:city",
+   "ask": "「city」的哪些取值表示这一行是被取消、退款或作废的？这些行会从所有数字里去掉。",
+   "options": [
+    {
+     "value": "Beijing",
+     "label": "Beijing"
+    },
+    {
+     "value": "Chengdu",
+     "label": "Chengdu"
+    },
+    {
+     "value": "Chongqing",
+     "label": "Chongqing"
+    },
+    {
+     "value": "Guangzhou",
+     "label": "Guangzhou"
+    },
+    {
+     "value": "Hangzhou",
+     "label": "Hangzhou"
+    },
+    {
+     "value": "Shanghai",
+     "label": "Shanghai"
+    },
+    {
+     "value": "Shenzhen",
+     "label": "Shenzhen"
+    },
+    {
+     "value": "Tianjin",
+     "label": "Tianjin"
+    }
+   ],
+   "multi": true
+  },
+  {
+   "id": "reversal_values:delivery",
+   "ask": "「delivery」的哪些取值表示这一行是被取消、退款或作废的？这些行会从所有数字里去掉。",
+   "options": [
+    {
+     "value": "pickup",
+     "label": "pickup"
+    },
+    {
+     "value": "same_day",
+     "label": "same_day"
+    },
+    {
+     "value": "scheduled",
+     "label": "scheduled"
+    }
+   ],
+   "multi": true
+  },
+  {
+   "id": "reversal_values:customer_type",
+   "ask": "「customer_type」的哪些取值表示这一行是被取消、退款或作废的？这些行会从所有数字里去掉。",
+   "options": [
+    {
+     "value": "new",
+     "label": "new"
+    },
+    {
+     "value": "returning",
+     "label": "returning"
+    }
+   ],
+   "multi": true
+  },
+  {
+   "id": "reversal_values:category",
+   "ask": "「category」的哪些取值表示这一行是被取消、退款或作废的？这些行会从所有数字里去掉。",
+   "options": [
+    {
+     "value": "bouquet",
+     "label": "bouquet"
+    },
+    {
+     "value": "fruit_basket",
+     "label": "fruit_basket"
+    },
+    {
+     "value": "gift_box",
+     "label": "gift_box"
+    },
+    {
+     "value": "plant",
+     "label": "plant"
+    }
+   ],
+   "multi": true
+  },
+  {
+   "id": "reversal_values:name",
+   "ask": "「name」的哪些取值表示这一行是被取消、退款或作废的？这些行会从所有数字里去掉。",
+   "options": [
+    {
+     "value": "多肉组合",
+     "label": "多肉组合"
+    },
+    {
+     "value": "家庭果篮",
+     "label": "家庭果篮"
+    },
+    {
+     "value": "小果篮",
+     "label": "小果篮"
+    },
+    {
+     "value": "混搭花束",
+     "label": "混搭花束"
+    },
+    {
+     "value": "百合花束",
+     "label": "百合花束"
+    },
+    {
+     "value": "精选果篮",
+     "label": "精选果篮"
+    },
+    {
+     "value": "糕点礼盒",
+     "label": "糕点礼盒"
+    },
+    {
+     "value": "红玫瑰花束",
+     "label": "红玫瑰花束"
+    },
+    {
+     "value": "臻选礼盒",
+     "label": "臻选礼盒"
+    },
+    {
+     "value": "茶礼盒",
+     "label": "茶礼盒"
+    },
+    {
+     "value": "蝴蝶兰",
+     "label": "蝴蝶兰"
+    },
+    {
+     "value": "龟背竹",
+     "label": "龟背竹"
+    }
+   ],
+   "multi": true
+  },
+  {
+   "id": "reversal_values:region",
+   "ask": "「region」的哪些取值表示这一行是被取消、退款或作废的？这些行会从所有数字里去掉。",
+   "options": [
+    {
+     "value": "east",
+     "label": "east"
+    },
+    {
+     "value": "north",
+     "label": "north"
+    },
+    {
+     "value": "south",
+     "label": "south"
+    },
+    {
+     "value": "west",
+     "label": "west"
+    }
+   ],
+   "multi": true
   }
  ]
 }

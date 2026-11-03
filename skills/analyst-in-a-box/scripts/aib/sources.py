@@ -31,7 +31,8 @@ MONTHS = {m: i for i, m in enumerate(["january", "february", "march", "april", "
 MONTHS.update({m[:3]: i for m, i in list(MONTHS.items())})
 
 
-def clean(df: pd.DataFrame, derive: list | None = None) -> pd.DataFrame:
+def clean(df: pd.DataFrame, derive: list | None = None, exclude_rows: dict | None = None,
+          drop_duplicates: bool = False) -> pd.DataFrame:
     """The one place a table is tidied, for intake and for every later run: header cells lose their outer spaces,
     a text column of amounts such as "$1,025.00 " becomes numbers, and the dates the workspace derived from
     several columns (see `derive_dates`) are added. Columns that are not clearly amounts are left alone."""
@@ -49,7 +50,12 @@ def clean(df: pd.DataFrame, derive: list | None = None) -> pd.DataFrame:
                                   errors="coerce")
     for d in derive or []:
         df[d["name"]] = derive_dates(df, d)
-    return df
+    # Cancelled, refunded or otherwise reversed rows, as named by the user at intake ({column: [values]}). They are
+    # dropped here, once, so every number, every quality check and every group size sees the same table.
+    for col, values in (exclude_rows or {}).items():
+        if col in df.columns:
+            df = df[~df[col].astype(str).isin([str(v) for v in values])]
+    return df.drop_duplicates() if drop_duplicates else df
 
 
 def derive_dates(df: pd.DataFrame, spec: dict) -> pd.Series:
@@ -74,13 +80,15 @@ def derive_dates(df: pd.DataFrame, spec: dict) -> pd.Series:
 @loader("csv")
 def _csv(spec, root):
     opts = {**READ_AS_TEXT, **spec.get("options", {})}
-    return clean(pd.read_csv(root / spec["path"], **opts), spec.get("derive_dates"))
+    return clean(pd.read_csv(root / spec["path"], **opts), spec.get("derive_dates"), spec.get("exclude_rows"),
+                 spec.get("drop_duplicates", False))
 
 
 @loader("excel")
 def _excel(spec, root):
     opts = {**READ_AS_TEXT, **spec.get("options", {})}
-    return clean(pd.read_excel(root / spec["path"], sheet_name=spec.get("sheet", 0), **opts), spec.get("derive_dates"))
+    return clean(pd.read_excel(root / spec["path"], sheet_name=spec.get("sheet", 0), **opts), spec.get("derive_dates"),
+                 spec.get("exclude_rows"), spec.get("drop_duplicates", False))
 
 
 @loader("sqlite")
@@ -161,10 +169,13 @@ AGGS = {"sum", "count", "count_distinct", "mean", "min", "max"}
 
 
 def aggregate(df: pd.DataFrame, agg: str, column: str | None, date_col: str,
-              window: tuple, by: list | None = None, filters: dict | None = None) -> pd.Series | float:
+              window: tuple, by: list | None = None, filters: dict | None = None,
+              where_filled: str | None = None) -> pd.Series | float:
     """Aggregate one measure over a date window [start, end] inclusive, optionally grouped."""
     start, end = pd.Timestamp(window[0]), pd.Timestamp(window[1])
     d = df[(df[date_col] >= start) & (df[date_col] <= end)]
+    if where_filled:
+        d = d[d[where_filled].notna()]
     for col, val in (filters or {}).items():
         d = d[d[col].isin(val if isinstance(val, (list, tuple, set)) else [val])]
     by = list(by or [])
