@@ -149,7 +149,7 @@ Public datasets have no answer key, so they only prove "it loads and it runs". T
 ## 12. Writing rules
 
 - Every document exists in Chinese and English, section for section.
-- No jargon such as "ontology" in user-facing text; plain words instead.
+- No jargon such as "ontology" in user-facing text; plain words instead. One exception: the GitHub topic list keeps `ontology`, because it is only there to be found by search and appears in no page text (decided 2026-11-03; the `kpi` and `duckdb` topics were left out on purpose).
 - Every number has a source; facts, estimates and guesses are written apart.
 - Ideas are borrowed from an earlier internal project; code and text are written from scratch, and no business content is carried over.
 

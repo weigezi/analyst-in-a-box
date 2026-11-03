@@ -1,7 +1,7 @@
 [project]
 name = "analyst-in-a-box"
 version = "0.2.1"
-description = "A skill that explains why a business number moved, and who should act next."
+description = "Turn the few tables you have into an AI analyst that answers questions, in one go."
 requires-python = ">=3.11"
 dependencies = [
     "duckdb>=2.0.0",
