@@ -2,7 +2,7 @@
 name: analyst-in-a-box
 description: Explains why a business number moved (revenue, GMV, orders, average order value, margin, conversion, any KPI) and who should act next, the way a senior business analyst would. Use it whenever someone asks why a metric rose or fell, what drove a change, which channel/region/product is responsible, why one segment grew faster than another, or why growth this period differs from last period; also when they share sales or order data (CSV, Excel, SQLite, DuckDB) and want to understand it, build a metric tree, or set up recurring performance analysis. Works in Chinese too (为什么跌了, 为什么涨了, 异动归因, 贡献度, 拆解, 增速差). Use it even if the user never says "attribution".
 license: Apache-2.0 (see LICENSE)
-compatibility: Python 3.10+ with pandas, pyyaml and openpyxl (duckdb optional). Runs locally; data never leaves the machine.
+compatibility: Python 3.10+ with pandas, pyyaml and openpyxl (duckdb optional). The scripts run on your machine and make no network calls; your AI tool reads what they print.
 metadata:
   version: 0.2.1
 ---

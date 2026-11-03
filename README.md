@@ -1,6 +1,6 @@
 # analyst-in-a-box
 
-[中文](README.zh.md)
+[中文](README.zh.md) · [Live demo](https://weigezi.github.io/analyst-in-a-box/en/) · [Install](#install) · [Trial guide](docs/trial.en.md)
 
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![ci](https://github.com/weigezi/analyst-in-a-box/actions/workflows/ci.yml/badge.svg)](https://github.com/weigezi/analyst-in-a-box/actions/workflows/ci.yml)
@@ -14,9 +14,13 @@ Ask why a number moved. Get the cause, who should act, and a breakdown that adds
 
 **12 published attribution methods &nbsp;·&nbsp; 12 checks before a report goes out &nbsp;·&nbsp; 30 of 30 planted causes found on shops it was never tuned on &nbsp;·&nbsp; 178 tests**
 
+<a id="install"></a>
+
 ```bash
 npx skills add weigezi/analyst-in-a-box
 ```
+
+Needs an AI tool that loads Agent Skills and can run a terminal, and Python 3.10 or later (it installs `pandas`, `pyyaml` and `openpyxl` if they are missing). If your default `python3` is older (macOS ships 3.9), ask the tool to run the scripts with `uv run --python 3.10 --with-requirements scripts/requirements.txt python scripts/aib_cli.py ...`. Running this repository's tests and building the demo site need Python 3.11 or later.
 
 Then ask your AI tool:
 
@@ -83,6 +87,7 @@ All of this was measured on generated data or one public dataset, not on a real 
 
 - Questions that work on the demo shop: why revenue fell; why the east region fell more than the rest; why order value dropped; whether June grew by selling more or charging more; why the app grew slower than the web.
 - Orders, products, traffic and the like: put them in one folder, with a weekly report if you have one.
+- No data of your own? Clone the repository (`git clone --depth 1 https://github.com/weigezi/analyst-in-a-box`), then ask your AI tool: "Here is `demo/public/data/invoices.csv.gz`, a UK online retailer's invoices from 2010 to 2011 (UCI Online Retail, CC BY 4.0). Which week looks unusual, and why?" This data has no answer key, so it shows that real data loads and gives a checked report, not that the answer is right.
 - From a terminal: `python3 skills/analyst-in-a-box/scripts/aib_cli.py init your_data.csv --workspace ./aib-workspace`
 - Build the demo site from real runs: `uv run python site/build.py`. Run the tests: `uv run --frozen pytest`
 

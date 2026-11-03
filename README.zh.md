@@ -1,6 +1,6 @@
 # analyst-in-a-box
 
-[English](README.md)
+[English](README.md) · [在线演示](https://weigezi.github.io/analyst-in-a-box/) · [安装](#安装) · [试用者说明](docs/trial.zh.md)
 
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![ci](https://github.com/weigezi/analyst-in-a-box/actions/workflows/ci.yml/badge.svg)](https://github.com/weigezi/analyst-in-a-box/actions/workflows/ci.yml)
@@ -14,9 +14,13 @@
 
 **12 种公开发表的归因方法 &nbsp;·&nbsp; 报告交付前 12 项自检 &nbsp;·&nbsp; 没调过参的店里，埋下的原因 30 个全找回 &nbsp;·&nbsp; 178 个测试**
 
+<a id="安装"></a>
+
 ```bash
 npx skills add weigezi/analyst-in-a-box
 ```
+
+需要一个能加载 Agent Skills、能用终端的 AI 工具，以及 Python 3.10 或以上（缺 `pandas`、`pyyaml`、`openpyxl` 会自己装）。如果默认的 `python3` 更旧（macOS 自带的是 3.9），让工具改用 `uv run --python 3.10 --with-requirements scripts/requirements.txt python scripts/aib_cli.py ...` 来跑脚本。跑这个仓库的测试、构建演示站需要 Python 3.11 或以上。
 
 然后问你的 AI 工具：
 
@@ -83,6 +87,7 @@ npx skills add weigezi/analyst-in-a-box
 
 - 演示店上能问的：为什么营收跌了；为什么华东比其他地区跌得多；为什么客单价降了；6 月是卖得多了还是卖得贵了；App 为什么比网页长得慢。
 - 订单、商品、流量这类多张表：放进同一个文件夹，有周报的话一起给。
+- 手上没有数据？克隆仓库（`git clone --depth 1 https://github.com/weigezi/analyst-in-a-box`），然后对你的 AI 工具说：「这是 `demo/public/data/invoices.csv.gz`，一家英国网店 2010 到 2011 年的发票（UCI Online Retail，CC BY 4.0）。哪一周看起来不正常，为什么？」这份数据没有标准答案，它只能说明真实数据接得进、能出一份通过自检的报告，不能说明答案对不对。
 - 在终端里用：`python3 skills/analyst-in-a-box/scripts/aib_cli.py init 你的数据.csv --workspace ./aib-workspace`
 - 用真实运行结果构建演示站：`uv run python site/build.py`。跑测试：`uv run --frozen pytest`
 

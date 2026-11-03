@@ -10,7 +10,7 @@ data, so your verdict is the real test. It takes about an hour on the first day 
 - An AI tool that loads Agent Skills (a folder with a `SKILL.md`), with a terminal it can use.
 - Python 3.10 or later; the tool will install `pandas`, `pyyaml` and `openpyxl` if they are missing.
 - One table of your own: orders, invoices or daily totals, with a date column and at least one money column.
-  CSV, Excel, SQLite or DuckDB. It never leaves your computer.
+  CSV, Excel, SQLite or DuckDB. The scripts run on your computer; your AI tool reads what they print.
 - A question you already know the answer to is ideal: a past week whose cause you know.
 
 ## 2. First session

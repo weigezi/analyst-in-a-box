@@ -28,12 +28,12 @@
   <div class="hero-try">
     <div class="install" id="install"><code><span class="p">$ </span><span class="k">npx skills add weigezi/analyst-in-a-box</span></code>
       <button class="copy" type="button" data-copy="install">{{ "复制" if zh else "Copy" }}</button></div>
-    <p class="install-note">{% if zh %}或<a href="downloads/{{ skill_package.name }}">下载 skill 包</a>（{{ skill_package.kb }} KB，版本 {{ skill_package.version }}），放进你的 AI 工具的 skill 目录。{% else %}Or <a href="downloads/{{ skill_package.name }}">download the package</a> ({{ skill_package.kb }} KB, version {{ skill_package.version }}) and put it in your AI tool's skills folder.{% endif %}</p>
+    <p class="install-note">{% if zh %}或<a href="{{ root }}downloads/{{ skill_package.name }}">下载 skill 包</a>（{{ skill_package.kb }} KB，版本 {{ skill_package.version }}），放进你的 AI 工具的 skill 目录。{% else %}Or <a href="{{ root }}downloads/{{ skill_package.name }}">download the package</a> ({{ skill_package.kb }} KB, version {{ skill_package.version }}) and put it in your AI tool's skills folder.{% endif %}</p>
     <div class="ctas">
       <a class="btn" href="intake.html">{{ "看它怎么形成" if zh else "See how it forms" }}</a>
       <a class="btn ghost" href="#evidence">{{ "先看证据" if zh else "See the evidence" }}</a>
     </div>
-    <ul class="trust"><li>Apache-2.0</li><li>{{ "数据在本机算" if zh else "Data is processed locally" }}</li><li>{{ "CSV、Excel、SQLite、DuckDB" if zh else "CSV, Excel, SQLite, DuckDB" }}</li></ul>
+    <ul class="trust"><li>Apache-2.0</li><li>{{ "脚本在你的机器上跑" if zh else "Scripts run on your machine" }}</li><li>{{ "CSV、Excel、SQLite、DuckDB" if zh else "CSV, Excel, SQLite, DuckDB" }}</li></ul>
   </div>
 
   <div class="session" aria-label="{{ '在 AI 工具里的一次会话' if zh else 'One session in an AI tool' }}">
