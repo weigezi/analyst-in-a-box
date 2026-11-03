@@ -87,7 +87,7 @@ All of this was measured on generated data or one public dataset, not on a real 
 
 - Questions that work on the demo shop: why revenue fell; why the east region fell more than the rest; why order value dropped; whether June grew by selling more or charging more; why the app grew slower than the web.
 - Orders, products, traffic and the like: put them in one folder, with a weekly report if you have one.
-- No data of your own? Clone the repository (`git clone --depth 1 https://github.com/weigezi/analyst-in-a-box`), then ask your AI tool: "Here is `demo/public/data/invoices.csv.gz`, a UK online retailer's invoices from 2010 to 2011 (UCI Online Retail, CC BY 4.0). Which week looks unusual, and why?" This data has no answer key, so it shows that real data loads and gives a checked report, not that the answer is right.
+- No data of your own? Clone the repository (`git clone --depth 1 https://github.com/weigezi/analyst-in-a-box`), then ask your AI tool: "Here is `demo/public/data/invoices.csv.gz`, a UK online retailer's invoices from 2010 to 2011 (UCI Online Retail, CC BY 4.0). Why did revenue change in the week of 3 October 2011?" This retailer's weekly revenue swings between −57% and +85%, so most weeks, including this one (+51%), come out as "within the usual range, nothing stands out". That is a result too: it tells you a change is not worth chasing. The data has no answer key, so it shows that real data loads and gives a checked report, not that the answer is right.
 - From a terminal: `python3 skills/analyst-in-a-box/scripts/aib_cli.py init your_data.csv --workspace ./aib-workspace`
 - Build the demo site from real runs: `uv run python site/build.py`. Run the tests: `uv run --frozen pytest`
 

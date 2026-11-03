@@ -87,7 +87,7 @@ npx skills add weigezi/analyst-in-a-box
 
 - 演示店上能问的：为什么营收跌了；为什么华东比其他地区跌得多；为什么客单价降了；6 月是卖得多了还是卖得贵了；App 为什么比网页长得慢。
 - 订单、商品、流量这类多张表：放进同一个文件夹，有周报的话一起给。
-- 手上没有数据？克隆仓库（`git clone --depth 1 https://github.com/weigezi/analyst-in-a-box`），然后对你的 AI 工具说：「这是 `demo/public/data/invoices.csv.gz`，一家英国网店 2010 到 2011 年的发票（UCI Online Retail，CC BY 4.0）。哪一周看起来不正常，为什么？」这份数据没有标准答案，它只能说明真实数据接得进、能出一份通过自检的报告，不能说明答案对不对。
+- 手上没有数据？克隆仓库（`git clone --depth 1 https://github.com/weigezi/analyst-in-a-box`），然后对你的 AI 工具说：「这是 `demo/public/data/invoices.csv.gz`，一家英国网店 2010 到 2011 年的发票（UCI Online Retail，CC BY 4.0）。2011 年 10 月 3 日那一周营收为什么变了？」这家店的周营收在 −57% 到 +85% 之间来回摆，所以大多数周（包括这一周的 +51%）的结论都是「在正常范围内，没有哪一组特别突出」。这也是一个结果：它告诉你这个变化不值得去追。这份数据没有标准答案，它只能说明真实数据接得进、能出一份通过自检的报告，不能说明答案对不对。
 - 在终端里用：`python3 skills/analyst-in-a-box/scripts/aib_cli.py init 你的数据.csv --workspace ./aib-workspace`
 - 用真实运行结果构建演示站：`uv run python site/build.py`。跑测试：`uv run --frozen pytest`
 

@@ -100,6 +100,7 @@ T = {
         "dom_concentrated": "集中在「{seg}」：它多变的部分占全部变动的 {p}。",
         "dom_spread": "分散：没有一组明显超出其余各组的同步变化。",
         "range_line": "过去 {n} 期里，中间一半的变化落在 {lo} 到 {hi} 之间；低于 {below} 或高于 {above} 才判为异常（门槛线，不是正常范围）。",
+        "range_line_high_only": "过去 {n} 期里，中间一半的变化落在 {lo} 到 {hi} 之间；高于 {above} 才判为异常地高（门槛线，不是正常范围）。这个数起伏太大，往下的门槛线已经低于 −100%，而降幅最多 −100%，所以下跌这边没有异常线。",
         "left_out": "有 {n} 期因为两边节假日对不齐，没算进比较的历史：{items}。",
         "market_usual": "同期大盘 {mg}。这家店过去通常比大盘 {gap}，按这个常态估计本期应变化 {ep}；实际 {d}，差出来的 {op} 是自己的。这是估计，不是精确账目（只按大盘算的话，自己的部分是 {plain}）。",
         "flat_history": "过去 {n} 期的变化一模一样（波动为零），没法用波动大小判断这一期算不算异常。",
@@ -204,6 +205,7 @@ T = {
         "dom_concentrated": "concentrated in \"{seg}\": what it moved beyond the others is {p} of all movement.",
         "dom_spread": "spread: no group moved clearly beyond the others.",
         "range_line": "Over the last {n} periods the middle half of changes fell between {lo} and {hi}; below {below} or above {above} counts as unusual (threshold lines, not the usual range).",
+        "range_line_high_only": "Over the last {n} periods the middle half of changes fell between {lo} and {hi}; above {above} counts as unusually high (threshold line, not the usual range). This number swings so much that the lower threshold would sit below −100%, and a fall cannot be larger than −100%, so there is no unusual line on the downside.",
         "left_out": "{n} periods were left out of the history because the two sides held different holidays: {items}.",
         "market_usual": "The market moved {mg}. This business usually runs {gap} against the market; on that basis it should have changed by {ep}. It changed by {d}, so {op} is its own. This is an estimate, not an exact account (counting only the market, its own part would be {plain}).",
         "flat_history": "The last {n} periods all changed by exactly the same amount (flat history), so their spread cannot say whether this one is unusual.",
@@ -676,8 +678,9 @@ def render(ws, s, lang="zh", out_dir: Path | None = None) -> str:
         L.append(t[key].format(n=q["history_n"], z=_m(f"{z:.2f}"), t=_m(str(thr))))
         if q.get("usual_range") and q.get("unusual_below") is not None:
             f_ = (lambda x: fmt(x, unit, True)) if ratio else pct
-            L.append(t["range_line"].format(n=q["history_n"], lo=f_(q["usual_range"][0]), hi=f_(q["usual_range"][1]),
-                                            below=f_(q["unusual_below"]), above=f_(q["unusual_above"])))
+            key_ = "range_line_high_only" if q.get("unusual_below_clipped") else "range_line"
+            L.append(t[key_].format(n=q["history_n"], lo=f_(q["usual_range"][0]), hi=f_(q["usual_range"][1]),
+                                    below=f_(q["unusual_below"]), above=f_(q["unusual_above"])))
     lo_ = q.get("history_basis", {}).get("left_out_for_holidays") or []
     if lo_:
         L += ["", t["left_out"].format(n=len(lo_), items=p["comma"].join(f"{x['window'][0]}~{x['window'][1]}" for x in lo_))]

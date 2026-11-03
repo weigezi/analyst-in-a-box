@@ -24,7 +24,7 @@ ROLES = {
     "cost": {"en": "Cost amount", "zh": "成本金额"},
     "quantity": {"en": "A count or quantity (items)", "zh": "数量（件数）"},
     "visits": {"en": "Visits or visitors (people who came, bought or not)", "zh": "访问量（来过的人，不管买没买）"},
-    "skip": {"en": "Not a metric, ignore", "zh": "不是指标，忽略"},
+    "skip": {"en": "Not a number to analyse (an ID, a code, a name), ignore", "zh": "不是要分析的数（编号、代码、名称），忽略"},
 }
 TEMPLATES = Path(__file__).resolve().parents[2] / "templates" / "formulas"
 MAX_DIM_VALUES = 50
