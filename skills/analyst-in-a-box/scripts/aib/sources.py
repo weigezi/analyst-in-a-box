@@ -24,7 +24,10 @@ def loader(kind):
 
 # Words that mean "no value" to pandas by default but are real values in a business table ("None" as an offer type,
 # "NULL" as an agent code). Only an empty cell is missing.
+# low_memory=False: pandas otherwise guesses each column's type block by block, so a column that turns to text late in
+# the file ends up holding numbers and words together, and counts such as exact copies change with the block size.
 READ_AS_TEXT = {"keep_default_na": False, "na_values": [""]}
+READ_CSV_ONCE = {"low_memory": False}
 CURRENCY = re.compile(r"^\s*[-+]?\s*[$€£¥]?\s*[-+]?\d{1,3}(,\d{3})*(\.\d+)?\s*$|^\s*[-+]?\s*[$€£¥]?\s*[-+]?\d+(\.\d+)?\s*$")
 MONTHS = {m: i for i, m in enumerate(["january", "february", "march", "april", "may", "june", "july", "august",
                                       "september", "october", "november", "december"], 1)}
@@ -79,7 +82,7 @@ def derive_dates(df: pd.DataFrame, spec: dict) -> pd.Series:
 
 @loader("csv")
 def _csv(spec, root):
-    opts = {**READ_AS_TEXT, **spec.get("options", {})}
+    opts = {**READ_AS_TEXT, **READ_CSV_ONCE, **spec.get("options", {})}
     return clean(pd.read_csv(root / spec["path"], **opts), spec.get("derive_dates"), spec.get("exclude_rows"),
                  spec.get("drop_duplicates", False))
 

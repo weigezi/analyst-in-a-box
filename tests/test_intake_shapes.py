@@ -517,3 +517,26 @@ def test_a_zero_one_flag_column_is_offered_as_a_reversal_marker(tmp_path):
     q = {x["id"]: x for x in d["questions"]}
     assert "is_cancelled" in [o if isinstance(o, str) else o["value"] for o in q["reversal_column"]["options"]]
     assert sorted(o["value"] for o in q["reversal_values:is_cancelled"]["options"]) == ["0", "1"]
+
+
+# ---------- 8. one type per column, and exact copies counted the same way every time ----------
+
+def test_a_column_that_turns_to_text_late_in_the_file_is_read_with_one_type(tmp_path):
+    rows = ["a,b"] + [f"{i},{i % 3}" for i in range(300000)] + ["300000,NA"]     # pandas guesses types block by block, from about 250,000 rows
+    (tmp_path / "t.csv").write_text("\n".join(rows) + "\n", encoding="utf-8")
+    from aib.sources import LOADERS
+    df = LOADERS["csv"]({"path": "t.csv"}, tmp_path)
+    kinds = {type(x).__name__ for x in df["b"].dropna()}
+    assert len(kinds) == 1, kinds                                                   # was {'int', 'str'}
+
+
+def test_the_number_of_exact_copies_does_not_depend_on_how_the_file_is_chunked(tmp_path):
+    rng = _rng()
+    n = 300000
+    df = pd.DataFrame({"k": rng.integers(0, 40, n), "c": rng.integers(0, 3, n).astype(object)})
+    df.loc[n - 5, "c"] = "NA"
+    df = pd.concat([df, df.iloc[:100]], ignore_index=True)
+    df.to_csv(tmp_path / "t.csv", index=False)
+    from aib.sources import LOADERS
+    whole = pd.read_csv(tmp_path / "t.csv", keep_default_na=False, na_values=[""], low_memory=False).duplicated().sum()
+    assert LOADERS["csv"]({"path": "t.csv"}, tmp_path).duplicated().sum() == whole
