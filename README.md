@@ -5,7 +5,9 @@
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![ci](https://github.com/weigezi/analyst-in-a-box/actions/workflows/ci.yml/badge.svg)](https://github.com/weigezi/analyst-in-a-box/actions/workflows/ci.yml)
 
-**Ask why a number moved. Get the cause, who should act, and a breakdown that adds up to the total.**
+## Turn the few tables you have into an AI analyst that answers questions, in one go.
+
+Ask why a number moved. Get the cause, who should act, and a breakdown that adds up to the total.
 
 <p align="center"><img src="docs/assets/session.en.png" width="720" alt="A session: 'Revenue fell year on year last week. Why?' Four checks pass, then the answer: revenue down 9.6%, the marketplace lost 79 thousand, the website gained 35 thousand, and a cause on record from 12 October."></p>
 <p align="center"><sub>Demo shop with generated data. <a href="docs/assets/demo.mp4">Watch the 76-second film</a> (on-screen text is in Chinese).</sub></p>
@@ -54,9 +56,9 @@ Say "from 1 October, new customers get a greeting card with a fruit basket". It 
 
 What it keeps is sorted by confidence. Facts are what you said, records from your systems, and what the data shows. AI inference is what was read from documents, general industry knowledge, and guesses, and it stays a draft until a person confirms it.
 
-## Tangled tables become a business knowledge graph
+## Orders, products, traffic and campaign tables grow into a business knowledge graph
 
-Give it several exports and a weekly report. The scripts work out the main table, the lookups, how the tables join and which hold events; every guess comes back to you as a multiple-choice question. In the demo, nine tables (226,814 orders) became a workspace in about 3 seconds of script time once the shop owner's answers were in. It has two parts: a **metric tree** (what breaks down into what, and in which order each metric is cut) and a **business world description** (entities, mechanisms, dated events, actions and owners, each with a source and what would overturn it). Items still waiting for your confirmation are drawn dashed.
+Give it what a shop's systems export (the orders table, a product list, a city lookup, traffic, the campaign calendar, the price-change log, holidays, weather and a market index) plus a weekly report. The scripts work out the main table, the lookups, how the tables join and which hold events; every guess comes back to you as a multiple-choice question. In the demo, nine tables (226,814 orders) became a workspace in about 3 seconds of script time once the shop owner's answers were in. It has two parts: a **metric tree** (what breaks down into what, and in which order each metric is cut) and a **business world description** (entities, mechanisms, dated events, actions and owners, each with a source and what would overturn it). Items still waiting for your confirmation are drawn dashed.
 
 <p align="center"><img src="docs/assets/world.en.png" width="760" alt="The business world description of the demo shop: events on a timeline, mechanisms, entities by dimension, metrics, and actions with owners."></p>
 
@@ -80,7 +82,7 @@ All of this was measured on generated data or one public dataset, not on a real 
 ## Try it
 
 - Questions that work on the demo shop: why revenue fell; why the east region fell more than the rest; why order value dropped; whether June grew by selling more or charging more; why the app grew slower than the web.
-- Several tables: give it a folder of exports, and a weekly report if you have one.
+- Orders, products, traffic and the like: put them in one folder, with a weekly report if you have one.
 - From a terminal: `python3 skills/analyst-in-a-box/scripts/aib_cli.py init your_data.csv --workspace ./aib-workspace`
 - Build the demo site from real runs: `uv run python site/build.py`. Run the tests: `uv run --frozen pytest`
 

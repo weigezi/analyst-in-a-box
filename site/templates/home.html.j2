@@ -77,7 +77,7 @@
 
 <section class="sec msg" id="m-graph"><div class="wrap">
   <div class="msg-text">
-    <h2>{{ "乱表自己理成业务知识图谱" if zh else "Tangled tables become a business knowledge graph" }}</h2>
+    <h2>{{ "订单、商品、流量、活动表，自己长成业务知识图谱" if zh else "Orders, products, traffic and campaign tables grow into a business knowledge graph" }}</h2>
     <p>{% if zh %}{{ h.intake.tables }} 张表放进去，它认出主表和表之间怎么对上，答几道选择题确认每列是什么，就长出指标树和业务世界描述：渠道、品类、发生过的事、背后的机制、该谁负责。{% else %}Put in {{ h.intake.tables }} tables. It finds the main one and how they join, you answer a few multiple-choice questions about the columns, and it grows a metric tree and a business world description: channels, categories, what happened, the mechanisms behind it, and who is responsible.{% endif %}</p>
     <p class="msg-links"><a class="btn" href="intake.html">{{ "看它怎么形成" if zh else "See how it forms" }}</a><a class="btn ghost" href="graph.html">{{ "看业务知识图谱" if zh else "Open the graph" }}</a></p>
   </div>

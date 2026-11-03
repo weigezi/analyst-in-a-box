@@ -6,7 +6,7 @@
 {% block content %}
 <section class="gm-hero"><div class="wrap">
   <h1>{% for ph in w.h1 %}<span class="ph">{{ ph }}</span>{% if not loop.last %} {% endif %}{% endfor %}</h1>
-<p class="ws-badge">{{ "自动形成的工作区（从几张表和一份周报长出来的那一份）" if zh else "The workspace formed automatically (from a few tables and a weekly report)" }}</p>
+<p class="ws-badge">{{ "自动形成的工作区（从订单、商品、流量、活动等表和一份周报长出来的那一份）" if zh else "The workspace formed automatically (from the orders, products, traffic and campaign tables and a weekly report)" }}</p>
 <p class="ws-note">{{ "案例报告用的是手写工作区；这里只能引活动表和周报，所以有的原因标「推测，待确认」。" if zh else "The case reports use the hand-written workspace; here only the campaign tables and the weekly report can be cited, so some causes stay a hypothesis." }}</p>
   <p class="gm-lede">{{ lede }}</p>
 </div></section>
