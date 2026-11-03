@@ -1,4 +1,4 @@
-"""Wording and page contexts for the knowledge graph, intake, learning and architecture pages.
+"""Wording and page contexts for the business knowledge graph, intake, learning and architecture pages.
 
     pages(data, lang) -> [{"path", "template", "context"}]   (data = sitedata.collect())
 
@@ -89,12 +89,12 @@ def join(items, lang):
 
 W = {
     "zh": {
-        "title": "知识图谱", 
-        "h1": ["指标树决定往哪拆，", "世界描述决定为什么、该谁去做。"],
+        "title": "业务知识图谱",
+        "h1": ["指标树决定往哪拆，", "业务世界描述决定为什么、该谁去做。"],
         "lede": "这一页是演示店「花果篮」的全部底子。左边那张按公式把毛利一层层拆到底，每个指标下面写着能按什么切、先切哪个；"
                 "另一张记着这家店的世界：哪些渠道、品类、城市，发生过什么事，背后是什么道理，出了问题找谁。"
                 "选一道题，看它在这两张图上走过哪些地方。",
-        "views": {"tree": "指标树", "world": "世界描述"},
+        "views": {"tree": "指标树", "world": "业务世界描述"},
         "pick": "按题目高亮", "none": "不选题，看全图", "clear_btn": "清除",
         "path_h": "这道题走过的路", "report": "看这道题的完整报告",
         "hint_tree": "点一个指标，看它是什么、怎么切、出处在哪。",
@@ -118,13 +118,13 @@ W = {
         "steps": {"scope": "定题", "formula": "按公式拆", "pvm": "量、价、结构", "cut": "按{d}切", "why": "为什么", "act": "该谁去做"},
     },
     "en": {
-        "title": "Knowledge graph", 
-        "h1": ["The metric tree decides where to break a number down;", "the world description decides why, and who acts."],
+        "title": "Business knowledge graph",
+        "h1": ["The metric tree decides where to break a number down;", "the business world description decides why, and who acts."],
         "lede": "This page is everything the skill knows about the demo shop, Bloom & Basket. One view breaks gross profit down by "
                 "formula, level by level, and lists under each metric what it can be cut by and in which order. The other records "
                 "the shop's world: its channels, categories and cities, what happened, the reasons behind it, and who to go to. "
                 "Pick a question to see where it went on both.",
-        "views": {"tree": "Metric tree", "world": "World description"},
+        "views": {"tree": "Metric tree", "world": "Business world description"},
         "pick": "Highlight a question", "none": "No question, whole graph", "clear_btn": "Clear",
         "path_h": "The path this question took", "report": "Read this question's full report",
         "hint_tree": "Click a metric to see what it is, how it is cut, and where that comes from.",
@@ -569,34 +569,32 @@ IW = {
     "zh": {
         "title": "采集", "colon": "：",
         "h1": ["放进几张表，", "答几道选择题，", "就拿到第一份报告。"],
-        "lede": "演示店「花果篮」的数据，拆成真实系统里常见的 {n} 张表，再加一份运营周报。skill 只看每张表长什么样，"
-                "不从列名猜含义；它认出哪张是主表、表和表怎么对上、哪张是活动和调价记录，每一条都问一句。"
-                "周报由你的 AI 工具读，抽出来的原因必须引用原句，记成「来自文档，待确认」。",
-        "s_tables": "一、9 张表各长什么样", "s_tables_sub": "每张表只露前 3 行。标签是机器从表的形状认出来的；店主改过的，另外注明。",
+        "lede": "演示店「花果篮」的 {n} 张表加一份周报。脚本认出主表、表和表怎么对上，AI 从周报里提出原因；"
+                "你只判断它的理解对不对，纠正几处。",
+        "s_tables": "一、9 张表各长什么样", "s_tables_sub": "每张表只露前 3 行。标签是脚本认的，店主改过的另注明。",
         "rows": "{n:,} 行", "kinds": {"main": "主表", "lookup": "查找表", "business": "业务数据", "events": "事件记录", "calendar": "节假日日历",
                                     "series": "外部连续数据", "market": "行业大盘", "ignore": "不用"},
         "changed": "店主改成了「{k}」",
-        "s_q": "二、机器提出的选择题，和店主的回答",
-        "s_q_sub": "共 {asked} 道，店主答了 {answered} 道。每道题都写着建议和证据；没答的不会生效。下面挑出 {n} 道。",
+        "s_q": "二、脚本提的选择题，和店主的回答",
+        "s_q_sub": "共 {asked} 道，店主答了 {answered} 道，没答的不生效。下面挑出 {n} 道。",
         "suggest": "建议", "answer": "店主选了", "evidence": "证据", "overrode": "改了建议",
         "coverage": "{m:,} / {n:,} 行对得上（{p}）",
-        "q_all": "看全部 {n} 道题和店主的回答", "q_left_out": "另有 1 道题问「一组要占到总变化的多少，才值得接着往下拆」，店主选了 {v}。",
+        "q_all": "看全部题目和店主的回答",
         "yes": "是", "no": "否", "internal": "自己做的事", "external": "外面发生的事", "none": "都不是",
         "s_doc": "三、周报里的原句，和它记成了什么",
-        "s_doc_sub": "AI 工具读周报、提出候选；脚本不读内容，只核对每条引用是否逐字出现在周报里。核对通过、收下 {a} 条，拒收 {r} 条。",
+        "s_doc_sub": "AI 读周报、提出候选，脚本只核对引用是否逐字出现在周报里。收下 {a} 条，拒收 {r} 条。",
         "doc_src": "周报原文（被引用的这一份）", "doc_tr": "",
         "rec_as": "记成", "rec_kind": {"event": "事件", "mechanism": "机制"}, "to_confirm": "来自文档，待确认",
-        "not_proposed": "没有提出的句子：结账页改版（周报自己说看不出变化）、礼盒新包装（12 月才上）、客服排班。果篮那句只说了变化，没说原因。",
-        "s_formed": "四、形成了什么", "s_formed_sub": "四类来源各有多少，照形成报告原样列出。",
+        "s_formed": "四、形成了什么", "s_formed_sub": "四类来源各有多少。",
         "c_data": "机器从数据推出，再经选择题确认", "c_q": "选择题（问了 / 答了）", "c_doc": "从文档抽出、待确认（收下 / 拒收）", "c_person": "只有人能补、现在空着",
-        "tree_h": "形成的指标树", "tree_note": "名字是机器起的：看得懂的是起步模板的叫法，其余就是你表里的列名。改名要人来。",
-        "dims_h": "能切的维度", "world_h": "形成的世界描述",
+        "tree_h": "形成的指标树", "tree_note": "名字是脚本起的，改名要人来。",
+        "dims_h": "能切的维度", "world_h": "形成的业务世界描述",
         "world_items": "{e} 个维度值、{r} 条「属于」关系（城市属于大区）、{j} 张查找表并进主表、{o} 份外部数据。",
         "events_h": "从事件记录里读出的事（系统记录，待确认）",
-        "person_h": "只有人能补的", "graph_link": "知识图谱页画的是演示店手写的那一份，可以对着看",
-        "s_gaps": "五、和手写的那一份没对上的地方", "s_gaps_sub": "同一家店，手写一份、自动形成一份，逐项对照。对不上的照实列出。",
+        "person_h": "只有人能补的", "graph_link": "业务知识图谱页画的是演示店手写的那一份，可以对着看",
+        "s_gaps": "五、和手写的那一份没对上的地方", "s_gaps_sub": "同一家店，手写一份、自动形成一份，逐项对照。每一处为什么没对上，见形成报告第八节。",
         "cmp_head": ["项目", "手写", "自动形成", "对得上吗"],
-        "s_runs": "六、拿形成的工作区答题", "s_runs_sub": "演示店的题目，加上采集完马上出的第一份报告，都用自动形成的工作区来答。",
+        "s_runs": "六、拿形成的工作区答题", "s_runs_sub": "演示店的题目和采集完马上出的第一份报告，都用自动形成的工作区来答。",
         "run_head": ["问题", "主因", "引用的记录", "状态"], "first": "采集完马上出的第一份",
         "q_text": "{m}，{span}{f}，对比去年同期", "status": {"explained": "已解释", "hypothesis": "推测，待确认", "gap": "原因待补"},
         "cite_src": {"document": "文档", "system_record": "系统记录"}, "cite_checks": "对着降雨量过了三道检查",
@@ -609,42 +607,37 @@ IW = {
     "en": {
         "title": "Bringing data in", "colon": ": ",
         "h1": ["Put in a few tables,", "answer a few multiple-choice questions,", "and get a first report."],
-        "lede": "The demo shop Bloom & Basket, as {n} tables shaped like real system exports, plus a weekly operations report. "
-                "The skill reads only the shape of each table and never guesses a meaning from a column's name. It works out "
-                "which table is the main one, how the tables join, and which ones record campaigns and price changes, and asks "
-                "about each. Your AI tool reads the report; a cause it takes from there must quote the sentence, and is recorded "
-                "as \u201cfrom a document, to confirm\u201d.",
+        "lede": "The demo shop Bloom & Basket: {n} tables and a weekly report. The scripts find the main table and how the tables join; "
+                "the AI proposes causes from the report. You only judge whether its understanding is right, and correct a few spots.",
         "s_tables": "1. What the 9 tables look like",
-        "s_tables_sub": "The first 3 rows of each. The label is what the machine read from the table's shape; where the owner changed it, that is noted.",
+        "s_tables_sub": "The first 3 rows of each. The scripts chose the label; where the owner changed it, that is noted.",
         "rows": "{n:,} rows", "kinds": {"main": "main table", "lookup": "lookup", "business": "business data", "events": "event records",
                                      "calendar": "holiday calendar", "series": "outside series", "market": "market benchmark", "ignore": "not used"},
         "changed": "the owner changed it to \u201c{k}\u201d",
-        "s_q": "2. The questions the machine asks, and the owner's answers",
-        "s_q_sub": "{asked} in all; the owner answered {answered}. Each shows its suggestion and its evidence; an unanswered one has no effect. {n} of them below.",
+        "s_q": "2. The questions the scripts ask, and the owner's answers",
+        "s_q_sub": "{asked} in all; the owner answered {answered}, and an unanswered one has no effect. {n} of them below.",
         "suggest": "Suggested", "answer": "The owner chose", "evidence": "Evidence", "overrode": "changed the suggestion",
         "coverage": "{m:,} / {n:,} rows match ({p})",
-        "q_all": "All {n} questions and the owner's answers",
-        "q_left_out": "One more asks how large a share of the whole change one group must hold before it is worth breaking down further; the owner chose {v}.",
+        "q_all": "All questions and the owner's answers",
         "yes": "yes", "no": "no", "internal": "something we did", "external": "something outside", "none": "neither",
         "s_doc": "3. Sentences from the weekly report, and what they became",
-        "s_doc_sub": "The AI tool reads the report and proposes candidates; the script reads none of it and only checks that each quote appears in the report word for word. {a} passed and were accepted, {r} refused.",
+        "s_doc_sub": "The AI reads the report and proposes candidates; the scripts only check that each quote appears in it word for word. {a} accepted, {r} refused.",
         "doc_src": "The report as quoted (the shop writes in Chinese)", "doc_tr": "English translation, for reading",
         "rec_as": "Recorded as", "rec_kind": {"event": "event", "mechanism": "mechanism"}, "to_confirm": "from a document, to confirm",
-        "not_proposed": "Sentences not proposed: the checkout redesign (the report itself says no change yet), the new gift-box packaging (December), the support rota. The fruit-basket sentence describes the change but gives no reason.",
-        "s_formed": "4. What was formed", "s_formed_sub": "How much came from each of the four sources, as the formation report lists it.",
+        "s_formed": "4. What was formed", "s_formed_sub": "How much came from each of the four sources.",
         "c_data": "Inferred from the data, then confirmed in a question", "c_q": "Questions (asked / answered)",
         "c_doc": "From a document, to confirm (accepted / refused)", "c_person": "Only a person can add; empty so far",
         "tree_h": "The metric tree it formed",
-        "tree_note": "The machine named them: the readable ones are the starter's names, the rest are your table's columns. A person renames them.",
-        "dims_h": "Dimensions it can cut by", "world_h": "The world description it formed",
+        "tree_note": "The scripts named them; a person renames them.",
+        "dims_h": "Dimensions it can cut by", "world_h": "The business world description it formed",
         "world_items": "{e} dimension values, {r} \u201cbelongs to\u201d relations (city belongs to region), {j} lookup tables joined to the main table, {o} sources of outside data.",
         "events_h": "Events read from the event tables (system records, to confirm)",
-        "person_h": "What only a person can add", "graph_link": "The knowledge graph page draws the demo shop's hand-written one, to set side by side",
+        "person_h": "What only a person can add", "graph_link": "The business knowledge graph page draws the demo shop's hand-written one, to set side by side",
         "s_gaps": "5. Where it differs from the hand-written one",
-        "s_gaps_sub": "The same shop, written by hand once and formed automatically once, compared part by part. What does not match is listed as it is.",
+        "s_gaps_sub": "The same shop, written by hand once and formed automatically once, compared part by part. Why each part differs is in section 8 of the formation report.",
         "cmp_head": ["Part", "Hand-written", "Formed", "Match"],
         "s_runs": "6. Asking the formed workspace",
-        "s_runs_sub": "The demo shop's questions, plus the first report it gives straight after intake, all answered from the formed workspace.",
+        "s_runs_sub": "The demo shop's questions and the first report right after intake are all answered from the formed workspace.",
         "run_head": ["Question", "Main cause", "Record cited", "Status"], "first": "the first report, straight after intake",
         "q_text": "{m}, {span}{f}, against the same days a year earlier",
         "status": {"explained": "explained", "hypothesis": "a guess, to confirm", "gap": "reason missing"},
@@ -656,9 +649,8 @@ IW = {
         "first_off": " Moving the other way: {items}, which offset part of it.",
     },
 }
-FEATURED = ["main_table", "kind:traffic", "kind:market", "link:weather.region>cities.region", "belongs:city>region",
-            "event_kind:promotions", "role:traffic.visits", "north_star"]
-LEFT_OUT = "single_point_share"   # init's wording for it uses the engine's own word for a lone group; summarised instead
+FEATURED = ["main_table", "kind:market", "link:weather.region>cities.region", "belongs:city>region", "north_star"]
+FORMATION_REPORT = "https://github.com/weigezi/analyst-in-a-box/blob/main/demo/intake/formation"
 def _opt(q, v, lang):
     """(words, is_code) for one option value of a question: its label when it has one, otherwise the value itself
     (a table or column name of the user's own data, shown as code)."""
@@ -697,6 +689,15 @@ def _paras(md):
     return out
 
 
+def cited_sections(md, quotes, zh_md=None):
+    """_paras(md) cut down to the sections the Chinese report quotes from. The English translation wraps its lines
+    differently, so the two are matched by section (heading order), not by paragraph; zh_md says which sections those are."""
+    ref = _paras(zh_md or md)
+    own = _paras(md)
+    assert len(ref) == len(own), "the two weekly reports no longer have the same sections"
+    return [(hd, ps) for (_, zps), (hd, ps) in zip(ref, own) if any(q in z for z in zps for _, q in quotes)]
+
+
 def _mark(text, quotes):
     h = _e(text)
     for i, q in quotes:
@@ -730,8 +731,6 @@ def intake_context(data, lang) -> dict:
         return {"ask": sp(ask), "evidence": ev, "suggest": st, "suggest_code": scode, "answer": at, "answer_code": acode,
                 "overrode": sug is not None and a is not None and str(a) != str(sug)}
     featured = [card(qs[k]) for k in FEATURED if k in qs]
-    rest = [card(q) for k, q in qs.items() if k not in FEATURED and k != LEFT_OUT]
-    left_out = w["q_left_out"].format(v=pct(float(d["answers"][LEFT_OUT]))) if LEFT_OUT in qs and LEFT_OUT in d["answers"] else None
 
     accepted = [p for p in d["proposals"] if p["accepted"]]
     quotes = [(i + 1, p["quote"]) for i, p in enumerate(accepted)]
@@ -739,7 +738,7 @@ def intake_context(data, lang) -> dict:
     ml = lambda m: d["metric_labels"].get(m, {}).get(lang, m)  # noqa: E731
     mc = lambda m: {"t": ml(m), "code": ml(m) == m}  # noqa: E731
     M = d["machine"]
-    person = [{"what": d["person_text"][lang][x["reason"]][0], "why": sp(d["person_text"][lang][x["reason"]][1].format(**x))} for x in d["person"]]
+    person = join((d["person_text"][lang][x["reason"]][0] for x in d["person"]), lang)
     # formation_report's English part names are its own keys; one of them reads as a field name on a page
     en_part = {"identities": "formulas", "confirmed priorities": "confirmed cut orders"}
     part = lambda k: en_part.get(k, d["part_text"][lang][k]) if lang == "en" else d["part_text"][lang][k]  # noqa: E731
@@ -768,19 +767,19 @@ def intake_context(data, lang) -> dict:
                                   for o in fr["offsets"]), lang)))
     return {
         "w": w, "page_title": w["title"], "description": ("" if zh else " ").join(w["h1"]), "lede": w["lede"].format(n=len(tables)),
-        "tables": tables, "featured": featured, "rest": rest, "left_out": left_out,
+        "tables": tables, "featured": featured,
         "q_sub": w["s_q_sub"].format(asked=d["counts"]["asked"], answered=d["counts"]["answered"], n=len(featured)),
-        "q_all": w["q_all"].format(n=len(rest) + len(featured)),
+        "q_all": w["q_all"], "q_all_href": FORMATION_REPORT + (".zh.md" if zh else ".md"),
         "doc_sub": w["s_doc_sub"].format(a=d["counts"]["accepted"], r=d["counts"]["refused"]),
-        "doc": [(hd, [_mark(x, quotes) for x in ps]) for hd, ps in _paras(d["docs"]["zh"])],
-        "doc_tr": [(hd, [_e(x) for x in ps]) for hd, ps in _paras(d["docs"]["en"])] if not zh else None, "recs": recs,
+        "doc": [(hd, [_mark(x, quotes) for x in ps]) for hd, ps in cited_sections(d["docs"]["zh"], quotes)],
+        "doc_tr": [(hd, [_e(x) for x in ps]) for hd, ps in cited_sections(d["docs"]["en"], quotes, d["docs"]["zh"])] if not zh else None, "recs": recs,
         "counts": [(w["c_data"], str(d["counts"]["from_data"])), (w["c_q"], f"{d['counts']['asked']} / {d['counts']['answered']}"),
                    (w["c_doc"], f"{d['counts']['accepted']} / {d['counts']['refused']}"), (w["c_person"], str(d["counts"]["needs_a_person"]))],
         "tree": [{"left": mc(i["left"]), "factors": [mc(f) for f in i["factors"]]} for i in M["identities"]],
         "dims": [M["dimension_labels"][x][lang] for x in M["dimensions"]],
         "world_items": w["world_items"].format(e=M["entities"], r=M["relations"], j=len(M["joins"]), o=len(M["outside"])),
         "table_events": [{"text": e["text"][lang], "when": span(e["start"], e["end"], lang)} for e in M["table_events"]],
-        "person": person, "cmp": cmp, "gaps": [sp(g) for g in d["gaps"][lang]],
+        "person": person, "cmp": cmp,
         "note_east": re.sub(r"(这是 0\.1 起对外部事件的规则，没有改。| That is the 0\.1 rule for outside events, kept\.)", "", d["note_east"][lang]),
         "runs": runs, "first_body": zh_space(first) if zh else first,
     }

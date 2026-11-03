@@ -1,4 +1,4 @@
-/* Knowledge-graph page. Only the site's variables (site.css / proto A): no colours of its own beyond tints of them.
+/* Business knowledge graph page. Only the site's variables (site.css / proto A): no colours of its own beyond tints of them.
    Desktop (>= 1180px): cards sit at positions computed at build time (site/graphdata.py), edges are one SVG behind them.
    Below that the same DOM becomes a list (tree indented by depth, world by lane); edges are hidden. */
 

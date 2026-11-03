@@ -455,3 +455,22 @@ svg text { font-family: var(--sans); }
 /* in a report, badge and note sit on the 640px text column like everything else */
 .report > .ws-badge { display: block; width: fit-content; margin: 0 max(0px, calc((100% - var(--col)) / 2)); }
 .report > .ws-note { margin: 4px auto 16px; }
+
+/* home page: the one-line role statement and the three message sections */
+.hero .roles { margin: 0 0 20px; max-width: 32em; font-size: 15px; line-height: 24px; color: var(--ink-3); }
+.sec.msg { padding: 64px 0; }
+.msg .wrap { display: grid; grid-template-columns: minmax(0, 6fr) minmax(0, 5fr); gap: 40px; align-items: center; }
+.msg .wrap > * { min-width: 0; }
+.msg-text h2 { font-size: 30px; line-height: 38px; font-weight: 600; }
+.msg-text p { margin: 16px 0 0; color: var(--ink-2); }
+.msg-links { display: flex; gap: 12px; flex-wrap: wrap; }
+.msg-fig { margin: 0; }
+.facts { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.facts li { padding: 16px 20px; border-radius: 12px; background: var(--surface); box-shadow: var(--ring); color: var(--ink-2); font-size: 15px; line-height: 24px; }
+.facts li b { display: block; font: 600 30px/36px var(--sans); color: var(--r-ink); }
+.facts.one { display: block; padding: 20px 24px; border-radius: 12px; background: var(--surface); box-shadow: var(--ring); }
+.facts.one p { margin: 0; color: var(--ink-2); font-size: 15px; line-height: 24px; }
+.facts.one .e-num { margin: 0 0 8px; font: 600 30px/36px var(--sans); color: var(--r-ink); }
+.entry.static:hover { box-shadow: var(--ring); }
+.entry.static .e-tag::after { content: ""; }
+@media (max-width: 900px) { .msg .wrap { grid-template-columns: 1fr; gap: 24px; } }

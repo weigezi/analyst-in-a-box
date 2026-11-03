@@ -1,4 +1,4 @@
-// Knowledge-graph page: switch views, highlight one question's path, show a node's details.
+// Business knowledge graph page: switch views, highlight one question's path, show a node's details.
 // Layout and words are computed at build time (site/graphdata.py, site/pages_more.py); this file only toggles classes.
 (function () {
   "use strict";

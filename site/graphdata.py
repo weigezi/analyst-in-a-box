@@ -1,4 +1,4 @@
-"""Data and layout for the knowledge-graph page (and, later, intake / learning / architecture). No wording here.
+"""Data and layout for the business knowledge graph page (and, later, intake / learning / architecture). No wording here.
 
 Two views of the demo shop's workspace, laid out at build time so the page never runs a force simulation:
 
@@ -248,7 +248,7 @@ def tree_layout(tree: dict, lang: str, sub_text, rule_text, chip_text) -> dict:
         edges.append({"id": f"op:{m}", "op": True, "from": f"m:{m}", "x": round(xm, 1), "y": round(y1, 1)})
     height = max(b["y"] + b["h"] for b in boxes.values())
     return {"boxes": {f"m:{m}": b for m, b in boxes.items()}, "edges": edges, "w": CANVAS_W, "h": height}
-# ---------------------------------------------------------------- the world description
+# ---------------------------------------------------------------- the business world description
 
 def world_model(ws) -> dict:
     w = ws.world
@@ -775,7 +775,7 @@ def state_machine(box_w: int = 236, box_h: int = 62, gap_y: int = 18) -> dict:
 # ---------------------------------------------------------------- entry point
 
 def graph(cases: dict) -> dict:
-    """Everything the knowledge-graph page needs, minus layout (which depends on the words, see pages_more)."""
+    """Everything the business knowledge graph page needs, minus layout (which depends on the words, see pages_more)."""
     ws = Workspace(DEMO_WS)
     tree = metric_tree(ws)
     world = world_model(ws)
