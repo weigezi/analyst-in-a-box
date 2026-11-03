@@ -50,6 +50,7 @@
    "measure_columns": [],
    "id_columns": [],
    "duplicate_rows": 0,
+   "row_keys": [],
    "word_columns": [
     "city",
     "region"
@@ -164,6 +165,7 @@
    "measure_columns": [],
    "id_columns": [],
    "duplicate_rows": 0,
+   "row_keys": [],
    "word_columns": [
     "name",
     "label_zh",
@@ -232,6 +234,7 @@
    ],
    "id_columns": [],
    "duplicate_rows": 0,
+   "row_keys": [],
    "word_columns": [],
    "keys": [],
    "per_date": [],
@@ -416,6 +419,9 @@
    ],
    "id_columns": [],
    "duplicate_rows": 0,
+   "row_keys": [
+    "order_id"
+   ],
    "word_columns": [
     "order_id",
     "sku",
@@ -516,6 +522,7 @@
    "measure_columns": [],
    "id_columns": [],
    "duplicate_rows": 0,
+   "row_keys": [],
    "word_columns": [
     "category",
     "reason"
@@ -616,6 +623,7 @@
    ],
    "id_columns": [],
    "duplicate_rows": 0,
+   "row_keys": [],
    "word_columns": [
     "sku",
     "category",
@@ -716,6 +724,7 @@
    "measure_columns": [],
    "id_columns": [],
    "duplicate_rows": 0,
+   "row_keys": [],
    "word_columns": [
     "campaign",
     "category",
@@ -800,6 +809,7 @@
     "visits"
    ],
    "duplicate_rows": 0,
+   "row_keys": [],
    "word_columns": [
     "channel"
    ],
@@ -882,6 +892,7 @@
    ],
    "id_columns": [],
    "duplicate_rows": 0,
+   "row_keys": [],
    "word_columns": [
     "region"
    ],

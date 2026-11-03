@@ -82,6 +82,15 @@ PARAMS = {
                                         "match in the other; below that it is a coincidence of codes, not a link. " + EXAMPLE),
     "intake_link_suggest_min": _p(0.95, note="At or above this share of matching rows the suggested answer is 'yes'; below "
                                              "it 'no'. Only the suggestion: the user answers every link. " + EXAMPLE),
+    "intake_link_order_min": _p(0.95, note="A child row cannot happen before the row it points to (an order after its session, a "
+                                           "refund after its order). When both tables have dates, a link whose child comes "
+                                           "first on more than 5% of matched rows is suggested as 'no': two whole-number columns "
+                                           "can overlap by chance, a real parent-child pair does not. " + EXAMPLE),
+    "intake_link_range_min": _p(0.95, note="The ids a child table uses should spread over (nearly) the whole range of the parent's "
+                                          "ids. Orders pointing at sessions use all of 1..N; orders pointing at the 1.2 million "
+                                          "page views of the same shop would use a third of them, and are a coincidence of "
+                                          "small whole numbers (measured 1.00 for every real link, and 0.03 to 0.83 for the false ones "
+                                          "in the Fuzzy Factory shop: orders.user_id against the session ids reached 0.83). Only for whole-number keys. " + EXAMPLE),
     "intake_id_distinct_share": _p(0.3, note="A whole-number column whose distinct values are at least 30% of the rows reads as an "
                                              "identifier (an order, a session, a user), not as an amount: a measure repeats "
                                              "its values far more than that. A heuristic that only decides which tables may be "

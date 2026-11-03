@@ -84,10 +84,13 @@ def _table_facts(name, path, df):
     words = [c for c, k in shape.items() if k in ("category", "text", "unique")]
     # Keys are looked for only in tables without dates: in a two-row campaign table every column is "unique".
     keys = [c for c in df.columns if not dates and _is_key(df[c])]
+    # A dated table also has keys of its own (a session id, an order id): a child table can point at them. Only
+    # whole numbers and words, never a measured amount, and only when the table is big enough for "unique" to mean something.
+    row_keys = [c for c in df.columns if dates and c not in dates and len(df) >= 30 and _is_key(df[c])]
     facts = {"name": name, "path": str(path), "rows": len(df), "profile": prof, "date_columns": dates,
              "composite_dates": comps, "number_columns": nums, "measure_columns": draft.measure_columns(df, nums),
              "id_columns": [c for c in nums if draft.is_identifier(df[c])],
-             "duplicate_rows": int(df.duplicated().sum()),
+             "duplicate_rows": int(df.duplicated().sum()), "row_keys": row_keys,
              "word_columns": words, "keys": keys}
     if len(dates) >= 2:
         a, b = dates[:2]
@@ -113,6 +116,11 @@ def _suggest_kind(t, main, links, df):
     if t["name"] == main:
         return "main"
     linked = any(lk["left_table"] == t["name"] for lk in links)
+    # A dated table that the main table points at by its own key, with the link suggested, describes the main table's
+    # rows (a session gives the order its channel). It is joined in as a lookup; its own dates stay out of the way.
+    if any(lk["left_table"] == main and lk["right_table"] == t["name"] and lk["right_is_key"] and lk["suggested"] == "yes"
+           for lk in links) and t["date_columns"] and not t.get("start_end"):
+        return "lookup"
     if not t["date_columns"] and not t["composite_dates"]:
         return "lookup" if t["keys"] else "ignore"
     if not t["date_columns"]:   # dated only by a composite (year + month)
@@ -131,27 +139,57 @@ def _suggest_kind(t, main, links, df):
     return "business" if t["number_columns"] else "ignore"
 
 
+def _child_not_before_parent(frames, tables, left, lcol, right, rcol):
+    """Share of matched rows whose child date is not earlier than the parent's date, or None when either table has no
+    ordinary date to compare."""
+    ld, rd = tables[left]["date_columns"], tables[right]["date_columns"]
+    if not ld or not rd or tables[left].get("start_end") or tables[right].get("start_end"):
+        return None
+    a = frames[left][[lcol, ld[0]]].dropna().astype({lcol: str})
+    b = frames[right][[rcol, rd[0]]].dropna().astype({rcol: str}).rename(columns={rcol: lcol, rd[0]: "_parent"})
+    m = a.merge(b, on=lcol)
+    if m.empty:
+        return None
+    return float((pd.to_datetime(m[ld[0]]) >= pd.to_datetime(m["_parent"])).mean())
+
+
+def _range_use(frames, left, lcol, right, rcol):
+    """How much of the parent's range of whole-number ids the child's ids span (1.0 = all of it), or None when the
+    columns are not whole numbers."""
+    a, b = frames[left][lcol].dropna(), frames[right][rcol].dropna()
+    if not (pd.api.types.is_integer_dtype(a) and pd.api.types.is_integer_dtype(b)) or b.max() == b.min():
+        return None
+    return float(a.max() - a.min()) / float(b.max() - b.min())
+
+
 def _links(tables, frames, main):
     """Candidate links: left column values found among a right column's values.
 
-    Right side: keys of tables without dates (lookups) and grouping columns of the main table and of lookups."""
+    Right side: keys of tables without dates (lookups), the own keys of dated tables (a session id), and grouping
+    columns of the main table and of lookups. Left side: words and whole numbers, but not amounts. For each left column
+    only the best parent is kept: the one whose rows do not come after the child's, then the best coverage."""
     rights = []
     for t in tables.values():
-        if t["date_columns"] and t["name"] != main:
-            continue
         df = frames[t["name"]]
+        dated = bool(t["date_columns"])
         for c in df.columns:
-            if c in t["date_columns"] or c in t["number_columns"]:
+            if c in t["date_columns"]:
                 continue
-            is_key = c in t["keys"]
-            if is_key or df[c].nunique() <= draft.MAX_DIM_VALUES:
+            is_key = c in t["keys"] or c in t["row_keys"]
+            if c in t["number_columns"] and not is_key:
+                continue
+            if is_key or (not dated or t["name"] == main) and df[c].nunique() <= draft.MAX_DIM_VALUES:
                 rights.append((t["name"], c, is_key, set(df[c].dropna().astype(str).unique())))
     out = []
     for t in tables.values():
         df = frames[t["name"]]
-        is_lookup = not t["date_columns"]
+        is_lookup = not t["date_columns"] and bool(t["keys"])
         for c in df.columns:
-            if c in t["date_columns"] or c in t["number_columns"] or is_lookup:
+            if c in t["date_columns"] or is_lookup:
+                continue
+            if c in t["number_columns"] and not draft.is_identifier(df[c]) and df[c].nunique() > draft.MAX_DIM_VALUES:
+                continue          # an amount, not a pointer
+            if c in t["row_keys"] and not t["date_columns"]:
                 continue
             vc = df[c].dropna().astype(str).value_counts()
             if vc.empty:
@@ -163,10 +201,18 @@ def _links(tables, frames, main):
                 cov = float(vc[vc.index.isin(vals)].sum() / vc.sum())
                 if cov < _param("intake_link_ask_min"):
                     continue
+                order = _child_not_before_parent(frames, tables, t["name"], c, rt, rc) if rkey else None
+                spread = _range_use(frames, t["name"], c, rt, rc) if rkey else None
+                ok = (order is None or order >= _param("intake_link_order_min")) and (spread is None or spread >= _param("intake_link_range_min"))
                 cand = {"left_table": t["name"], "left_column": c, "right_table": rt, "right_column": rc,
                         "right_is_key": rkey, "coverage": cov, "matched_rows": int(vc[vc.index.isin(vals)].sum()),
-                        "rows": int(vc.sum()), "suggested": "yes" if cov >= _param("intake_link_suggest_min") else "no"}
-                rank = (cov, rkey and t["name"] == main, rt == main)
+                        "rows": int(vc.sum()),
+                        "suggested": "yes" if (cov >= _param("intake_link_suggest_min") and ok) else "no"}
+                if order is not None:
+                    cand["child_not_before_parent"] = order
+                if spread is not None:
+                    cand["id_range_used"] = spread
+                rank = (ok, cov, rkey and t["name"] == main, rt == main)
                 if best is None or rank > best[0]:
                     best = (rank, cand)
             if best:

@@ -540,3 +540,102 @@ def test_the_number_of_exact_copies_does_not_depend_on_how_the_file_is_chunked(t
     from aib.sources import LOADERS
     whole = pd.read_csv(tmp_path / "t.csv", keep_default_na=False, na_values=[""], low_memory=False).duplicated().sum()
     assert LOADERS["csv"]({"path": "t.csv"}, tmp_path).duplicated().sum() == whole
+
+
+# ---------- 9. links between tables: numeric keys and dated parents (architect's step 1, 2026-11-03) ----------
+# A sessions table has dates and its own key; an orders table points at it with a whole-number session id. Both must be
+# offered as a link. A second whole-number column (user_id) that only happens to fall inside the same range of numbers
+# must not be suggested: a child cannot happen before its parent.
+
+def _shop(rng, n_sessions=3000, n_orders=500):
+    sid = np.arange(1, n_sessions + 1)
+    started = pd.Timestamp("2025-01-01") + pd.to_timedelta(rng.integers(0, 90 * 24 * 60, n_sessions), unit="m")
+    sessions = pd.DataFrame({"session_id": sid, "started_at": started, "channel": rng.choice(["search", "social", "direct"], n_sessions)})
+    pick = rng.choice(sid, n_orders, replace=False)
+    placed = sessions.set_index("session_id").loc[pick, "started_at"].values + pd.to_timedelta(rng.integers(1, 30, n_orders), unit="m")
+    orders = pd.DataFrame({"order_id": np.arange(n_orders), "session_id": pick, "user_id": rng.integers(1, n_sessions, n_orders),
+                           "placed_at": placed, "amount": rng.normal(60, 9, n_orders).round(2)})
+    return orders, sessions
+
+
+def _links_of(d):
+    return {(l["left_table"], l["left_column"], l["right_table"], l["right_column"]): l for l in d["links"]}
+
+
+def test_a_whole_number_session_id_links_to_a_dated_sessions_table(tmp_path):
+    orders, sessions = _shop(_rng())
+    d = _init(tmp_path, {"orders": orders, "sessions": sessions})
+    assert d["main"] == "orders"
+    lk = _links_of(d)[("orders", "session_id", "sessions", "session_id")]
+    assert lk["suggested"] == "yes" and lk["coverage"] == 1.0 and lk["right_is_key"]
+    assert d["tables"]["sessions"]["suggested_kind"] == "lookup"
+
+
+def test_a_number_that_only_falls_in_the_same_range_is_not_suggested_as_a_link(tmp_path):
+    orders, sessions = _shop(_rng())
+    d = _init(tmp_path, {"orders": orders, "sessions": sessions})
+    fake = _links_of(d).get(("orders", "user_id", "sessions", "session_id"))
+    assert fake is None or fake["suggested"] == "no"
+
+
+def test_revenue_can_be_cut_by_a_channel_that_lives_in_the_sessions_table(tmp_path):
+    orders, sessions = _shop(_rng())
+    d = _init(tmp_path, {"orders": orders, "sessions": sessions})
+    ans = {"kind:sessions": "lookup", "link:orders.session_id>sessions.session_id": "yes", "date_column": "placed_at",
+           "order_id": "order_id", "dimensions": ["channel"]}
+    ans.update({q["id"]: ("amount" if q["column"] == "amount" else "skip") for q in d["questions"] if q["id"].startswith("role:")})
+    ws = tmp_path / "ws"
+    intake.confirm(ws, ans)
+    W = Workspace(ws)
+    m = orders.merge(sessions, on="session_id")
+    w = (orders.placed_at.min().date(), orders.placed_at.max().date())
+    got = {c: W.total("amount", w, {"channel": c}) for c in ("search", "social", "direct")}
+    want = m.groupby("channel").amount.sum().to_dict()
+    assert got == pytest.approx(want)
+    assert sum(got.values()) == pytest.approx(orders.amount.sum())
+
+
+def test_a_whole_number_key_in_an_undated_lookup_is_linked(tmp_path):
+    rng = _rng()
+    orders = pd.DataFrame({"day": _days(rng, 300), "order_id": np.arange(300), "product_id": rng.integers(1, 5, 300),
+                           "amount": rng.normal(60, 9, 300).round(2)})
+    products = pd.DataFrame({"product_id": [1, 2, 3, 4], "category": ["a", "b", "c", "d"]})
+    d = _init(tmp_path, {"orders": orders, "products": products})
+    lk = _links_of(d)[("orders", "product_id", "products", "product_id")]
+    assert lk["suggested"] == "yes" and lk["right_is_key"]
+
+
+def test_a_bigger_table_of_dense_ids_is_not_taken_for_the_parent_of_a_smaller_one(tmp_path):
+    # pageview ids 1..N cover every session id 1..M by chance when N >= M, and both tables have dates in the same
+    # direction. The real parent uses the child's whole range of ids; the coincidence only a fraction of its own.
+    rng = _rng()
+    orders, sessions = _shop(rng, n_sessions=3000, n_orders=500)
+    n = 20000
+    views = pd.DataFrame({"pageview_id": np.arange(1, n + 1), "session_id": rng.integers(1, 3001, n),
+                          "viewed_at": pd.Timestamp("2025-01-01") + pd.to_timedelta(np.sort(rng.integers(0, 90 * 24 * 60, n)), unit="m")})
+    d = _init(tmp_path, {"orders": orders, "sessions": sessions, "views": views})
+    lk = _links_of(d)
+    assert lk[("orders", "session_id", "sessions", "session_id")]["suggested"] == "yes"
+    fake = lk.get(("orders", "session_id", "views", "pageview_id"))
+    assert fake is None or fake["suggested"] == "no"
+    assert [l["right_table"] for l in d["links"] if l["left_table"] == "orders" and l["left_column"] == "session_id"] == ["sessions"]
+
+
+def test_a_user_id_that_only_falls_inside_the_session_id_range_is_not_a_link(tmp_path):
+    # Measured on the real Fuzzy Factory shop: orders.user_id uses 0.83 of the session ids' range, and its dates happen to
+    # pass the "child not before parent" test (1.0), so only the range can tell it from the real link (1.00).
+    # Here the order times are placed after the session of the SAME-NUMBERED id as well, to keep the date test out of it.
+    rng = _rng()
+    started = pd.Timestamp("2025-01-01") + pd.to_timedelta(np.arange(5000), unit="m")
+    sessions = pd.DataFrame({"session_id": np.arange(1, 5001), "started_at": started, "channel": rng.choice(["a", "b"], 5000)})
+    pick = np.sort(rng.choice(np.arange(1, 5001), 600, replace=False))
+    uid = rng.integers(1, 4151, 600)
+    uid[0], uid[1] = 1, 4151                                                          # 4150 / 4999 = 0.83 of the span
+    placed = started[np.maximum(pick, uid) - 1] + pd.Timedelta(minutes=5)             # after both candidate parents
+    orders = pd.DataFrame({"order_id": np.arange(600), "session_id": pick, "user_id": uid, "placed_at": placed,
+                           "amount": rng.normal(60, 9, 600).round(2)})
+    d = _init(tmp_path, {"orders": orders, "sessions": sessions})
+    lk = _links_of(d)
+    assert lk[("orders", "user_id", "sessions", "session_id")]["child_not_before_parent"] == 1.0
+    assert lk[("orders", "session_id", "sessions", "session_id")]["suggested"] == "yes"
+    assert lk[("orders", "user_id", "sessions", "session_id")]["suggested"] == "no"

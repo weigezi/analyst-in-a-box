@@ -256,6 +256,25 @@ params:
       note: 'At or above this share of matching rows the suggested answer is ''yes''; below it ''no''. Only the suggestion:
         the user answers every link. example default, waiting for the user to confirm'
     status: proposed
+  intake_link_order_min:
+    value: 0.95
+    source:
+      kind: demo_setting
+      note: 'A child row cannot happen before the row it points to (an order after its session, a refund after its order).
+        When both tables have dates, a link whose child comes first on more than 5% of matched rows is suggested as ''no'':
+        two whole-number columns can overlap by chance, a real parent-child pair does not. example default, waiting for the
+        user to confirm'
+    status: proposed
+  intake_link_range_min:
+    value: 0.95
+    source:
+      kind: demo_setting
+      note: 'The ids a child table uses should spread over (nearly) the whole range of the parent''s ids. Orders pointing
+        at sessions use all of 1..N; orders pointing at the 1.2 million page views of the same shop would use a third of them,
+        and are a coincidence of small whole numbers (measured 1.00 for every real link, and 0.03 to 0.83 for the false ones
+        in the Fuzzy Factory shop: orders.user_id against the session ids reached 0.83). Only for whole-number keys. example
+        default, waiting for the user to confirm'
+    status: proposed
   intake_id_distinct_share:
     value: 0.3
     source:
