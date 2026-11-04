@@ -59,10 +59,10 @@ const geometry = () => {
   return { count: cards.length, overlaps, wide };
 };
 
-// Pairs of drawn links that cross, not counting links that share a card (each link sampled as 16 short segments).
+// Pairs of always-visible links that cross, not counting links that share a card (each link sampled as 16 short segments).
 const crossings = () => {
   const view = document.querySelector(".view:not([style*='none'])");
-  const links = [...view.querySelectorAll(".edge-g")].filter((g) => g.style.display !== "none").map((g) => {
+  const links = [...view.querySelectorAll(".edge-g")].filter((g) => g.style.display !== "none" && getComputedStyle(g).visibility !== "hidden").map((g) => {
     const path = g.querySelector(".edge"), len = path.getTotalLength(), pts = [];
     for (let i = 0; i <= 16; i++) { const q = path.getPointAtLength(len * i / 16); pts.push([q.x, q.y]); }
     return { s: g.dataset.s, t: g.dataset.t, pts };
@@ -80,6 +80,7 @@ const crossings = () => {
   return n;
 };
 // Crossings of the tree view before the hierarchical layout (force layout only), measured on the demo workspaces.
+// (all links drawn then, cut links included; since then the cut links show only on hover, so the count is of formula links)
 const TREE_BEFORE = { store: { 1440: 21, 390: 14 }, intake: { 1440: 125, 390: 127 } };
 // Soft: a count that is not lower than before is reported but does not fail the run.
 const soft = (page, width, n) => {
@@ -102,7 +103,23 @@ for (const file of pages) {
     await settle(page);
     const g = await page.evaluate(geometry);
     add(name, `${view}: nodes drawn`, g.count > 0, `${g.count}`);
-    if (view === "tree") soft(name, 1440, await page.evaluate(crossings));
+    if (view === "tree") {
+      soft(name, 1440, await page.evaluate(crossings));
+      const cutVisible = () => page.evaluate(() => [...document.querySelectorAll(".view:not([style*='none']) .edge-g.k-cut")].filter((g) => getComputedStyle(g).visibility !== "hidden").length);
+      const cutTotal = await page.locator(".view:not([style*='none']) .edge-g.k-cut").count();
+      add(name, "tree: cut links hidden by default", (await cutVisible()) === 0, `${cutTotal} cut links`);
+      const target = page.locator(".view:not([style*='none']) .node[data-kind='metric']", { has: page.locator("xpath=.") }).first();
+      const dimNode = page.locator(".view:not([style*='none']) .node[data-kind='dimension']").first();
+      await dimNode.hover();
+      const shown = await cutVisible();
+      add(name, "tree: hovering a dimension shows its cut links", shown > 0 && shown < cutTotal || cutTotal === shown && shown > 0, `${shown} of ${cutTotal}`);
+      await page.screenshot({ path: path.join(OUT, `${name}-tree-hover-1440.png`) });
+      await page.mouse.move(5, 5);
+      await dimNode.focus();
+      add(name, "tree: keyboard focus shows cut links", (await cutVisible()) > 0);
+      await page.locator("#canvas").evaluate((e) => document.activeElement && document.activeElement.blur());
+      void target;
+    }
     add(name, `${view}: no overlapping cards`, g.overlaps.length === 0, g.overlaps.slice(0, 4).join("; "));
     add(name, `${view}: label inside its card`, g.wide.length === 0, g.wide.slice(0, 4).join("; "));
     const tiers = await page.evaluate(() => [...new Set([...document.querySelectorAll(".view:not([style*='none']) .node")].map((n) => n.dataset.tier))]);
@@ -167,6 +184,14 @@ for (const file of pages) {
     const sw = await c.page.evaluate(() => ({ sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth }));
     add(name, "390 px: no horizontal scroll", sw.sw <= sw.cw, `${sw.sw} > ${sw.cw}`);
     soft(name, 390, await c.page.evaluate(crossings));
+    const tapped = await c.page.evaluateHandle(() => [...document.querySelectorAll(".view:not([style*='none']) .node[data-kind='dimension']")].find((n) => { const r = n.getBoundingClientRect(), s = document.getElementById("stage").getBoundingClientRect(); return r.left > s.left + 8 && r.right < s.right - 8 && r.top > s.top + 8 && r.bottom < s.bottom - 8; }));
+    if (tapped.asElement()) {
+      await tapped.asElement().tap();
+      const vis = await c.page.evaluate(() => [...document.querySelectorAll(".view:not([style*='none']) .edge-g.k-cut")].filter((g) => getComputedStyle(g).visibility !== "hidden").length);
+      add(name, "390 px: tapping a dimension shows its cut links", vis > 0, `${vis}`);
+      await c.page.screenshot({ path: path.join(OUT, `${name}-tree-tap-390.png`) });
+      await c.page.keyboard.press("Escape");
+    }
     await c.page.screenshot({ path: path.join(OUT, `${name}-tree-390.png`) });
     await c.page.locator("#tab-world").click();
     await settle(c.page);
