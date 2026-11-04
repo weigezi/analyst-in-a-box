@@ -55,6 +55,9 @@ button, input { font: inherit; color: inherit; }
 .confirm .card, .sw.confirm { fill: #fff; stroke: var(--ink-2); stroke-width: 1.5; stroke-dasharray: 6 4; }
 .inference .card, .sw.inference { fill: #FAF9F5; stroke: #7C8EA5; stroke-width: 1.5; stroke-dasharray: 1.5 4; stroke-linecap: round; }
 .inference text { fill: var(--ink-2); }
+.none .card, .sw.none { fill: #fff; stroke: #8A9096; stroke-width: 1.5; stroke-dasharray: 10 3 2 3; }
+.none text { fill: #4F565C; }
+.none .badge-bg, .none .badge { color: #4F565C; }
 .retired .card, .sw.retired { fill: #EFEFED; stroke: #B8BEC2; stroke-width: 1; }
 .retired text { fill: #8A9096; text-decoration: line-through; }
 .confirm .badge-bg, .confirm .badge { color: var(--warn); }
@@ -67,6 +70,7 @@ button, input { font: inherit; color: inherit; }
 .edge.confirm { stroke-dasharray: 6 4; }
 .edge.inference { stroke: #A9B6C6; stroke-dasharray: 1.5 4; stroke-linecap: round; }
 .edge.retired { stroke: #C9CED2; }
+.edge.none { stroke: #8A9096; }
 .edge-hit { fill: none; stroke: transparent; stroke-width: 12; cursor: pointer; }
 .edge-glyph { font-size: 12px; fill: var(--ink-2); text-anchor: middle; dominant-baseline: central; pointer-events: none; }
 .edge-glyph-bg { fill: #fff; stroke: var(--line); }
@@ -89,6 +93,7 @@ button, input { font: inherit; color: inherit; }
 .p-banner.fact { background: var(--fact-fill); border: 1.5px solid var(--ink); }
 .p-banner.confirm { background: #fff; border: 1.5px dashed var(--ink-2); color: var(--warn); }
 .p-banner.inference { background: #FAF9F5; border: 1.5px dotted #7C8EA5; color: var(--ink-2); }
+.p-banner.none { background: #fff; border: 1.5px dashed #8A9096; color: #4F565C; }
 .p-banner.retired { background: #EFEFED; border: 1px solid #B8BEC2; color: #6B7178; }
 .sec { margin: 0 0 16px; }
 .sec h3 { margin: 0 0 4px; font-size: 12px; line-height: 16px; font-weight: 600; color: var(--ink-3); letter-spacing: .02em; }

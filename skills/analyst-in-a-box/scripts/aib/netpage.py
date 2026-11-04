@@ -23,7 +23,7 @@ TEMPLATES = Path(__file__).resolve().parents[2] / "templates" / "network"
 
 FACT_KINDS = ("user", "system_record", "data", "formula")
 INFERENCE_KINDS = ("general_knowledge", "demo_setting")
-TIERS = ("fact", "confirm", "inference", "retired")
+TIERS = ("fact", "confirm", "inference", "retired", "none")
 _WEAKNESS = {"fact": 0, "confirm": 1, "inference": 2}
 
 UI = {
@@ -35,6 +35,9 @@ UI = {
         "text_confirm": "Proposed, or taken from a document. Nobody has confirmed it yet.",
         "text_inference": "General knowledge or a setting of the demo. A draft until a person confirms it.",
         "text_retired": "Kept for history. Never used in an analysis.",
+        "tier_none": "No source recorded", "text_none": "The model uses it, but no record says where it came from.",
+        "badge_none": "no source", "banner_none": "no source recorded",
+        "no_record_metric": "This metric appears in the model but no record says where it came from.",
         "badge_confirm": "to confirm", "badge_inference": "inference", "badge_retired": "retired",
         "banner_inference": "inference: a draft until a person confirms it",
         "banner_confirm": "to confirm: nobody has confirmed this yet",
@@ -62,13 +65,16 @@ UI = {
         "of": "of", "column": "column", "table": "table", "scatter": "Scatter again",
     },
     "zh": {
-        "page_title": "业务知识图谱", "tab_tree": "指标树", "tab_world": "业务世界",
+        "page_title": "业务知识图谱", "tab_tree": "指标树", "tab_world": "业务世界描述",
         "tabs_label": "视图", "legend": "可信程度", "legend_more": "轮廓的含义",
         "tier_fact": "事实", "tier_confirm": "待确认", "tier_inference": "AI 推断", "tier_retired": "已作废",
         "text_fact": "有人说过，或来自系统记录、数据、公式，并且已确认。",
         "text_confirm": "还是提议，或来自文档。还没有人确认。",
         "text_inference": "通用常识或演示设定。有人确认之前只是草稿。",
         "text_retired": "留作历史，不再用于分析。",
+        "tier_none": "无出处记录", "text_none": "模型里用到了它，但没有任何记录说明它从哪来。",
+        "badge_none": "无出处", "banner_none": "无出处记录",
+        "no_record_metric": "这个指标出现在模型里，但没有任何记录说明它从哪来。",
         "badge_confirm": "待确认", "badge_inference": "推断", "badge_retired": "已作废",
         "banner_inference": "推断：在有人确认之前只是草稿",
         "banner_confirm": "待确认：还没有人确认过",
@@ -244,12 +250,12 @@ def _tree(ws: Workspace, lang: str, ui: dict) -> dict:
             s["what"] = formula_text(i)
             sources.append(s)
         if t is None:
-            t = "confirm"
+            t = "none"
         nodes.append({
             "id": f"metric:{m}", "kind": "metric", "north": m == north, "depth": depth[m],
             "label": ml(m), "full": ml(m), "tag": ui["kind_north"] if m == north else ui["kind_metric"],
-            "tier": t, "status": "", "sources": sources, "no_source": not own,
-            "note": ui["weakest"] if len(own) > 1 else "", "refuted_by": "", "facts": facts,
+            "tier": t, "status": "", "sources": sources, "no_source": False,
+            "note": ui["weakest"] if len(own) > 1 else (ui["no_record_metric"] if not own else ""), "refuted_by": "", "facts": facts,
         })
 
     cut_edges: list = []

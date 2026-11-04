@@ -65,7 +65,7 @@ for (const file of pages) {
   await settle(page);
   const ms = await page.evaluate(() => Number(document.body.dataset.msToSettle));
   add(name, "settles within 3.5 s", ms > 0 && ms <= 3500, `measured ${ms} ms (wall clock ${Date.now() - t0} ms)`);
-  add(name, "legend lists four tiers", (await page.locator("#legend li").count()) === 4);
+  add(name, "legend lists five tiers", (await page.locator("#legend li").count()) === 5);
   for (const view of ["tree", "world"]) {
     await page.locator(`#tab-${view}`).click();
     await settle(page);

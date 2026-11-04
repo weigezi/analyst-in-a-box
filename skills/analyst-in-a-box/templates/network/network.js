@@ -586,11 +586,11 @@ function applyFilter(v) {
   if (v.sel && !(v.sel.nb ? v.sel.live : v.sel.live)) closePanel(false);
 }
 function counts(v) {
-  const c = { fact: 0, confirm: 0, inference: 0, retired: 0 };
+  const c = { fact: 0, confirm: 0, inference: 0, retired: 0, none: 0 };
   for (const n of v.nodes) if (n.live) c[n.d.tier]++;
   const nl = v.links.filter((l) => l.live).length;
   $("counts").textContent = `${v.nodes.filter((n) => n.live).length} ${UI.cards} · ${nl} ${UI.links} · ` +
-    ["fact", "confirm", "inference", "retired"].filter((t) => c[t]).map((t) => `${tierName(t)} ${c[t]}`).join(" · ");
+    ["fact", "confirm", "inference", "retired", "none"].filter((t) => c[t]).map((t) => `${tierName(t)} ${c[t]}`).join(" · ");
 }
 
 hideBox.addEventListener("change", () => {
