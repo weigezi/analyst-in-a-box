@@ -530,7 +530,8 @@ def _derive(paths, workspace, lang="zh", main=None) -> dict:
         mq["candidates"] = _candidates(tables, grain, main, lang)
     qs = [mq]
     kinds = {"lookup": ("查找表（一行一个编号，其余是属性）", "a lookup table (one row per key, the rest are attributes)"),
-             "business": ("另一份业务数据（要拿来算数的，比如访问量）", "more business data (to compute with, e.g. visits)"),
+             "business": ("另一份业务数据（要拿来算数的，比如访问量；若它同时被主表按编号指向，也兼作查找表）",
+                          "more business data (to compute with, e.g. visits). If the main table also points at it by key, it is the lookup of those rows too"),
              "events": ("事件记录（活动、调价之类，每行一件事、有起止日期）", "event records (campaigns, price changes: one per row, with start and end)"),
              "calendar": ("节假日日历", "a holiday calendar"),
              "series": ("外部的连续数据（天气之类）", "outside daily data (weather and the like)"),
@@ -686,8 +687,11 @@ def confirm(workspace, answers: dict, today: dt.date | None = None) -> dict:
              and kind.get(lk["right_table"]) != "ignore"]
     joined, joins = _joined(frames[main], links, frames, main, use=lambda lk: True)
     for j in joins:
-        if kind[j["source"]] != "lookup":
-            raise ValueError(f"'{j['source']}' is linked to the main table by key but was not answered as a lookup table")
+        if kind[j["source"]] not in ("lookup", "business"):
+            raise _follow_up(ws, d, _ask_join_kind(j["source"], kind[j["source"]], main, lang), (
+                f"「{j['source']}」通过编号连到了主表，所以它至少是查找表；请重新回答它是什么（kind:{j['source']}），再运行 confirm。问题已写进 draft.json。" if lang == "zh" else
+                f"\"{j['source']}\" is linked to the main table by key, so it is at least a lookup table. Answer what it is again "
+                f"(kind:{j['source']}) and run confirm again. The question is saved in draft.json."))
 
     mt = tables[main]
     date_col = answers.get("date_column") or (mt["date_columns"][0] if len(mt["date_columns"]) == 1 else None)
@@ -752,7 +756,8 @@ def confirm(workspace, answers: dict, today: dt.date | None = None) -> dict:
         sources[main]["key"] = id_col
 
     roles = _main_roles(ws, d, answers, main, joined, price_col, per_unit, {x["name"] for x in derived}, lang)
-    specs = [{"column": c, "role": r, "source": main, "date": date_col, "dimensions": dims} for c, r in roles.items()]
+    specs = [draft.with_count({"column": c, "role": r, "source": main, "date": date_col, "dimensions": dims}, joined,
+                              sources[main].get("key")) for c, r in roles.items()]
     for dc in derived:
         specs.append({"column": dc["name"], "role": "amount" if dc["name"] == (per_unit or {}).get("amount") else "quantity",
                       "source": main, "date": date_col, "dimensions": dims})
@@ -775,12 +780,24 @@ def confirm(workspace, answers: dict, today: dt.date | None = None) -> dict:
             date = t["date_columns"][0] if cd is None else cd["name"]
             cols = {lk["right_column"]: lk["left_column"] for lk in mine}
             src = {**_spec(t, ws), "date_columns": [date], **({"derive_dates": [cd]} if cd else {})}
-            if t.get("per_date") is not None:
+            lent = next((j for j in joins if j["source"] == n), None)
+            if lent:
+                # also the lookup of the main table's rows: its key stays, and the columns it lent are its own groups
+                src["key"] = sources[n]["key"]
+                cols = {**{c: c for c in lent["columns"] if c in dims}, **cols}
+            elif t.get("per_date") is not None:
                 src["key"] = [date, *t["per_date"]]
             sources[n] = src
+            key = src["key"] if isinstance(src.get("key"), str) else None
             for c in t["number_columns"]:
-                specs.append({"column": c, "role": answers.get(f"role:{n}.{c}") or "skip", "source": n, "date": date,
-                              "dimensions": list(cols), "columns": {dm: lc for dm, lc in cols.items() if dm != lc}})
+                specs.append(draft.with_count(
+                    {"column": c, "role": answers.get(f"role:{n}.{c}") or "skip", "source": n, "date": date,
+                     "dimensions": list(cols), "columns": {dm: lc for dm, lc in cols.items() if dm != lc}}, df, key))
+            if not t["number_columns"] and answers.get(f"records:{n}") == "yes":
+                # nothing to add up here: the table is a list of records, and the records are what is counted
+                specs.append({"column": f"{n}_records", "role": "records", "source": n, "date": date, "dimensions": list(cols),
+                              "columns": {dm: lc for dm, lc in cols.items() if dm != lc}, "count": {"column": key},
+                              "label": {"en": f"Rows of {n}", "zh": f"「{n}」的行数"}})
         elif k in ("series", "market"):
             date = t["date_columns"][0]
             comp = answers.get(f"market_compares:{n}")
@@ -897,9 +914,14 @@ def _pending(d, answers, kind, dims, lang):
         if kind.get(n) == "business":
             for c in t["number_columns"]:
                 if f"role:{n}.{c}" not in answers:
+                    note = draft.ID_NEVER_ADDED[lang] if c in t["id_columns"] else ""
                     out.append({"id": f"role:{n}.{c}", "column": c, "table": n,
-                                "ask": (f"「{n}」的「{c}」这一列是什么？" if zh else f"What is the column \"{c}\" of \"{n}\"?"),
+                                "ask": (f"「{n}」的「{c}」这一列是什么？{note}" if zh else f"What is the column \"{c}\" of \"{n}\"? {note}".strip()),
                                 "options": [{"value": k, "label": v[lang]} for k, v in draft.ROLES.items()]})
+            if not t["number_columns"] and f"records:{n}" not in answers:
+                out.append(_q(f"records:{n}", f"「{n}」里没有可以加起来的数。每一行是一次访问或一条记录，要数行数吗？",
+                              f"\"{n}\" has no number to add up. {draft.ROLES['records']['en']}. Count its rows?", ["yes", "no"], lang,
+                              suggested="yes"))
         if kind.get(n) in ("series", "market") and f"market_compares:{n}" not in answers:
             out.append(_q(f"market_compares:{n}", f"如果「{n}」是行业大盘，拿它和主表的哪一列比？不是大盘就选 none。",
                           f"If \"{n}\" is a market benchmark, which main-table column does it compare with? none if it is not one.",
@@ -911,6 +933,21 @@ def _pending(d, answers, kind, dims, lang):
                                            f"Every \"{f['child']}\" appears under exactly one \"{f['parent']}\". Does it belong to that \"{f['parent']}\"?"),
                         "options": ["yes", "no"]})
     return out
+
+
+def _ask_join_kind(table, answered, main, lang):
+    """A table the main table reaches by a confirmed key link gives its columns to the main table's rows, so it cannot be
+    an event list or an outside series. The answer is asked again with the two kinds that fit; "business" is the one for a
+    table that is also counted (a sessions table: the channel of an order, and the number of visits)."""
+    zh = lang == "zh"
+    return _q(f"kind:{table}",
+              f"「{main}」通过一条你确认过的编号链接连到了「{table}」，所以「{table}」会把自己的列借给「{main}」的每一行。你把它答成了「{answered}」，这样对不上。它是哪一种？",
+              f"\"{main}\" points at \"{table}\" through a link you confirmed, so \"{table}\" lends its columns to every row of \"{main}\". "
+              f"You answered \"{answered}\", which does not fit. Which is it?",
+              [{"value": "lookup", "label": "只是查找表：只借列给主表（比如商品名称）" if zh else "only a lookup: it lends columns to the main table (a product name)"},
+               {"value": "business", "label": "查找表，同时也要拿来数个数（比如每行是一次访问，要数访问量）" if zh else
+                "a lookup that is also counted (each row is a visit, and the visits are to be counted)"}],
+              lang, suggested="lookup")
 
 
 def _ask_reversal_values(ws, d, column, joined, lang):
@@ -975,8 +1012,8 @@ def _main_roles(ws, d, answers, main, joined, price_col, per_unit, derived_names
     if missing:
         zh = lang == "zh"
         by = {p["column"]: p for p in d.get("joined_profile", [])}
-        q = _q("measure_roles", "你选的这几列分别是什么？每一列选一项：" + "、".join(missing),
-               "What is each of the numbers you selected? Pick one for each column: " + ", ".join(missing),
+        q = _q("measure_roles", "你选的这几列分别是什么？每一列选一项：" + "、".join(missing) + "。" + draft.ID_NEVER_ADDED["zh"],
+               "What is each of the numbers you selected? Pick one for each column: " + ", ".join(missing) + ". " + draft.ID_NEVER_ADDED["en"],
                [{"value": k, "label": v[lang]} for k, v in draft.ROLES.items()], lang, columns=missing,
                examples={c: by[c]["examples"][:3] for c in missing if c in by})
         raise _follow_up(ws, d, q, (f"先回答这几列分别是什么（measure_roles）：{', '.join(missing)}。答案写成 {{列名: 选项}}，再运行 confirm。" if zh else
