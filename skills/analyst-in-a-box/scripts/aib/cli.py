@@ -11,6 +11,7 @@
   regress   --workspace W                 replay every regression case
   docs      --workspace W                 rebuild the readable Markdown pages
   coverage  --workspace W                 how many explanations could cite a record, run by run
+  network   --workspace W [--lang zh|en]  write knowledge.html: the business knowledge graph as one moving page
 """
 
 from __future__ import annotations
@@ -22,7 +23,7 @@ from pathlib import Path
 
 import yaml
 
-from . import docs_gen, draft, evolve, followup, intake
+from . import docs_gen, draft, evolve, followup, intake, netpage
 from .run import run
 from .validate import all_problems
 from .workspace import Workspace
@@ -128,6 +129,10 @@ def cmd_docs(a):
     _out({"docs": str(docs_gen.build(Workspace(a.workspace), a.out))})
 
 
+def cmd_network(a):
+    _out(netpage.write(Workspace(a.workspace), a.out, a.lang))
+
+
 def cmd_coverage(a):
     rows = []
     for rec in sorted(Path(a.workspace, "runs").glob("*/record.json")):
@@ -210,6 +215,11 @@ def _main(argv):
     p.add_argument("--workspace", required=True)
     p.add_argument("--out")
     p.set_defaults(fn=cmd_docs)
+    p = commands.add_parser("network", help="write knowledge.html, the business knowledge graph")
+    p.add_argument("--workspace", required=True)
+    p.add_argument("--lang", choices=["zh", "en"], help="page language (default: the workspace language)")
+    p.add_argument("--out", help="output file (default: <workspace>/knowledge.html)")
+    p.set_defaults(fn=cmd_network)
     p = commands.add_parser("run")
     p.add_argument("--workspace", required=True)
     p.add_argument("--config", help="a JSON/YAML file or string with the whole run config")
