@@ -277,3 +277,43 @@ def test_an_event_table_of_two_rows_is_not_the_parent_of_a_small_whole_number_co
     campaigns.to_csv(folder / "campaigns.csv", index=False)
     d = intake.init([folder], tmp_path / "ws", lang="en")
     assert not [lk for lk in d["links"] if lk["right_table"] == "campaigns" and lk["right_column"] == "campaign_id"]
+
+
+# ---------- 4. questions that exist only after an earlier answer are follow-ups, not part of the first list ----------
+
+def _demo(tmp_path):
+    import sys
+    import yaml
+    here = Path(__file__).resolve().parent.parent / "demo" / "intake"
+    sys.path.insert(0, str(here))
+    import build_tables
+    tables = tmp_path / "tables"
+    build_tables.main(tables)
+    answers = yaml.safe_load((here / "answers.yaml").read_text(encoding="utf-8"))
+    return tables, answers
+
+
+def test_init_does_not_ask_per_table_roles_market_columns_or_belongs(tmp_path):
+    tables, _ = _demo(tmp_path)
+    d = intake.init([tables], tmp_path / "ws", lang="en")
+    assert not [i for i in _ids(d) if i.startswith(("market_compares:", "belongs:")) or (i.startswith("role:") and "." in i)]
+
+
+def test_the_follow_ups_come_back_in_one_round_and_the_answers_give_the_same_workspace(tmp_path):
+    import yaml
+    tables, full = _demo(tmp_path)
+    follow = [k for k in full if k.startswith(("market_compares:", "belongs:")) or (k.startswith("role:") and "." in k)]
+    assert follow, "the demo answers must carry follow-up answers for this test to mean anything"
+    first = {k: v for k, v in full.items() if k not in follow}
+    ws = tmp_path / "ws"
+    intake.init([tables], ws, lang="zh")
+    with pytest.raises(intake.NeedsAnswers) as e:
+        intake.confirm(ws, first, today=__import__("datetime").date(2026, 10, 31))
+    assert "role:traffic.visits" in e.value.ids and "market_compares:market" in e.value.ids and "belongs:city>region" in e.value.ids
+    assert all(i in follow for i in e.value.ids)                              # nothing is asked that the demo did not answer
+    ws2 = tmp_path / "ws2"
+    intake.init([tables], ws2, lang="zh")
+    intake.confirm(ws, full, today=__import__("datetime").date(2026, 10, 31))
+    intake.confirm(ws2, full, today=__import__("datetime").date(2026, 10, 31))
+    for f in ("model.yaml", "world.yaml", "project.yaml"):
+        assert (ws / f).read_text(encoding="utf-8") == (ws2 / f).read_text(encoding="utf-8")

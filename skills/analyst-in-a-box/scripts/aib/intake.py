@@ -592,15 +592,6 @@ def _derive(paths, workspace, lang="zh", main=None) -> dict:
             qs.append(_q(f"event_kind:{t['name']}", f"「{t['name']}」里记的是你们自己做的事，还是外面发生的事？",
                          f"Does \"{t['name']}\" record things you did, or things that happened to you?",
                          ["internal", "external"], lang, suggested="internal"))
-        if t["suggested_kind"] in ("business", "series", "market"):
-            for c in t["number_columns"]:
-                qs.append({"id": f"role:{t['name']}.{c}", "column": c, "table": t["name"],
-                           "ask": (f"「{t['name']}」的「{c}」这一列是什么？" if zh else f"What is the column \"{c}\" of \"{t['name']}\"?"),
-                           "options": [{"value": k, "label": v[lang]} for k, v in draft.ROLES.items()]})
-        if t["suggested_kind"] in ("series", "market"):
-            qs.append(_q(f"market_compares:{t['name']}", f"如果「{t['name']}」是行业大盘，拿它和主表的哪一列比？不是大盘就选 none。",
-                         f"If \"{t['name']}\" is a market benchmark, which main-table column does it compare with? none if it is not one.",
-                         ["none", *tables[main]["number_columns"]], lang, suggested="none"))
     comps = tables[main]["composite_dates"]
     for cd in comps:
         joined[cd["name"]] = derive_dates(joined, cd)
@@ -615,6 +606,7 @@ def _derive(paths, workspace, lang="zh", main=None) -> dict:
     attributes = {c for j in joins for c in j["columns"] if c in joined.columns}
     row_keys = {c for c in ids if joined[c].is_unique and not joined[c].isna().any()}   # asked as "which column identifies one record"
     main_qs = draft.questions(prof, fds, lang, quiet, exclude=parts | row_keys | attributes, id_columns=ids - row_keys | row_keys)
+    main_qs = [q for q in main_qs if not q["id"].startswith("belongs:")]       # asked by confirm, for the pairs both chosen as dimensions
     main_qs = _measure_question(main_qs, prof, joined, parts | row_keys | attributes, lang)
     dups = tables[main]["duplicate_rows"]
     if dups and not row_keys:
@@ -719,6 +711,11 @@ def confirm(workspace, answers: dict, today: dt.date | None = None) -> dict:
     problems = [(f"「{x}」不能用来切分：从主表「{main}」出发，没有一条确认过的链接能走到这一列。" if lang == "zh" else
                  f"\"{x}\" cannot be used to cut the numbers: no confirmed link leads from the main table \"{main}\" to a column of that name.")
                 for x in wanted if x not in joined.columns]
+    pending = _pending(d, answers, kind, dims, lang)
+    if pending:
+        ids = ", ".join(x["id"] for x in pending)
+        raise _follow_up(ws, d, pending, (f"这些问题要等前面的回答才知道要不要问：{ids}。回答后再运行 confirm。问题已写进 draft.json。" if lang == "zh" else
+                                          f"These questions exist only because of earlier answers: {ids}. Answer them and run confirm again. They are saved in draft.json."))
     id_col = answers.get("order_id") if answers.get("order_id") not in (None, "none") else None
 
     sources, external = {}, {}
@@ -879,11 +876,40 @@ def confirm(workspace, answers: dict, today: dt.date | None = None) -> dict:
 
 
 def _follow_up(ws, d, q, message):
-    """A question that exists only after an earlier answer: saved in draft.json (so the next confirm and the count of
-    questions see it) and returned as the NeedsAnswers to raise."""
-    d["questions"] = [x for x in d["questions"] if x["id"] != q["id"]] + [q]
+    """Questions that exist only after earlier answers: saved in draft.json (so the next confirm and the count of
+    questions see them) and returned as the NeedsAnswers to raise. `q` is one question or a list."""
+    qs = q if isinstance(q, list) else [q]
+    ids = {x["id"] for x in qs}
+    d["questions"] = [x for x in d["questions"] if x["id"] not in ids] + qs
     (ws / "draft.json").write_text(json.dumps(d, ensure_ascii=False, indent=1, default=str), encoding="utf-8")
-    return NeedsAnswers(message, [q["id"]], [q])
+    return NeedsAnswers(message, [x["id"] for x in qs], qs)
+
+
+def _pending(d, answers, kind, dims, lang):
+    """The questions that only exist because of earlier answers, and have no answer yet: what a number in a second table is
+    (business tables), which main-table column an outside series is compared with (series, market), and whether a group
+    belongs to another when both were chosen as dimensions."""
+    zh = lang == "zh"
+    main, tables = d["main"], d["tables"]
+    out = []
+    for n, t in tables.items():
+        if kind.get(n) == "business":
+            for c in t["number_columns"]:
+                if f"role:{n}.{c}" not in answers:
+                    out.append({"id": f"role:{n}.{c}", "column": c, "table": n,
+                                "ask": (f"「{n}」的「{c}」这一列是什么？" if zh else f"What is the column \"{c}\" of \"{n}\"?"),
+                                "options": [{"value": k, "label": v[lang]} for k, v in draft.ROLES.items()]})
+        if kind.get(n) in ("series", "market") and f"market_compares:{n}" not in answers:
+            out.append(_q(f"market_compares:{n}", f"如果「{n}」是行业大盘，拿它和主表的哪一列比？不是大盘就选 none。",
+                          f"If \"{n}\" is a market benchmark, which main-table column does it compare with? none if it is not one.",
+                          ["none", *tables[main]["number_columns"]], lang, suggested="none"))
+    for f in d["belongs_to"]:
+        qid = f"belongs:{f['child']}>{f['parent']}"
+        if qid not in answers and f["child"] in dims and f["parent"] in dims:
+            out.append({"id": qid, "ask": (f"数据里每个「{f['child']}」只出现在一个「{f['parent']}」下面。它是不是属于那个「{f['parent']}」？" if zh else
+                                           f"Every \"{f['child']}\" appears under exactly one \"{f['parent']}\". Does it belong to that \"{f['parent']}\"?"),
+                        "options": ["yes", "no"]})
+    return out
 
 
 def _ask_reversal_values(ws, d, column, joined, lang):
