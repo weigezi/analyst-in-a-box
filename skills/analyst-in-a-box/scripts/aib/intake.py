@@ -821,6 +821,7 @@ def confirm(workspace, answers: dict, today: dt.date | None = None) -> dict:
                                "status": "proposed"})
     every_column = list(dict.fromkeys([c for f in frames.values() for c in f.columns] + list(joined.columns)))
     names = draft.name_map([{"column": c, "name": draft.readable(c)} for c in every_column], answers)
+    _name_derived(derived, names, answers)
     measures, metrics, identities, by_role = draft.build_metrics(specs, id_spec, answers.get("template", "orders"), said, names,
                                                                  per_unit=per_unit)
     north = answers.get("north_star") if answers.get("north_star") in metrics else by_role.get("amount") or next(iter(metrics), None)
@@ -991,6 +992,36 @@ class _NeedsTimes(ValueError):
         self.price = price
 
 
+def _short_name(a, b, taken):
+    """An id for a sum of two columns from the words their names end with ("stays_in_weekend_nights" and
+    "stays_in_week_nights" -> "nights"), or None when they share no closing word or the id is already a column.
+    A name made of the user's own words, not a statement about what the sum means."""
+    ta, tb = a.split("_"), b.split("_")
+    k = 0
+    while k < min(len(ta), len(tb)) and ta[-1 - k] == tb[-1 - k]:
+        k += 1
+    name = "_".join(ta[len(ta) - k:]) if k else ""
+    return name if name.isidentifier() and name not in taken and name not in (a, b) else None
+
+
+def _name_derived(derived, names, answers):
+    """Labels for derived columns, added to `names` in order (a later one may use an earlier one): "A + B" and "A × (B)".
+    Chinese uses full-width punctuation. A name the person gave ("name:<id>") stays."""
+    for sp in derived:
+        given = answers.get(f"name:{sp['name']}")
+        if given:
+            names[sp["name"]] = draft._as_name(given)
+            continue
+        a, b = (names.get(c) or draft.readable(c) for c in sp["columns"])
+        if sp["op"] == "add":
+            names[sp["name"]] = {"zh": f"{a['zh']}＋{b['zh']}", "en": f"{a['en']} + {b['en']}"}
+        elif sp["op"] == "mul":
+            names[sp["name"]] = {"zh": f"{a['zh']}×（{b['zh']}）" if "＋" in b["zh"] else f"{a['zh']}×{b['zh']}",
+                                 "en": f"{a['en']} × ({b['en']})" if " + " in b["en"] else f"{a['en']} × {b['en']}"}
+        else:
+            names[sp["name"]] = {"zh": f"{a['zh']}－{b['zh']}", "en": f"{a['en']} - {b['en']}"}
+
+
 def _derived_specs(answers, main_df, joined):
     """derive_columns from the answers: a sum of two columns, and a unit price times a quantity. Returns
     (specs, the unit price column or None, {'amount', 'quantity', 'quantity_source'} for the average price per unit or None)."""
@@ -1004,7 +1035,7 @@ def _derived_specs(answers, main_df, joined):
         raise ValueError(f"sum_columns takes exactly two columns, got {len(pair)}: {pair}")
     sum_name = None
     if pair:
-        sum_name = f"{pair[0]}_plus_{pair[1]}"
+        sum_name = _short_name(pair[0], pair[1], set(joined.columns)) or f"{pair[0]}_plus_{pair[1]}"
         specs.append({"name": sum_name, "op": "add", "columns": pair})
     if price:
         if answers.get(f"role:{price}") not in (None, "skip", "unit_price"):
@@ -1017,7 +1048,7 @@ def _derived_specs(answers, main_df, joined):
             if not sum_name:
                 raise ValueError("unit_price_times is sum_columns, but no two columns were given in sum_columns")
             times = sum_name
-        amount = f"{price}_times_{times}"
+        amount = f"{price}_x_{times}"
         specs.append({"name": amount, "op": "mul", "columns": [price, times]})
         per_unit = {"amount": amount, "quantity": times, "quantity_source": times, "price": price}
     for sp in specs:

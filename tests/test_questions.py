@@ -317,3 +317,71 @@ def test_the_follow_ups_come_back_in_one_round_and_the_answers_give_the_same_wor
     intake.confirm(ws2, full, today=__import__("datetime").date(2026, 10, 31))
     for f in ("model.yaml", "world.yaml", "project.yaml"):
         assert (ws / f).read_text(encoding="utf-8") == (ws2 / f).read_text(encoding="utf-8")
+
+
+# ---------- 5. readable names for derived measures ----------
+
+def _stays_frame(n=500, extra=None):
+    rng = _rng()
+    df = pd.DataFrame({"day": pd.date_range("2025-01-01", periods=n), "adr": rng.uniform(40, 220, n).round(2),
+                       "stays_in_weekend_nights": rng.integers(0, 3, n), "stays_in_week_nights": rng.integers(0, 6, n),
+                       "market": rng.choice(["online", "offline"], n)})
+    for k, v in (extra or {}).items():
+        df[k] = v
+    return df
+
+
+def _confirm_stays(tmp_path, frame, **extra):
+    _init(tmp_path, frame, name="stays")
+    ans = {"date_column": "day", "order_id": "none", "dimensions": ["market"], "unit_price": "adr",
+           "sum_columns": ["stays_in_weekend_nights", "stays_in_week_nights"], "unit_price_times": "sum_columns",
+           "measure_columns": [], "exact_copies": "unknown", **extra}
+    intake.confirm(tmp_path / "ws", ans)
+    return Workspace(tmp_path / "ws")
+
+
+def test_a_revenue_built_from_a_price_and_two_columns_is_named_in_the_users_words(tmp_path):
+    W = _confirm_stays(tmp_path, _stays_frame())
+    assert {"nights", "adr_x_nights", "nights_per_id"} <= set(W.metrics)
+    assert not [m for m in W.metrics if len(m) > 24]                                  # no 60-character ids
+    assert all(m.isidentifier() for m in W.metrics)
+    en = {m: W.metrics[m]["label"]["en"] for m in ("nights", "adr_x_nights", "nights_per_id")}
+    assert en["nights"] == "Stays In Weekend Nights + Stays In Week Nights"
+    assert en["adr_x_nights"] == "Adr × (Stays In Weekend Nights + Stays In Week Nights)"
+    assert en["nights_per_id"] == "(Stays In Weekend Nights + Stays In Week Nights) per row"
+    zh = W.metrics["adr_x_nights"]["label"]["zh"]
+    assert "×（" in zh and "＋" in zh and zh.endswith("）")                              # full-width punctuation in Chinese
+
+
+def test_the_users_own_name_for_a_derived_measure_wins(tmp_path):
+    W = _confirm_stays(tmp_path, _stays_frame(), **{"name:adr_x_nights": {"zh": "客房收入", "en": "Room revenue"}})
+    assert W.metrics["adr_x_nights"]["label"] == {"zh": "客房收入", "en": "Room revenue"}
+
+
+def test_the_old_long_ids_are_the_fallback_when_the_short_one_is_taken_or_the_columns_share_no_words(tmp_path):
+    taken = _confirm_stays(tmp_path, _stays_frame(extra={"nights": 1}))              # a real column called nights
+    assert "stays_in_weekend_nights_plus_stays_in_week_nights" in taken.metrics
+    other = tmp_path / "other"
+    other.mkdir()
+    rng = _rng()
+    n = 400
+    df = pd.DataFrame({"day": pd.date_range("2025-01-01", periods=n), "price": rng.uniform(5, 50, n).round(2),
+                       "adults": rng.integers(1, 4, n), "kids": rng.integers(0, 3, n)})
+    df.to_csv(other / "g.csv", index=False)
+    intake.init([other / "g.csv"], other / "ws", lang="en")
+    intake.confirm(other / "ws", {"date_column": "day", "order_id": "none", "dimensions": [], "unit_price": "price",
+                                  "sum_columns": ["adults", "kids"], "unit_price_times": "sum_columns", "measure_columns": []})
+    m = Workspace(other / "ws").metrics
+    assert "adults_plus_kids" in m and "price_x_adults_plus_kids" in m
+    assert m["adults_plus_kids"]["label"]["en"] == "Adults + Kids"
+
+
+def test_the_report_title_and_the_formula_line_use_the_readable_names(tmp_path):
+    from aib.run import run
+    frame = _stays_frame(n=800)
+    W = _confirm_stays(tmp_path, frame)
+    s = run(tmp_path / "ws", {"metric": "adr_x_nights", "current": ["2025-06-02", "2025-06-08"], "base": "pop"},
+            out_dir=tmp_path / "run")
+    text = (tmp_path / "run" / "report.en.md").read_text(encoding="utf-8")
+    assert "Adr × (Stays In Weekend Nights + Stays In Week Nights)" in text.splitlines()[0]
+    assert "adr_times_stays" not in text and "stays_in_weekend_nights_plus" not in text
