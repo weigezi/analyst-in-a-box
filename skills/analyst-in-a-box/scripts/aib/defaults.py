@@ -131,6 +131,11 @@ PARAMS = {
     "intake_grain_tolerance": _p(1e-6, note="Relative size of the difference below which two sums count as equal. Prices add up "
                                             "to the cent, so a difference above one millionth is a real difference and only "
                                             "float noise is forgiven. " + EXAMPLE),
+    "ratio_shows_zero_below": _p(0.00005, note="A rate is printed as a percentage with two decimals, so a rate under 0.005% prints as "
+                                               "0.00%. When both periods print that way although the top and the bottom of the "
+                                               "ratio are above zero, the bottom is almost certainly a sum of identifiers "
+                                               "(session numbers added up) and not a count, so the run stops instead of "
+                                               "printing 'fell from 0.00% to 0.00%'. " + EXAMPLE),
 }
 
 TABLES = [

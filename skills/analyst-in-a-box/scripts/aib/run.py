@@ -36,6 +36,31 @@ TRANSITIONS = [
 ]
 
 
+class RatioNotACount(ValueError):
+    """A ratio that would print as zero in both periods although its top and bottom are above zero."""
+
+
+def _ratio_not_a_count(ws, s):
+    """Raise RatioNotACount, a plain sentence and no number, when the headline ratio would print as 0.00% in both periods
+    while its numerator and denominator are above zero: the denominator is then a sum of identifiers, not a count."""
+    m = ws.metrics[s["metric"]]
+    if m.get("kind") != "ratio" or m.get("unit") != "ratio":
+        return
+    limit = param(ws, "ratio_shows_zero_below")
+    for w in (s["current"], s["base"]):
+        n, d = (ws.total(m[x], w, s["filters"]) for x in ("numerator", "denominator"))
+        if not (n > 0 and d > 0) or n / d >= limit:
+            return
+    name = label(ws.metrics[m["denominator"]].get("label", m["denominator"]), ws.lang)
+    head = label(m.get("label", s["metric"]), ws.lang)
+    raise RatioNotACount(
+        f"「{head}」没有算出来：两个时期的分子和分母都大于零，但比值小到显示成零。分母「{name}」看起来是把编号加起来的和，不是个数。"
+        "请把它改成按行数或不重复编号来数（角色选「记录」），再重新运行。" if ws.lang == "zh" else
+        f"No number for \"{head}\": in both periods the top and the bottom are above zero, but the ratio is too small to print as "
+        f"anything but zero. The denominator \"{name}\" looks like a sum of ids, not a count. "
+        "Make it count rows or distinct keys (choose the role \"records\" for it) and run again.")
+
+
 def _change(ws, metric, w, b, filters=None):
     cur, base = ws.total(metric, w, filters), ws.total(metric, b, filters)
     if ws.metrics[metric].get("kind") == "ratio":
@@ -100,6 +125,8 @@ def step_frame(ws, s):
     ws.per_day = s["per_day"]
     if auto:
         s["notes"].append({"per_day": "automatic: the two calendar months have different lengths"})
+    if not s["problems"]:
+        _ratio_not_a_count(ws, s)
     return "quality"
 
 

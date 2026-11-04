@@ -75,6 +75,10 @@ comparisons:         # second order across sides
 - `unit`: `currency`, `count` or `ratio`. Ratio deltas are reported in percentage points.
 - `count_distinct` is not summable in general. List in `additive_over` only the dimensions on which each id
   has a single value; `confirm` checks this against the data.
+- A table whose rows are visits (a sessions table) is counted, not summed: `agg: count_distinct` over its key (or
+  `agg: count` when no column identifies a row), on that table's own `source` and `date`. An identifier column is never
+  `agg: sum`. A ratio that prints as 0.00% in both periods while its top and bottom are above zero stops the run
+  (param `ratio_shows_zero_below`): the bottom is a sum of ids.
 - A measure can be cut only by its own `dimensions`; a ratio only by dimensions both its parts have.
 - `priorities.<metric>.mode` (0.2): `drill` (default) scores the candidates at every layer, and a confirmed
   `order` fixes the first cut. `each` cuts every dimension from the top and merges slots that are one cause.

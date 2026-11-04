@@ -58,14 +58,23 @@ the answers to the same answers file, run `confirm` again).
 | Question id | Raised when |
 |---|---|
 | `reversal_values:<col>` | `reversal_column` is a column: which of that column's values mean cancelled (only that column) |
-| `measure_roles` | a selected number's role is not given by the other answers: amount / profit / cost / quantity / visits / skip, as `{column: option}`. A unit price, the quantity it multiplies and a selected part of a sum are not asked |
+| `measure_roles` | a selected number's role is not given by the other answers: amount / profit / cost / quantity / visits / records / skip, as `{column: option}`. A unit price, the quantity it multiplies and a selected part of a sum are not asked. An identifier is never added up |
 | `unit_price_times` | a `unit_price` was picked without the column it multiplies |
-| `role:<table>.<col>` | a table was answered as business data: what each of its numbers is (`visits` makes conversion = orders / visits) |
+| `role:<table>.<col>` | a table was answered as business data: what each of its numbers is (`visits` or `records` makes conversion = orders / visits; on an identifier such as a session id both count distinct values, never add them) |
+| `records:<table>` | a business table with no number to add up: each row is one visit or record, count its rows? |
+| `kind:<table>` (again) | a table the main table reaches by a confirmed key link was answered as events, series, market or calendar: asked again, lookup or business |
 | `market_compares:<table>` | a table was answered as series or market: which main-table number it compares with |
 | `belongs:<child>><parent>` | both were chosen as dimensions |
 
-The old per-column answers `role:<col>` (amount, profit, cost, quantity, visits, skip, unit_price) are still accepted
+The old per-column answers `role:<col>` (amount, profit, cost, quantity, visits, records, skip, unit_price) are still accepted
 and win over `measure_roles`.
+
+A table can be a lookup and a source of a count at once. A sessions table has one row per session and a key: an order
+reaches it by that key (the order gets its channel) and the visits per day are its rows. Answer the table `business`, the
+link `yes`, and the session id `records` (or `visits`). The rows are then counted as distinct session ids on the table's
+own date column, and the table's own groups (channel, device) cut both the orders and the visits, so the conversion rate
+can be cut by channel. The role `records` counts distinct values of the identifier column, else of the table's declared
+key, else the rows; it is never a sum.
 
 A derived measure takes its id from the words the two chosen columns end with: `stays_in_weekend_nights` + `stays_in_week_nights`
 becomes `nights`, and a unit price `adr` times it becomes `adr_x_nights`, labelled "Adr × (Stays In Weekend Nights +
