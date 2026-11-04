@@ -320,6 +320,16 @@ def shrink_ranking(ws, metric, dim, base, cur, filters, res) -> bool:
 
 # ---------- the gate ----------
 
+def overall_quiet(ws, s, order="first", layer=0) -> bool:
+    """The whole number is within its usual range and was judged (there is a z-score): nothing moved."""
+    verdict = ((s.get("verdict_unusual") or {}).get("then") or {}).get("verdict")
+    drill_usual = s["config"].get("drill_when_usual", param(ws, "drill_when_usual"))
+    # With no z-score (history too short or flat) the table's last row still says "within_usual_range"; that is the
+    # absence of a verdict, not a finding, so it must not stop the search or be reported as a reason.
+    judged = (s.get("qualify") or {}).get("robust_z") is not None
+    return order == "first" and verdict == "within_usual_range" and judged and not drill_usual and layer == 0
+
+
 def gate(ws, s, res, order="first", layer=0) -> dict:
     """Inputs of the stop.cut table. layer > 0 means a parent group was already drilled into, so the question
     is 'where inside it', and the context counts as unusual."""
@@ -328,10 +338,7 @@ def gate(ws, s, res, order="first", layer=0) -> dict:
     z = top.get("z")
     verdict = ((s.get("verdict_unusual") or {}).get("then") or {}).get("verdict")
     drill_usual = s["config"].get("drill_when_usual", param(ws, "drill_when_usual"))
-    # With no z-score (history too short or flat) the table's last row still says "within_usual_range"; that is the
-    # absence of a verdict, not a finding, so it must not stop the search or be reported as a reason.
-    judged = (s.get("qualify") or {}).get("robust_z") is not None
-    quiet = order == "first" and verdict == "within_usual_range" and judged and not drill_usual and layer == 0
+    quiet = overall_quiet(ws, s, order, layer)
     # A group far outside its own history may override a quiet total: the total's noise is the sum of every group's,
     # so one group's real change can hide inside it (a level shift that started weeks ago, for instance).
     beats_quiet = bool(param(ws, "drill_quiet_total_when_group_stands_out")) and z is not None \

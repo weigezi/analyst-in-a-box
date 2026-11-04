@@ -75,7 +75,7 @@ comparisons:         # 二阶，比维度两侧
 - `count_distinct` 一般不能直接相加。`additive_over` 里只列「每个编号在这个维度上只有一个值」的维度；`confirm` 会拿数据核。
 - 一个度量只能按它自己的 `dimensions` 切；比率只能按分子分母都有的维度切。
 - `priorities.<指标>.mode`（0.2）：`drill`（默认）每层都给候选维度打分，确认过的 `order` 决定第一刀；
-  `each` 每个维度都从头切一遍，再把是同一个原因的槽位合并；`fixed` 照 `order` 原样切，不打分。`proposed` 状态的顺序只当候选清单。`confirm` 会把用户选的维度，按他选的顺序，给每个指标写成一条 `proposed` 顺序；两个候选得分相同时，先切这个顺序里靠前的，得分高的永远优先。没有 proposed 顺序时，得分相同按维度名的字母顺序。
+  `each` 每个维度都从头切一遍，再把是同一个原因的槽位合并；`fixed` 照 `order` 原样切，不打分。`proposed` 状态的顺序只当候选清单。`confirm` 会把用户选的维度，按他选的顺序，给每个指标写成一条 `proposed` 顺序。整体数字落在平常范围内时（用的是停止判断里同一个 `overall_quiet` 信号），什么都没动，得分说明不了任何事，这时由用户自己关心的东西决定先看什么：`proposed` 或 `confirmed` 顺序里的第一个维度先切，得分照常留在记录里。数字真的动了，就是得分最高的先切；没有顺序时由得分决定（得分相同按字母顺序）。这次运行用哪条规则选出第一刀，记在 `notes` 的 `first_cut` 里（`quiet_user_order`、`highest_score`、`stated_order` 或 `fixed_order`）。
 - `pvm`（0.2）：`[{metric: revenue, quantity: orders, dimension: category}]`，给这个指标的每道一阶题加一份量、结构、价格的拆解。
 - 公式会一直展开到叶子（`revenue` → `orders × aov`，`orders` → `visits × cr`）。某个因子没法按题目的过滤条件切时，就停在那一层。
 

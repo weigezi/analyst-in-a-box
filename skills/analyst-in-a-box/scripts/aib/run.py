@@ -359,10 +359,11 @@ def _order(ws, s):
 
 def step_vertical(ws, s):
     """Modes: drill (default) scores the candidates at every layer, except that a stated first dimension is
-    cut first; each cuts every dimension from the top and then merges slots that are one cause; fixed cuts the
+    cut first, and so is the first of a proposed order when the whole number is quiet; each cuts every dimension from the top and then merges slots that are one cause; fixed cuts the
     given order without scoring (the 0.1 behaviour)."""
     m = s["metric"]
     order, stated, pr = _order(ws, s)
+    has_order = bool(pr.get("order")) and pr.get("status") in ("proposed", "confirmed")
     mode = s["config"].get("mode") or pr.get("mode", "drill")
     mode = "drill" if mode == "auto" else mode
     depth = int(s["config"].get("max_depth", param(ws, "search_max_depth")))
@@ -377,13 +378,24 @@ def step_vertical(ws, s):
         left = [d for d in order if d not in filters]
         if not left:
             break
+        rule = "highest_score"
         if mode == "fixed" or (layer == 0 and stated):
             dim, cands = left[0], None
+            rule = "fixed_order" if mode == "fixed" and not (layer == 0 and stated) else "stated_order"
         else:
             cands = sorted((search.candidate(ws, m, d, s["base"], s["current"], filters) for d in left),
                            key=lambda c: c["score"], reverse=True)
             cands = [c for c in cands if "error" not in c] or cands
             dim = cands[0]["dimension"]
+            # When nothing moved, the scores say nothing (every candidate is near zero), so the order the person
+            # gave decides what to show first. The scores stay in the record.
+            if layer == 0 and has_order and search.overall_quiet(ws, s, "first", 0):
+                first = next((c for c in cands if c["dimension"] == left[0]), None)
+                if first is not None:
+                    dim, rule = first["dimension"], "quiet_user_order"
+                    cands = [first] + [c for c in cands if c is not first]
+        if layer == 0:
+            s["notes"].append({"first_cut": {"dimension": dim, "rule": rule}})
         cand = next((c for c in cands or [] if c["dimension"] == dim), None)
         cut = _cut(ws, s, dim, filters, path, "layer", cand, (cands or [])[:top_k] if cands else None)
         if cut is None or cut["decision"]["then"].get("action") != "drill":

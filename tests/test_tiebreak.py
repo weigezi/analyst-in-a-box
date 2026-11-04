@@ -71,30 +71,96 @@ def test_intake_writes_the_order_the_user_chose_as_a_proposed_priority(tmp_path,
     assert all_problems(Workspace(ws)) == []
 
 
-# ---------- item 2: ties follow that order, a higher score still wins ----------
+# ---------- item 2: when nothing moved, the user's order picks the first cut ----------
 
-def test_a_tie_keeps_the_order_the_user_gave(tmp_path, df, monkeypatch):
-    ws = _ws(tmp_path, df, _proposed(["region", "customer_type", "channel"]))
-    _scored(monkeypatch, {})
-    assert _first_cut(ws) == "region"
+DIP = [{"where": {"region": "x"}, "start": "2026-10-19", "end": "2026-10-25", "orders": 0.5}]
+ORDER = ["region", "customer_type", "channel"]
 
 
-def test_a_tie_without_a_proposed_order_is_alphabetical(tmp_path, df, monkeypatch):
+@pytest.fixture(scope="module")
+def dip_df():
+    return synth.orders(seed=11, start="2026-06-01", per_day=60, effects=DIP)
+
+
+def _record(ws):
+    return run(ws, {"metric": "revenue", "current": CUR, "base": "pop"}, write=False)
+
+
+def _rule(rec):
+    return next(n["first_cut"]["rule"] for n in rec["notes"] if "first_cut" in n)
+
+
+def test_the_fixtures_are_quiet_and_not_quiet(tmp_path, df, dip_df):
+    quiet = _record(_ws(tmp_path / "q", df, {}))
+    moved = _record(_ws(tmp_path / "m", dip_df, {}))
+    assert quiet["verdict_unusual"]["then"]["verdict"] == "within_usual_range"
+    assert moved["verdict_unusual"]["then"]["verdict"] == "unusual_low"
+
+
+def test_quiet_week_and_a_proposed_order_cut_its_first_dimension_first(tmp_path, df, monkeypatch):
+    ws = _ws(tmp_path, df, _proposed(ORDER))
+    _scored(monkeypatch, {"channel": 0.5, "customer_type": 0.2})          # others score higher; the scores say nothing
+    rec = _record(ws)
+    assert rec["cuts"][0]["dimension"] == "region"
+    assert _rule(rec) == "quiet_user_order"
+
+
+def test_quiet_week_keeps_the_scores_in_the_record(tmp_path, df, monkeypatch):
+    ws = _ws(tmp_path, df, _proposed(ORDER))
+    _scored(monkeypatch, {"channel": 0.5})
+    cands = {c["dimension"]: c["score"] for c in _record(ws)["cuts"][0]["candidates"]}
+    assert cands["channel"] == 0.5 and cands["region"] == 0.0
+
+
+def test_a_week_that_moved_lets_the_higher_score_win(tmp_path, dip_df, monkeypatch):
+    ws = _ws(tmp_path, dip_df, _proposed(ORDER))
+    _scored(monkeypatch, {"channel": 0.01})
+    rec = _record(ws)
+    assert rec["cuts"][0]["dimension"] == "channel"
+    assert _rule(rec) == "highest_score"
+
+
+def test_a_week_that_moved_is_not_fixed_by_a_proposed_order(tmp_path, dip_df, monkeypatch):
+    ws = _ws(tmp_path, dip_df, _proposed(ORDER))
+    _scored(monkeypatch, {"customer_type": 0.5})
+    rec = _record(ws)
+    assert rec["cuts"][0]["dimension"] == "customer_type"
+    assert _rule(rec) == "highest_score"
+
+
+def test_quiet_week_without_an_order_follows_the_scores(tmp_path, df, monkeypatch):
+    ws = _ws(tmp_path, df, {})
+    _scored(monkeypatch, {"region": 0.5})
+    rec = _record(ws)
+    assert rec["cuts"][0]["dimension"] == "region"
+    assert _rule(rec) == "highest_score"
+
+
+def test_quiet_week_without_an_order_and_equal_scores_is_alphabetical(tmp_path, df, monkeypatch):
     ws = _ws(tmp_path, df, {})
     _scored(monkeypatch, {})
-    assert _first_cut(ws) == "channel"
+    rec = _record(ws)
+    assert rec["cuts"][0]["dimension"] == "channel"
+    assert _rule(rec) == "highest_score"
 
 
-def test_a_higher_score_beats_the_users_order(tmp_path, df, monkeypatch):
-    ws = _ws(tmp_path, df, _proposed(["region", "customer_type", "channel"]))
-    _scored(monkeypatch, {"channel": 0.01})
-    assert _first_cut(ws) == "channel"
+@pytest.mark.parametrize("which", ["quiet", "moved"])
+def test_a_confirmed_order_still_fixes_the_first_cut(tmp_path, df, dip_df, monkeypatch, which):
+    pr = _proposed(ORDER)
+    pr["revenue"]["status"] = "confirmed"
+    ws = _ws(tmp_path, df if which == "quiet" else dip_df, pr)
+    _scored(monkeypatch, {"channel": 0.5})
+    rec = _record(ws)
+    assert rec["cuts"][0]["dimension"] == "region"
+    assert _rule(rec) == "stated_order"
 
 
-def test_a_proposed_order_does_not_fix_the_first_cut(tmp_path, df, monkeypatch):
-    ws = _ws(tmp_path, df, _proposed(["region", "customer_type", "channel"]))
-    _scored(monkeypatch, {"customer_type": 0.5})
-    assert _first_cut(ws) == "customer_type"
+def test_dimensions_given_for_the_run_fix_the_first_cut(tmp_path, df, monkeypatch):
+    ws = _ws(tmp_path, df, _proposed(ORDER))
+    _scored(monkeypatch, {"region": 0.5})
+    rec = run(ws, {"metric": "revenue", "current": CUR, "base": "pop", "dimensions": ["channel"]}, write=False)
+    assert rec["cuts"][0]["dimension"] == "channel"
+    assert _rule(rec) == "stated_order"
 
 
 # ---------- item 3: a blank value is shown as blank ----------

@@ -79,9 +79,13 @@ comparisons:         # second order across sides
 - `priorities.<metric>.mode` (0.2): `drill` (default) scores the candidates at every layer, and a confirmed
   `order` fixes the first cut. `each` cuts every dimension from the top and merges slots that are one cause.
   `fixed` cuts `order` as given, without scoring. A `proposed` order is only a candidate list. `confirm` writes the
-  dimensions the person chose, in the order they chose them, as a `proposed` order for each metric; when two
-  candidates score the same, the one earlier in that order is cut first, and a higher score always wins.
-  Without a proposed order, ties go to the dimension that comes first alphabetically.
+  dimensions the person chose, in the order they chose them, as a `proposed` order for each metric. When the
+  whole number is within its usual range (the same `overall_quiet` signal the stop decision uses), the scores
+  say nothing, because nothing moved. The person's own interest then decides what to show first: the first
+  dimension of the `proposed` or `confirmed` order is cut first, and the scores stay in the record. When the
+  number did move, the highest score wins; with no order, the scores decide (ties go alphabetical). The run
+  records which rule picked the first cut in `notes` (`first_cut`: `quiet_user_order`, `highest_score`,
+  `stated_order` or `fixed_order`).
 - `pvm` (0.2): `[{metric: revenue, quantity: orders, dimension: category}]` adds a price-volume-mix breakdown
   to every first-order question on that metric.
 - Identities are expanded to the leaves (`revenue` → `orders × aov`, `orders` → `visits × cr`). Expansion stops
