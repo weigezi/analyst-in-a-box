@@ -9,6 +9,7 @@ from __future__ import annotations
 import math
 from pathlib import Path
 
+from .defaults import param
 from .explain import World, entry_text
 from .workspace import label
 
@@ -74,7 +75,7 @@ T = {
         "quote_line": "原文：「{q}」", "pending_line": "这条还没人确认，所以不算已解释。你确认后我会把它标成已确认。",
         "drill_quiet": "整体在通常范围内，但这一组的变化远超它自己过去的波动，往下看：",
         "stop_quiet": "整体在通常范围内，各组也没有明显超出自己的波动，停在这一层。",
-        "stop_small": "第一名这一组样本太少，不点名。",
+        "stop_small": "第一名这一组样本太少，不点名（{n} 个 {unit}，门槛 {min}）。",
         "cross_check": "反过来验证：", "cross_ok": "从另一边切也指向同一组，两层说的是同一个原因。",
         "cross_no": "从另一边切指向的不是同一组，两层可能是两件事。",
         "head_amount": "**{m}**{p}比基期{dir} {a}（{g}，{b} → {c}）。",
@@ -179,7 +180,7 @@ T = {
         "pending_line": "Nobody has confirmed this yet, so it does not count as explained. Confirm it and I will mark it confirmed.",
         "drill_quiet": "The whole number is within its usual range, but this group moved far beyond its own past swings; looking inside: ",
         "stop_quiet": "The whole number is within its usual range and no group stands out from its own swings; stopping here.",
-        "stop_small": "The top group is too small to name.",
+        "stop_small": "The top group is too small to name ({n} {unit}, threshold {min}).",
         "cross_check": "Checked from the other side: ", "cross_ok": "cutting the other way points to the same group, so the two layers describe one cause.",
         "cross_no": "cutting the other way points elsewhere, so the two layers may be two separate things.",
         "head_amount": "**{m}**{p} was {dir} {a} on the base ({g}, {b} → {c}).",
@@ -735,7 +736,9 @@ def render(ws, s, lang="zh", out_dir: Path | None = None) -> str:
                 t["drill"] if s.get("vertical_mode", "drill") != "each" else t["single"]
             L += ["", lead + topname]
         else:
-            L += ["", {"whole_number_within_usual_range": t["stop_quiet"], "top_group_too_small": t["stop_small"]}.get(why, t["spread"])]
+            small = t["stop_small"].format(n=f"{cut['gate'].get('top1_n') or 0:,.0f}", unit=cut["gate"].get("size_unit") or "rows",
+                                           min=f"{param(ws, 'segment_min_n'):g}")
+            L += ["", {"whole_number_within_usual_range": t["stop_quiet"], "top_group_too_small": small}.get(why, t["spread"])]
         L += ["", t["dominance"].format(t=_dominance(ws, world, cut, lang))]
         if out_dir is not None:
             vf = _cut_value(cut)
