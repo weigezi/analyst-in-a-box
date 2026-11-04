@@ -201,13 +201,13 @@ function treeSize(v, sz) {
 
 function crossCount(v) {
   const o = (a, b, c) => (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
-  const seg = v.links.map((l) => ({ s: l.s, t: l.t, a: [l.s.gx, l.s.gy], b: [l.t.gx, l.t.gy] }));
+  const seg = v.links.map((l) => ({ f: l.d.kind === "formula", s: l.s, t: l.t, a: [l.s.gx, l.s.gy], b: [l.t.gx, l.t.gy] }));
   let n = 0;
   for (let i = 0; i < seg.length; i++) {
     for (let j = i + 1; j < seg.length; j++) {
       const p = seg[i], q = seg[j];
       if (p.s === q.s || p.s === q.t || p.t === q.s || p.t === q.t) continue;
-      if (o(p.a, p.b, q.a) * o(p.a, p.b, q.b) < 0 && o(q.a, q.b, p.a) * o(q.a, q.b, p.b) < 0) n++;
+      if (o(p.a, p.b, q.a) * o(p.a, p.b, q.b) < 0 && o(q.a, q.b, p.a) * o(q.a, q.b, p.b) < 0) n += p.f && q.f ? 1000 : 1;
     }
   }
   return n;
@@ -740,6 +740,7 @@ function setView(key) {
   counts(v);
   applyTransform(v);
   document.body.dataset.view = key;
+  $("hint-tree").hidden = key !== "tree";
   if (first) {
     v.started = true; v.t0 = performance.now();
     paint(v);

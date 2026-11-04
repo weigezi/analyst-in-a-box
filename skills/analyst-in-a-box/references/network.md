@@ -22,7 +22,7 @@ Run it again after the workspace changes; the page is rebuilt from the YAML and 
 
 | View | Cards | Links |
 |---|---|---|
-| Metric tree | every metric (the north star first), and every dimension named in a cut order | formulas (`identities`: a left metric to each factor, with × or ÷), cut order (`priorities`: a metric to a dimension, numbered) |
+| Metric tree | every metric (the north star first), and every dimension named in a cut order | formulas (`identities`: a left metric to each factor, with × or ÷), always visible; cut order (`priorities`: a metric to a dimension, numbered), shown only for the card that is hovered, focused or tapped |
 | Business world description | entities, mechanisms, events, actions | `relations` between entities; each mechanism, event and action to the entities it names |
 
 Events are pulled toward a date axis by their start date. Dimensions a metric can be cut by but that have no recorded
@@ -51,7 +51,7 @@ A demo workspace's settings (`demo_setting`) are shown as AI inference on purpos
 - Drag a card to move it; the layout warms up for a moment and settles again. Drag the background to pan, wheel or pinch to zoom.
 - Click a card or a link, or Tab to a card and press Enter: the panel shows the label, kind, source (with the quote and
   date when the record has them), status, and "what data would refute it" when `refuted_by` is set.
-- Hovering or focusing a card dims everything except its neighbours. Esc closes the panel.
+- Hovering or focusing a card dims everything except its neighbours. In the metric tree this is also how the cut links appear; they are hidden otherwise, so the formula tree reads cleanly. The panel lists the cut order ("1 Region, 2 Channel") for a metric, and for a dimension the metrics it cuts with its position in each. Esc closes the panel.
 - With `prefers-reduced-motion` the settled layout is drawn at once.
 
 ## 5. Limits

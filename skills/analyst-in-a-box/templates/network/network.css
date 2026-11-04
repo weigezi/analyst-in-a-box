@@ -72,6 +72,9 @@ button, input { font: inherit; color: inherit; }
 .edge.retired { stroke: #C9CED2; }
 .edge.none { stroke: #8A9096; }
 .edge-g.k-cut .edge { opacity: .75; }
+/* In the metric tree the cut links show only for the card that is hovered, focused or selected. */
+.view[data-view="tree"] .edge-g.k-cut { visibility: hidden; }
+.view[data-view="tree"] .edge-g.k-cut.on { visibility: visible; }
 .edge-hit { fill: none; stroke: transparent; stroke-width: 12; cursor: pointer; }
 .edge-glyph { font-size: 12px; fill: var(--ink-2); text-anchor: middle; dominant-baseline: central; pointer-events: none; }
 .edge-glyph-bg { fill: #fff; stroke: var(--line); }

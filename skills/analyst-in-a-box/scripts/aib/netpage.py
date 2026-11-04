@@ -44,6 +44,7 @@ UI = {
         "banner_fact": "fact: confirmed, from a person, a record, the data or arithmetic",
         "banner_retired": "retired: kept for history, not used",
         "filter_inference": "Hide AI inference", "cards": "cards", "links": "links",
+        "hint_tree": "Hover a card to see how it is cut (tap it on a touch screen).",
         "hint": "Drag a card to move it. Click or press Enter for details. Drag the background to pan.",
         "close": "Close", "source": "Source", "said": "Quoted", "date": "Date", "note": "Note", "status": "Status",
         "refuted": "What data would refute it", "connected": "Connected to", "trust": "Trust",
@@ -57,7 +58,7 @@ UI = {
         "time": "time", "from": "from", "to": "to", "also_called": "Also called", "value_in_data": "Value in the data",
         "dimension": "Dimension", "owner": "Owner", "direction": "Direction", "metrics": "Metrics", "evidence": "Checked against",
         "formula": "Formula", "breaks_into": "Breaks into", "computed_from": "Computed from", "cut_by": "Can be cut by",
-        "cut_order": "Cut order", "unordered": "no order recorded", "used_in": "Named in the cut order of",
+        "cut_order": "Cut order", "unordered": "no order recorded", "used_in": "Cuts these metrics (its position in their cut order)",
         "defined_by": "Defined by", "weakest": "Takes the weakest tier of the records it rests on.",
         "no_own_record": "No record of its own; takes the weakest tier of the cut orders that name it.",
         "status_confirmed": "confirmed", "status_proposed": "to confirm", "status_retired": "retired",
@@ -81,6 +82,7 @@ UI = {
         "banner_fact": "事实：已确认，来自某个人、系统记录、数据或公式",
         "banner_retired": "已作废：留作历史，不再使用",
         "filter_inference": "隐藏 AI 推断", "cards": "个节点", "links": "条连线",
+        "hint_tree": "把鼠标移到卡片上，看它是怎么切分的（触屏上点一下）。",
         "hint": "拖动卡片可以挪位置，点一下或按回车看详情，拖动空白处可以平移。",
         "close": "关闭", "source": "出处", "said": "原话", "date": "日期", "note": "备注", "status": "状态",
         "refuted": "什么数据能推翻它", "connected": "相连的内容", "trust": "可信程度",
@@ -94,7 +96,7 @@ UI = {
         "time": "时间", "from": "自", "to": "至", "also_called": "也叫", "value_in_data": "数据里的取值",
         "dimension": "维度", "owner": "负责人", "direction": "方向", "metrics": "涉及指标", "evidence": "对照的数据",
         "formula": "公式", "breaks_into": "拆成", "computed_from": "算自", "cut_by": "可以按这些维度切",
-        "cut_order": "切分顺序", "unordered": "未记录顺序", "used_in": "出现在这些指标的切分顺序里",
+        "cut_order": "切分顺序", "unordered": "未记录顺序", "used_in": "用来切这些指标（括号里是它在该指标切分顺序里的位置）",
         "defined_by": "定义来自", "weakest": "取它所依据的记录里最弱的一档。",
         "no_own_record": "自己没有记录；取提到它的切分顺序里最弱的一档。",
         "status_confirmed": "已确认", "status_proposed": "待确认", "status_retired": "已作废",
@@ -239,7 +241,7 @@ def _tree(ws: Workspace, lang: str, ui: dict) -> dict:
         order = [d for d in (prios.get(m) or {}).get("order", []) if d in dims]
         rest = sorted(d for d in allowed if d not in order and d in dims)
         if order:
-            facts.append(_fact(ui["cut_order"], " → ".join(dl(d) for d in order)))
+            facts.append(_fact(ui["cut_order"], ", ".join(f"{i} {dl(d)}" for i, d in enumerate(order, 1))))
         if rest:
             facts.append(_fact(ui["cut_by"], ", ".join(dl(d) for d in rest) + f" ({ui['unordered']})"))
         own = ident_by_metric[m]
@@ -261,18 +263,16 @@ def _tree(ws: Workspace, lang: str, ui: dict) -> dict:
     cut_edges: list = []
     used: dict = {}
     for m, pr in prios.items():
-        for n, d in enumerate(pr.get("order", []), 1):
-            if d not in dims:
-                continue
-            used.setdefault(d, []).append((m, pr))
+        for n, d in enumerate([x for x in pr.get("order", []) if x in dims], 1):
+            used.setdefault(d, []).append((m, pr, n))
             cut_edges.append((m, d, n, pr))
     for d, uses in used.items():
         spec = dims[d]
         facts = [_fact(ui["column"], str(spec.get("column", d)))]
-        facts.append(_fact(ui["used_in"], ", ".join(ml(m) for m, _ in uses)))
+        facts.append(_fact(ui["used_in"], ", ".join(f"{ml(m)} ({n})" for m, _, n in uses)))
         nodes.append({
             "id": f"dimension:{d}", "kind": "dimension", "depth": 99, "label": dl(d), "full": dl(d), "tag": ui["kind_dimension"],
-            "tier": weakest(tier_of(p) for _, p in uses), "status": "", "sources": [],
+            "tier": weakest(tier_of(p) for _, p, _n in uses), "status": "", "sources": [],
             "no_source": False, "note": ui["no_own_record"], "refuted_by": "", "facts": facts,
         })
 

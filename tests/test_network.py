@@ -184,3 +184,20 @@ def test_cli_writes_knowledge_html(tmp_path):
                        capture_output=True, text=True, check=True)
     assert json.loads(r.stdout)["world"]["nodes"] == 35
     assert out.read_text(encoding="utf-8").startswith("<!doctype html>")
+
+
+def test_cut_order_is_listed_in_the_panel_and_cut_links_are_hover_only(demo):
+    ws, en, zh = demo
+    tree = embedded(en)["views"]["tree"]
+    nodes = {n["id"]: n for n in tree["nodes"]}
+    for m, pr in (ws.model.get("priorities") or {}).items():
+        order = [d for d in pr["order"] if d in ws.dimensions]
+        facts = {k: v for k, v in nodes[f"metric:{m}"]["facts"]}
+        want = ", ".join(f"{i} {netpage.label(ws.dimensions[d]['label'], 'en')}" for i, d in enumerate(order, 1))
+        assert facts["Cut order"] == want, m
+        for i, d in enumerate(order, 1):
+            used = {k: v for k, v in nodes[f"dimension:{d}"]["facts"]}["Cuts these metrics (its position in their cut order)"]
+            assert f"{netpage.label(ws.metrics[m]['label'], 'en')} ({i})" in used
+    assert '.view[data-view="tree"] .edge-g.k-cut { visibility: hidden; }' in en
+    assert "Hover a card to see how it is cut" in en
+    assert "把鼠标移到卡片上" in zh and 'id="hint-tree"' in zh
