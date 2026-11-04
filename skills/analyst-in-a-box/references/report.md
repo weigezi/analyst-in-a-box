@@ -10,7 +10,7 @@ The report is already in the order a reader needs; keep it:
 2. **Is it unusual**: against its own history, against the market, holiday alignment.
 3. **Breakdown**: formula first, then each cut, with the decision that ended it.
 4. **Why**: for every single point, what explains it, with source and status.
-5. **Who should act**: owners and actions recorded for those points.
+5. **Who should act**: owners and actions recorded for those points. When none is recorded (always so on a first run), name the slices that carry the movement with their change, say plainly that no owner is recorded for them, and invite the user to say who owns it. Never invent an owner or an action.
 6. **Waiting for you**: gaps and entries to confirm. Turn these into questions.
 
 In conversation, lead with the conclusion in two or three sentences, then offer the rest.
@@ -58,5 +58,8 @@ one gap at a time, and record the answer with `correct`.
 | `quality` | `status`, `suspect`, `failed` (block level), `warned`, `checks` (each with `status` and `level`) |
 | `tree`, `pvm`, `growth_accounting` | the other breakdowns, when they ran |
 
-Colours: decrease vermillion `#D55E00`, increase blue `#0072B2`, totals grey (Okabe & Ito 2008); every number
-in a chart carries its sign, with a true minus sign.
+Colours: decrease vermillion `#D55E00`, increase blue `#0072B2`, totals grey (Okabe & Ito 2008); every change
+in a chart carries its sign, with a true minus sign. A share of all movement is written in brackets without a
+sign, so a label never contradicts the direction of its bar. The waterfall axis always starts at zero, so bar
+heights keep the real ratios. The daily chart labels every Nth date and, when there are many days, only the
+largest rise or fall.
