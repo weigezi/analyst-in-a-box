@@ -10,6 +10,7 @@ import math
 from pathlib import Path
 
 from .defaults import param
+from . import quality
 from .explain import World, entry_text
 from .workspace import label
 
@@ -42,7 +43,13 @@ T = {
         "no_action": "还没有登记可做的动作。",
         "no_owner": "变动落在这里：{items}。这些地方还没有登记负责人，也没有登记动作。直接告诉我谁负责，我会记下来，下次不再问。", "coverage": "需要业务解释的地方：{e}/{n} 处有记录可引（覆盖率 {p}）。",
         "definitions": "口径版本", "decisions": "命中的规则", "checks": "交付前自检", "pass": "通过", "fail": "未通过",
-        "blocked": "⚠️ 交付前自检没通过，以下结论不能用：", "you_may_not_know": "你可能还不知道",
+        "blocked": "⚠️ 交付前自检没通过。下面没有一个数可以当作发现，请先处理这些问题：", "you_may_not_know": "你可能还不知道",
+        "blocked_head": "**还不是发现。** 下面的数是按现有数据算出来的，没通过的自检处理好之前不下结论。",
+        "blocked_computed": "这些数是按现有数据算出来的，在没通过的自检处理好之前，不算发现。",
+        "blocked_why": "不点名原因：交付前自检没通过，这里的内容还不是发现。",
+        "blocked_who": "不点名负责人：交付前自检没通过，这里的内容还不是发现。",
+        "no_breakdown": "这次没有算出拆解{reason}。", "no_breakdown_why": "没有算出拆解，所以没有点名原因。",
+        "no_breakdown_dims": "：这个指标在这个工作区里没有可以切的维度", "flat_head": "**{m}**{p}在这个精度下看不出变化（基期 {b}，本期 {c}）。",
         "gap_a_b": "{a} 同比 {ga}，{b} 同比 {gb}，差 {gap}。", "horizontal": "按公式拆",
         "rate_change": "从 {b} 到 {c}（{d}）。", "amount_change": "比基期 {g}（{b} → {c}）。",
         "main_share": "主要来自 **{seg}**：{v}，占全部变化的 {p}。",
@@ -54,13 +61,15 @@ T = {
         "size_note": "超过 100% 说明其余几天这一块在涨。",
         "confirm_external": "「{what}」目前是推测（{st}）。你确认后我会把它标成已确认。",
         "confirm_proposed": "「{what}」还没确认。",
-        "suspect": "**数据存疑**：{items}。下面的拆解照算，但在数据核实之前，不把任何原因当成已解释。",
+        "suspect": "**数据存疑**：{items}。数据核实之前，不把任何原因当成已解释。",
         "note_blank_amounts": "{column} 有空白：本期 {blank:,} / {rows:,} 行（{share}）为空，基期 {base_blank:,} / {base_rows:,} 行（{base_share}）为空，空白的行没有计入金额",
         "note_zero_amounts": "{column} 为 0 的行：本期 {zero:,} / {rows:,} 行（{share}）；这些行仍算作一单，会拉低按单计的数",
         "note_looks_like_rate": "{column} 的所有值都在 0 到 1 之间（{min} 到 {max}，{n:,} 行），像是比率而不是金额；比率加总没有意义，请确认它真的是可以相加的量",
         "note_repeats_per_entity": "{column} 对同一个 {entity} 在不同日期上几乎总是同一个值（{entities:,} 个里有 {pct} 如此），像是存量或价目而不是每次发生的金额；加总会把它每期重复算一次，请确认",
         "data_note": "**数据说明**：{items}。以上不阻止出报告，但会影响怎么读这些数。",
         "quality_warn": "**数据提醒**：{items}。这些不影响下面的数怎么算，结论照常给出，但值得核一下。",
+        "quality_warn_blocked": "**数据提醒**：{items}。这一项单独不会拦住报告，要和上面没通过的自检一起看。",
+        "data_note_blocked": "**数据说明**：{items}。这些单独不会拦住报告；没通过的自检处理好之后，它们会影响怎么读这些数。",
         "closed_inferred": "{days}按不营业处理，这是从数据推出来的假设，还没人确认（{note}）。这几天没有数据不算缺数据。",
         "closed_evidence": "数据里 {e}/{w} 个{d}没有任何记录", "closed_no_evidence": "依据见工作区记录",
         "q_calendar_complete": "有些该有数据的日子一条记录都没有（{v}）",
@@ -83,6 +92,18 @@ T = {
         "drill_quiet": "整体在通常范围内，但这一组的变化远超它自己过去的波动，往下看：",
         "stop_quiet": "整体在通常范围内，各组也没有明显超出自己的波动，停在这一层。",
         "stop_small": "第一名这一组样本太少，不点名（{n} 个 {unit}，门槛 {min}）。",
+        "no_owner_quiet": "{lead}变动最大的是：{items}。这些地方还没有登记负责人，也没有登记动作。直接告诉我谁负责，我会记下来，下次不再问。",
+        "stop_first_quiet": "整体在通常范围内，所以只切了第一刀（{dim}）就停了。", "stop_first_other": "只切了第一刀（{dim}），没有往任何一组下钻。",
+        "dom_big_quiet": "「{seg}」占全部变动的 {share}，超过你设的单点门槛 {need}；不往下钻：整体在通常范围内{swing}。",
+        "dom_big_small": "「{seg}」占全部变动的 {share}，超过你设的单点门槛 {need}，但样本太少，不点名，不往下钻。",
+        "dom_big_other": "「{seg}」占全部变动的 {share}，超过你设的单点门槛 {need}，但不往下钻：{why}。",
+        "swing_within": "，这一组也没有超出它自己过去的波动（z 值 {z}，要到 {zmin}）",
+        "swing_no_history": "，这一组没有历史，没法和它自己的波动比",
+        "why_no_history": "它没有历史，没法和它自己的波动比", "why_other": "它没有通过单点的全部检验",
+        "why_in_step": "它基本是跟着其余各组一起动的（超出其余各组的部分占全部变动的 {ex}，要到 {need}）",
+        "why_within_swing": "它的变化在它自己过去的波动之内（z 值 {z}，要到 {zmin}）",
+        "stop_not_single": "不是单点：最大的一组没有通过单点的全部检验（占比、超出其余各组的部分、相对自己波动的大小），分析停在这一层。",
+        "ro_cut_big": "{dim}这一刀（不往下钻：最大的一组占全部变动的 {share}，但没有通过单点的全部检验）",
         "cross_check": "反过来验证：", "cross_ok": "从另一边切也指向同一组，两层说的是同一个原因。",
         "cross_no": "从另一边切指向的不是同一组，两层可能是两件事。",
         "head_amount": "**{m}**{p}比基期{dir} {a}（{g}，{b} → {c}）。",
@@ -121,7 +142,26 @@ T = {
         "ga": "按客户拆", "ga_bucket": "客户", "ga_customers": "人数", "ga_new": "新客", "ga_resurrected": "回流",
         "ga_expansion": "老客多买", "ga_contraction": "老客少买", "ga_churned": "流失", "ga_retained": "留下的部分",
         "ga_line": "增减比（新增÷流失）{q}，留住了基期的 {r}。没有客户编号的订单变化 {o}，不在上表里。",
-        "tree": "按公式拆到底", "tree_split": "{m}按{d}拆：占比变化 {s}，各组自己的水平 {r}，{lead}。",
+        "tree": "按公式拆到底", "notchecked": "这份报告没有检查什么",
+        "nc_used": "用到的：{items}。", "nc_cut": "切的维度：{cut}。", "nc_not_cut": "能切但这次没切：{rest}。", "nc_no_cut": "这次没有切任何维度。",
+        "nc_as_is": "数字就是上面这些列原样加出来的，所以算毛额，除非列本身或下面的剔除规则已经把退款和退货排除在外。数字只来自上面列出的表。",
+        "nc_removed": "计数前剔除的行：{items}。",
+        "nc_removed_item": "`{source}` 里 `{column}` 是 {values} 的行（本期 {c:,}/{cr:,} 行，基期 {b:,}/{br:,} 行）",
+        "nc_no_rule": "没有任何规则剔除已取消或已冲销的行，这类行如果存在，会算进每一个数里。",
+        "nc_copies_once": "完全相同的行只算一条。", "nc_copies_every_row": "完全相同的行各算一条记录。",
+        "nc_copies_unknown": "你说过不知道完全相同的行是不是第二条真实记录，所以每一行都算。",
+        "nc_copies_none": "没有记录关于完全相同的行的回答，所以每一行都算。",
+        "nc_blank": "切的列里的空白值：{items}。",
+        "nc_blank_item": "`{column}` 本期 {b:,}/{n:,} 行（{share}）为空，基期 {bb:,}/{bn:,} 行（{bshare}）为空",
+        "nc_no_blank": "切的列（{dims}）里没有空白值。",
+        "nc_no_event": "没有核对任何外部事件（活动、节假日、调价）和这次变化的关系。",
+        "nc_events": "和这次变化核对过的外部事件：{ids}（看时间、范围、量级，见“为什么”）。",
+        "nc_no_market": "没有和大盘或同行的数比较。",
+        "nc_checks": "{ran} 项交付前自检跑过，{failed}。数据说明 {notes} 条。", "nc_none_failed": "全部通过", "nc_failed": "没通过的：{names}",
+        "nc_dq_warned": "数据质量检查里有提醒：{names}。",
+        "agg_sum": "`{source}` 里 `{column}` 的合计", "agg_count": "`{source}` 的行数",
+        "agg_count_distinct": "`{source}` 里 `{column}` 的不同取值个数", "agg_mean": "`{source}` 里 `{column}` 的平均",
+        "agg_min": "`{source}` 里 `{column}` 的最小值", "agg_max": "`{source}` 里 `{column}` 的最大值", "dated_by": "按 `{date}` 归期", "tree_split": "{m}按{d}拆：占比变化 {s}，各组自己的水平 {r}，{lead}。",
         "lead_structure": "占比主导", "lead_rate": "各组水平主导", "lead_tie": "两者相当",
     },
     "en": {
@@ -153,7 +193,13 @@ T = {
         "no_action": "No actions recorded yet.",
         "no_owner": "The movement sits here: {items}. No owner and no action is recorded for these yet. Tell me who owns it and I will record it and not ask again.", "coverage": "Places that need a business explanation: {e} of {n} can cite a record (coverage {p}).",
         "definitions": "Definitions version", "decisions": "Rules that fired", "checks": "Pre-delivery checks", "pass": "pass", "fail": "FAIL",
-        "blocked": "⚠️ Pre-delivery checks failed; do not use the conclusions below:", "you_may_not_know": "You may not know",
+        "blocked": "⚠️ Pre-delivery checks failed. No number below is a finding yet; fix what failed first:", "you_may_not_know": "You may not know",
+        "blocked_head": "**Not a finding yet.** The figures below are computed from the data as loaded; nothing is concluded until the failed check is fixed.",
+        "blocked_computed": "These figures are computed from the data as loaded. They are not findings while the failed check stands.",
+        "blocked_why": "No cause is named: the pre-delivery check failed, so nothing here is a finding yet.",
+        "blocked_who": "Nobody is named: the pre-delivery check failed, so nothing here is a finding yet.",
+        "no_breakdown": "No breakdown was computed{reason}.", "no_breakdown_why": "No breakdown was computed, so no cause is named.",
+        "no_breakdown_dims": ": this metric has no dimension to cut by in this workspace", "flat_head": "**{m}**{p} showed no visible change at this precision (base: {b}, current: {c}).",
         "gap_a_b": "{a} {ga} year on year, {b} {gb}; a gap of {gap}.", "horizontal": "By formula",
         "rate_change": " moved from {b} to {c} ({d}).", "amount_change": " {g} vs base ({b} → {c}).",
         "main_share": "Mainly from **{seg}**: {v}, {p} of the total change.",
@@ -165,13 +211,15 @@ T = {
         "size_note": "above 100% means the slice grew on the other days.",
         "confirm_external": "\"{what}\" is a hypothesis ({st}). Confirm it and I will mark it confirmed.",
         "confirm_proposed": "\"{what}\" is not confirmed yet.",
-        "suspect": "**Data in doubt**: {items}. The breakdown below is still computed, but no cause counts as explained until the data is checked.",
+        "suspect": "**Data in doubt**: {items}. No cause counts as explained until the data is checked.",
         "note_blank_amounts": "{column} has blank cells: {blank:,} of {rows:,} rows ({share}) in the current period and {base_blank:,} of {base_rows:,} ({base_share}) in the base are blank; blank rows add nothing to the amount",
         "note_zero_amounts": "{column} is exactly 0 on {zero:,} of {rows:,} rows ({share}) in the current period; these rows still count as an order and pull per-order figures down",
         "note_looks_like_rate": "every value of {column} is between 0 and 1 ({min} to {max}, {n:,} rows), which looks like a rate, not an amount; rates cannot be added up, so confirm it is a quantity that adds",
         "note_repeats_per_entity": "{column} carries the same value for the same {entity} on different dates for {pct} of {entities:,} of them, which looks like a level (a balance, a price list) rather than an amount that happens each time; summing counts it again every period, so confirm",
         "data_note": "**Data note**: {items}. This does not stop the report, but it changes how to read these numbers.",
         "quality_warn": "**Data note**: {items}. This does not change how the numbers below are computed and the conclusions stand, but it is worth a look.",
+        "quality_warn_blocked": "**Data note**: {items}. This alone would not stop a report; read it together with the failed check above.",
+        "data_note_blocked": "**Data note**: {items}. These alone would not stop a report; they change how to read these numbers once the failed check is fixed.",
         "closed_inferred": "{days} treated as closed: an assumption drawn from the data, not yet confirmed by anyone ({note}). Missing rows on these days are not counted as missing data.",
         "closed_evidence": "no rows on {e} of the {w} {d}s in the data", "closed_no_evidence": "the evidence is in the workspace record",
         "q_calendar_complete": "some days that should have data have no rows at all ({v})",
@@ -195,6 +243,19 @@ T = {
         "drill_quiet": "The whole number is within its usual range, but this group moved far beyond its own past swings; looking inside: ",
         "stop_quiet": "The whole number is within its usual range and no group stands out from its own swings; stopping here.",
         "stop_small": "The top group is too small to name ({n} {unit}, threshold {min}).",
+        "no_owner_quiet": "{lead} Its largest movers: {items}. No owner and no action is recorded for these yet. Tell me who owns it and I will record it and not ask again.",
+        "stop_first_quiet": "The total is within its usual range, so the run stopped at the first cut ({dim}).",
+        "stop_first_other": "The run stopped at the first cut ({dim}) without drilling into a group.",
+        "dom_big_quiet": "\"{seg}\" carries {share} of all movement, above your single-point threshold of {need}. It is not drilled: the total is within its usual range{swing}.",
+        "dom_big_small": "\"{seg}\" carries {share} of all movement, above your single-point threshold of {need}, but it is too small to name, so it is not drilled.",
+        "dom_big_other": "\"{seg}\" carries {share} of all movement, above your single-point threshold of {need}, but it is not drilled: {why}.",
+        "swing_within": " and this group did not move beyond its own usual swings (z {z}, needs {zmin})",
+        "swing_no_history": " and this group has no history to judge its own swings against",
+        "why_no_history": "it has no history to judge its own swings against", "why_other": "it did not pass every test for a single point",
+        "why_in_step": "it moved mostly in step with the other groups (what it moved beyond them is {ex} of all movement, needs {need})",
+        "why_within_swing": "its change is within its own usual swings (z {z}, needs {zmin})",
+        "stop_not_single": "Not a single point: the largest group did not pass every test (share, excess over the others, size against its own swings), so the analysis stops here.",
+        "ro_cut_big": "the cut by {dim} (not drilled: the largest group carries {share} of all movement, but did not pass every test for a single point)",
         "cross_check": "Checked from the other side: ", "cross_ok": "cutting the other way points to the same group, so the two layers describe one cause.",
         "cross_no": "cutting the other way points elsewhere, so the two layers may be two separate things.",
         "head_amount": "**{m}**{p} was {dir} {a} on the base ({g}, {b} → {c}).",
@@ -233,7 +294,26 @@ T = {
         "ga": "By customer", "ga_bucket": "Customers", "ga_customers": "Count", "ga_new": "New", "ga_resurrected": "Came back",
         "ga_expansion": "Bought more", "ga_contraction": "Bought less", "ga_churned": "Lost", "ga_retained": "Kept",
         "ga_line": "Quick ratio (gains ÷ losses) {q}; {r} of the base was kept. Orders without a customer id changed by {o} and are not in the table.",
-        "tree": "Whole formula tree", "tree_split": "{m}, split by {d}: mix {s}, each group's own level {r}; {lead}.",
+        "tree": "Whole formula tree", "notchecked": "What this report did not check",
+        "nc_used": "Used: {items}.", "nc_cut": "Cut by: {cut}.", "nc_not_cut": "Could be cut by but was not: {rest}.", "nc_no_cut": "No cut was made.",
+        "nc_as_is": "The number is those columns taken as they are, so it is gross unless the column itself or a removal rule below already leaves refunds and returns out. The numbers come only from the tables listed above.",
+        "nc_removed": "Removed before counting: {items}.",
+        "nc_removed_item": "rows of `{source}` where `{column}` is {values} ({c:,} of {cr:,} rows in the current period, {b:,} of {br:,} in the base)",
+        "nc_no_rule": "No rule removes cancelled or reversed rows, so any such rows are counted in every number.",
+        "nc_copies_once": "Exact copies of a row are counted once.", "nc_copies_every_row": "Exact copies of a row are counted as separate records.",
+        "nc_copies_unknown": "You said you do not know whether an exact copy of a row is a second real record, so every row is counted.",
+        "nc_copies_none": "No answer is recorded about exact copies of a row, so every row is counted.",
+        "nc_blank": "Blank values in the cut columns: {items}.",
+        "nc_blank_item": "`{column}` is blank on {b:,} of {n:,} rows ({share}) in the current period and {bb:,} of {bn:,} ({bshare}) in the base",
+        "nc_no_blank": "No blank values in the cut columns ({dims}).",
+        "nc_no_event": "No outside event (a campaign, a holiday, a price change) was checked against this change.",
+        "nc_events": "Outside events checked against this change: {ids} (timing, slice and size; see Why).",
+        "nc_no_market": "No market or peer figures were compared.",
+        "nc_checks": "{ran} pre-delivery checks ran; {failed}. Data notes raised: {notes}.", "nc_none_failed": "none failed", "nc_failed": "failed: {names}",
+        "nc_dq_warned": "Data-quality checks that raised a warning: {names}.",
+        "agg_sum": "the sum of `{column}` in `{source}`", "agg_count": "the number of rows in `{source}`",
+        "agg_count_distinct": "the number of distinct `{column}` in `{source}`", "agg_mean": "the mean of `{column}` in `{source}`",
+        "agg_min": "the smallest `{column}` in `{source}`", "agg_max": "the largest `{column}` in `{source}`", "dated_by": "dated by `{date}`", "tree_split": "{m}, split by {d}: mix {s}, each group's own level {r}; {lead}.",
         "lead_structure": "mix led", "lead_rate": "own level led", "lead_tie": "neither led",
     },
 }
@@ -287,6 +367,32 @@ def is_blank(key) -> bool:
     if key is None or (isinstance(key, float) and key != key):
         return True
     return str(key).strip().casefold() in ("", "null")
+
+
+def _distinct(a, b):
+    """a and b written with just enough significant digits to tell them apart, both written the same way."""
+    for n in range(3, 13):
+        x, y = f"{a:#.{n}g}", f"{b:#.{n}g}"
+        if x != y:
+            return x, y
+    return f"{a:#.12g}", f"{b:#.12g}"
+
+
+def _headline(t, p, mlab, period, unit, ratio, base, cur):
+    """The first sentence of the conclusion. The direction word follows the sign of the unrounded change; when the two
+    values are written the same at the precision shown, nothing is called a rise or a fall."""
+    per = f"{p['open']}{period}{p['close']}"
+    d = cur - base
+    if fmt(base, unit) == fmt(cur, unit):
+        b, c = (fmt(base, unit),) * 2 if base == cur else _distinct(base, cur)
+        return t["flat_head"].format(m=mlab, p=per, b=b, c=c)
+    if ratio:
+        return t["head_rate"].format(m=mlab, p=per, dir=t["rise" if d >= 0 else "fall"],
+                                     b=fmt(base, unit), c=fmt(cur, unit), d=fmt(d, unit, True))
+    g = cur / base - 1 if base else None
+    return t["head_amount"].format(m=mlab, p=per, dir=t["up" if d >= 0 else "down"],
+                                   a=fmt(abs(d), "count" if unit != "ratio" and abs(d) >= 0.5 else unit), g=pct(g),
+                                   b=fmt(base, unit), c=fmt(cur, unit))
 
 
 def seg_label(ws, world, dim, key, lang):
@@ -427,6 +533,28 @@ def daily_svg(daily, lang, unit):
     return "\n".join(out)
 
 
+def _big_share(ws, cut):
+    """True when a cut stopped although its top group carries at least the user's single-point share of all movement."""
+    share = (cut.get("gate") or {}).get("top1_abs_share")
+    return cut["decision"]["then"].get("action") == "stop" and cut.get("role") != "cross_check" \
+        and share is not None and share >= param(ws, "single_point_min_share")
+
+
+def _why_not_single(ws, cut, lang):
+    """Which test the top group failed, as the stop.cut table applies them."""
+    t, g = T[lang], cut.get("gate") or {}
+    ex = g.get("top1_excess")
+    if ex is None or ex < param(ws, "single_point_min_excess"):
+        return t["why_in_step"].format(ex=pct(ex, False), need=pct(param(ws, "single_point_min_excess"), False))
+    z = g.get("top1_abs_z")
+    if z is None:
+        return t["why_no_history"]
+    zmin = param(ws, "segment_z_min_when_unusual" if g.get("context_unusual") else "segment_z_min")
+    if z < zmin:
+        return t["why_within_swing"].format(z=_m(f"{z:.2f}"), zmin=_m(f"{zmin:g}"))
+    return t["why_other"]
+
+
 def _dominance(ws, world, cut, lang):
     t = T[lang]
     r = cut["result"]
@@ -435,6 +563,20 @@ def _dominance(ws, world, cut, lang):
     if "sides" in r["operator"] and r.get("larger_effect") in ("mix", "performance"):
         return t[f"larger_{r['larger_effect']}"]
     g = cut.get("gate") or {}
+    if _big_share(ws, cut):
+        why = cut["decision"]["then"].get("reason")
+        kw = {"seg": seg_label(ws, world, cut["dimension"], r["top1_key"], lang),
+              "share": pct(g["top1_abs_share"], False), "need": pct(param(ws, "single_point_min_share"), False)}
+        if why == "whole_number_within_usual_range":
+            z = g.get("top1_abs_z")
+            swing = ""
+            if param(ws, "drill_quiet_total_when_group_stands_out"):
+                swing = t["swing_no_history"] if z is None else \
+                    t["swing_within"].format(z=_m(f"{z:.2f}"), zmin=_m(f"{param(ws, 'group_stands_out_z'):g}"))
+            return t["dom_big_quiet"].format(swing=swing, **kw)
+        if why == "top_group_too_small":
+            return t["dom_big_small"].format(**kw)
+        return t["dom_big_other"].format(why=_why_not_single(ws, cut, lang), **kw)
     ex = g.get("top1_excess")
     if cut["decision"]["then"].get("action") == "drill" and ex is not None:
         return t["dom_concentrated"].format(seg=seg_label(ws, world, cut["dimension"], r["top1_key"], lang), p=pct(ex, False))
@@ -601,6 +743,35 @@ def _fit_line(c, ws, lang):
     return t[f"fit_{k}"]
 
 
+def _stop_line(ws, cut, lang):
+    """The sentence that says why a cut was not drilled into."""
+    t = T[lang]
+    why = cut["decision"]["then"].get("reason")
+    if why == "whole_number_within_usual_range":
+        return t["stop_quiet"]
+    if why == "top_group_too_small":
+        return t["stop_small"].format(n=f"{cut['gate'].get('top1_n') or 0:,.0f}", unit=cut["gate"].get("size_unit") or "rows",
+                                      min=f"{param(ws, 'segment_min_n'):g}")
+    return t["stop_not_single"] if _big_share(ws, cut) else t["spread"]
+
+
+def _cut_verdict(ws, world, s, cut, lang):
+    """What a person reads under a cut's table: where the analysis went next and what led. Left out of a blocked report."""
+    t, p = T[lang], PUNCT[lang]
+    act = cut["decision"]["then"].get("action")
+    why = cut["decision"]["then"].get("reason")
+    topname = f"**{seg_label(ws, world, cut['dimension'], cut['result']['top1_key'], lang)}**"
+    if cut.get("role") == "cross_check":
+        out = ["", t["cross_check"] + topname + p["comma"] + t["cross_ok" if cut.get("confirms") else "cross_no"]]
+    elif act == "drill":
+        lead = t["drill_quiet"] if why == "single_point_inside_a_quiet_total" else \
+            t["drill"] if s.get("vertical_mode", "drill") != "each" else t["single"]
+        out = ["", lead + topname]
+    else:
+        out = ["", _stop_line(ws, cut, lang)]
+    return out + ["", t["dominance"].format(t=_dominance(ws, world, cut, lang))]
+
+
 def _ruled_out(ws, s, n, lang, unit):
     t, world = T[lang], World(ws)
     out = []
@@ -613,10 +784,14 @@ def _ruled_out(ws, s, n, lang, unit):
         elif r["kind"] == "outside_event_not_proven":
             out.append(t["ro_event"].format(what=entry_text(find_entry(ws, r["id"]), lang).rstrip("。.")))
         elif r["kind"] == "cut_spread":
+            dim = label(ws.dimensions[r["dimension"]].get("label", r["dimension"]), lang)
+            cut = next((c for c in s["cuts"] if c["dimension"] == r["dimension"] and c["filters"] == r["filters"]), None)
             if r["why"] == "whole_number_within_usual_range":
                 out.append(t["ro_quiet"])
+            elif cut is not None and _big_share(ws, cut):
+                out.append(t["ro_cut_big"].format(dim=dim, share=pct(cut["gate"]["top1_abs_share"], False)))
             else:
-                out.append(t["ro_cut"].format(dim=label(ws.dimensions[r["dimension"]].get("label", r["dimension"]), lang)))
+                out.append(t["ro_cut"].format(dim=dim))
     return list(dict.fromkeys(out))
 
 
@@ -635,8 +810,83 @@ def _no_owner_line(ws, world, s, unit, lang):
         change = f" {_value_text(cut, unit)(seg[_cut_value(cut)])}" if seg else ""
         items.append(f"{slot_label(ws, world, slot, lang)}{change}")
     if not items:
-        return t["no_action"]
+        return _no_owner_stop(ws, world, s, unit, lang)
     return t["no_owner"].format(items=PUNCT[lang]["semi"].join(items))
+
+
+def _no_owner_stop(ws, world, s, unit, lang):
+    """The run stopped at the first cut, so no slice was drilled: name the cut's largest movers, never an owner."""
+    t = T[lang]
+    cut = s["cuts"][0] if s["cuts"] else None
+    if cut is None or s["order"] != "first" or cut["decision"]["then"].get("action") != "stop" \
+            or cut["decision"]["then"].get("reason") == "top_group_too_small":
+        return t["no_action"]
+    vf, show = _cut_value(cut), _value_text(cut, unit)
+    movers = [x for x in sorted(cut["result"]["segments"], key=lambda x: -abs(x[vf])) if x[vf]][:2]
+    if not movers:
+        return t["no_action"]
+    items = [f"{slot_label(ws, world, {'path': [], 'dimension': cut['dimension'], 'value': x['key']}, lang)} {show(x[vf])}" for x in movers]
+    dl = label(ws.dimensions[cut["dimension"]].get("label", cut["dimension"]), lang)
+    quiet = cut["decision"]["then"].get("reason") == "whole_number_within_usual_range"
+    lead = t["stop_first_quiet" if quiet else "stop_first_other"].format(dim=dl)
+    return t["no_owner_quiet"].format(lead=lead, items=PUNCT[lang]["semi"].join(items))
+
+
+def _blocked_items(s, lang):
+    """One line per failed check, in plain words where the run can say them."""
+    out = []
+    for c in s["checks"]:
+        if c["pass"]:
+            continue
+        detail = _quality_items(s, lang) if c["check"] == "data_quality" and s.get("quality", {}).get("suspect") else c["detail"]
+        out.append(f"- {c['check']}: {detail}" if detail else f"- {c['check']}")
+    return out
+
+
+def _not_checked(ws, s, lang):
+    """What this report did not look at, from facts the run holds (see quality.scope_facts). Nothing is guessed."""
+    t, p = T[lang], PUNCT[lang]
+    f = quality.scope_facts(ws, s)
+    dim = lambda d: (lambda lab: f"{lab} (`{d}`)" if lab != d else f"`{d}`")(label(ws.dimensions[d].get("label", d), lang))  # noqa: E731
+    items = [t[f"agg_{x['agg']}"].format(column=x["column"], source=x["source"]) + " (" + t["dated_by"].format(date=x["date"]) + ")"
+             for x in f["measures"]]
+    L = [t["nc_used"].format(items=p["semi"].join(items)), t["nc_as_is"]]
+    L.append(t["nc_cut"].format(cut=p["comma"].join(map(dim, f["cut"]))) if f["cut"] else t["nc_no_cut"])
+    if f["not_cut"]:
+        L.append(t["nc_not_cut"].format(rest=p["comma"].join(map(dim, f["not_cut"]))))
+    if f["removed"]:
+        parts = []
+        for r in f["removed"]:
+            for col, vals in r["rule"].items():
+                w = r["windows"]
+                parts.append(t["nc_removed_item"].format(
+                    source=r["source"], column=col, values=p["comma"].join(f"`{v}`" for v in vals),
+                    c=w.get("current", {}).get("removed", 0), cr=w.get("current", {}).get("rows", 0),
+                    b=w.get("base", {}).get("removed", 0), br=w.get("base", {}).get("rows", 0)))
+        L.append(t["nc_removed"].format(items=p["semi"].join(parts)))
+    else:
+        L.append(t["nc_no_rule"])
+    if f["copies_matter"]:
+        L.append(t["nc_copies_" + {"once": "once", "every_row": "every_row", "unknown": "unknown"}.get(f["copies_answer"], "none")])
+    if f["cut"]:
+        blank = [x for x in f["blank"] if x["current"]["blank"] or x["base"]["blank"]]
+        sh = lambda b, n: f"{b / n:.1%}" if n else "—"  # noqa: E731
+        if blank:
+            L.append(t["nc_blank"].format(items=p["semi"].join(t["nc_blank_item"].format(
+                column=x["column"], b=x["current"]["blank"], n=x["current"]["rows"], share=sh(x["current"]["blank"], x["current"]["rows"]),
+                bb=x["base"]["blank"], bn=x["base"]["rows"], bshare=sh(x["base"]["blank"], x["base"]["rows"])) for x in blank)))
+        else:
+            L.append(t["nc_no_blank"].format(dims=p["comma"].join(f"`{x['column']}`" for x in f["blank"])))
+    L.append(t["nc_events"].format(ids=p["comma"].join(f"`{i}`" for i in f["external"])) if f["external"] else t["nc_no_event"])
+    if not f["market_compared"]:
+        L.append(t["nc_no_market"])
+    failed = f["checks"]["failed"]
+    L.append(t["nc_checks"].format(ran=f["checks"]["ran"], notes=f["notes"],
+                                   failed=t["nc_failed"].format(names=p["comma"].join(failed)) if failed else t["nc_none_failed"]))
+    dq = f["quality"]["warned"] + [x for x in f["quality"]["failed"] if x not in f["quality"]["warned"]]
+    if dq:
+        L.append(t["nc_dq_warned"].format(names=p["comma"].join(dq)))
+    return [f"## {t['notchecked']}", "", *[f"- {x}" for x in L], ""]
 
 
 def _decision_text(d):
@@ -650,8 +900,9 @@ def render(ws, s, lang="zh", out_dir: Path | None = None) -> str:
     q = s["qualify"]
     title = label(s["config"].get("question"), lang) if s["config"].get("question") else f"{mlab} {s['current'][0]}~{s['current'][1]}"
     L = [f"# {title}", ""]
-    if s["blocked"]:
-        L += [t["blocked"], *[f"- {c['check']}: {c['detail']}" for c in s["checks"] if not c["pass"]], ""]
+    blocked = s["blocked"]
+    if blocked:
+        L += [t["blocked"], *_blocked_items(s, lang), ""]
 
     p = PUNCT[lang]
     L += [f"## {t['conclusion']}", ""]
@@ -661,10 +912,12 @@ def render(ws, s, lang="zh", out_dir: Path | None = None) -> str:
     warn = [n for n in s.get("quality", {}).get("warned", [])
             if next((c for c in s["quality"]["checks"] if c["check"] == n), {}).get("status") == "fail"]
     if warn:
-        L += [t["quality_warn"].format(items=_quality_items(s, lang, warn)), ""]
+        L += [t["quality_warn_blocked" if blocked else "quality_warn"].format(items=_quality_items(s, lang, warn)), ""]
     notes = _data_notes(s, lang)
     if notes:
-        L += [t["data_note"].format(items=notes), ""]
+        L += [t["data_note_blocked" if blocked else "data_note"].format(items=notes), ""]
+    if blocked:
+        L += [t["blocked_head"], ""]
     period = f"{s['current'][0]}~{s['current'][1]} {t['vs']} {s['base'][0]}~{s['base'][1]}"
     first = s["cuts"][0]["result"] if s["cuts"] else None
     head = f"**{mlab}**{p['open']}{period}{p['close']}"
@@ -674,17 +927,11 @@ def render(ws, s, lang="zh", out_dir: Path | None = None) -> str:
     if s["order"] == "second_sides" and first:
         a, b = (seg_label(ws, world, s["cuts"][0]["side_dimension"], v, lang) for v in s["cuts"][0]["sides"])
         L.append(head + p["colon"] + t["gap_a_b"].format(a=a, b=b, ga=pct(first["growth_a"]), gb=pct(first["growth_b"]), gap=pp(first["gap"])))
-    elif ratio:
-        L.append(t["head_rate"].format(m=mlab, p=f"{p['open']}{period}{p['close']}", dir=t["rise" if d_all >= 0 else "fall"],
-                                       b=fmt(q["total_base"], unit), c=fmt(q["total_cur"], unit), d=fmt(d_all, unit, True)))
     else:
-        g = q["total_cur"] / q["total_base"] - 1 if q["total_base"] else None
-        L.append(t["head_amount"].format(m=mlab, p=f"{p['open']}{period}{p['close']}", dir=t["up" if d_all >= 0 else "down"],
-                                         a=fmt(abs(d_all), "count" if unit != "ratio" else unit), g=pct(g),
-                                         b=fmt(q["total_base"], unit), c=fmt(q["total_cur"], unit)))
-    if first and first.get("larger_effect") in ("structure", "rate", "mix", "performance"):
+        L.append(_headline(t, p, mlab, period, unit, ratio, q["total_base"], q["total_cur"]))
+    if not blocked and first and first.get("larger_effect") in ("structure", "rate", "mix", "performance"):
         L += ["", t[f"larger_{first['larger_effect']}"]]
-    top = leaf_slot(s)
+    top = None if blocked else leaf_slot(s)
     if top and not top.get("merged_from"):
         cut = s["cuts"][top["cut"]]
         r = cut["result"]
@@ -750,12 +997,14 @@ def render(ws, s, lang="zh", out_dir: Path | None = None) -> str:
                 if c.get("explains") in ("cannot_explain_change", "why_mix_matters", "term_mismatch"):
                     L.append(f"> 「{entry_text(find_entry(ws, c['id']), lang).rstrip('。.')}」{_fit_line(c, ws, lang)}" if lang == "zh" else
                              f"> \"{entry_text(find_entry(ws, c['id']), lang).rstrip('。.')}\": {_fit_line(c, ws, lang)}")
-    ro = _ruled_out(ws, s, n, lang, unit)
+    ro = [] if blocked else _ruled_out(ws, s, n, lang, unit)
     if ro:
         L += ["", t["ruled_out"].format(items=p["semi"].join(ro))]
     L.append("")
 
     L += [f"## {t['unusual']}", ""]
+    if blocked:
+        L += [t["blocked_computed"], ""]
     if s["order"] != "first":
         L += [t["qualify_scope"].format(m=mlab), ""]
     v = (s.get("verdict_unusual") or {}).get("then", {}).get("verdict")
@@ -775,11 +1024,11 @@ def render(ws, s, lang="zh", out_dir: Path | None = None) -> str:
     lo_ = q.get("history_basis", {}).get("left_out_for_holidays") or []
     if lo_:
         L += ["", t["left_out"].format(n=len(lo_), items=p["comma"].join(f"{x['window'][0]}~{x['window'][1]}" for x in lo_))]
-    if q.get("own_part_usual") is not None:
+    if not blocked and q.get("own_part_usual") is not None:
         L += ["", t["market_usual"].format(mg=pct(q["market_growth"]), gap=pp(q["usual_gap"]), ep=fmt(q["expected_part"], unit, True),
                                            d=fmt(d_all, unit, True), op=fmt(q["own_part_usual"], unit, True),
                                            plain=fmt(q["own_part"], unit, True))]
-    elif q.get("market_growth") is not None:
+    elif not blocked and q.get("market_growth") is not None:
         mv = (s.get("verdict_market") or {}).get("then", {}).get("verdict")
         d = q["total_cur"] - q["total_base"]
         L.append("")
@@ -800,6 +1049,9 @@ def render(ws, s, lang="zh", out_dir: Path | None = None) -> str:
     L.append("")
 
     L += [f"## {t['breakdown']}", ""]
+    if blocked:
+        L += [t["blocked_computed"], ""]
+    start = len(L)
     for h in s["horizontal"]:
         ident = next(i for i in ws.model.get("identities", []) if i["id"] == h["identity"])
         formula = f"{label(ws.metrics[ident['left']].get('label'), lang)} = " + \
@@ -816,20 +1068,8 @@ def render(ws, s, lang="zh", out_dir: Path | None = None) -> str:
         scope = " / ".join(f"{label(ws.dimensions[k].get('label', k), lang)}={seg_label(ws, world, k, val, lang)}" for k, val in cut["filters"].items())
         L += [f"### {i + 1}. {dl}" + (f"{p['open']}{scope}{p['close']}" if scope else ""), ""]
         L += _cut_table(ws, world, cut, unit, lang)
-        act = cut["decision"]["then"].get("action")
-        why = cut["decision"]["then"].get("reason")
-        topname = f"**{seg_label(ws, world, cut['dimension'], cut['result']['top1_key'], lang)}**"
-        if cut.get("role") == "cross_check":
-            L += ["", t["cross_check"] + topname + p["comma"] + t["cross_ok" if cut.get("confirms") else "cross_no"]]
-        elif act == "drill":
-            lead = t["drill_quiet"] if why == "single_point_inside_a_quiet_total" else \
-                t["drill"] if s.get("vertical_mode", "drill") != "each" else t["single"]
-            L += ["", lead + topname]
-        else:
-            small = t["stop_small"].format(n=f"{cut['gate'].get('top1_n') or 0:,.0f}", unit=cut["gate"].get("size_unit") or "rows",
-                                           min=f"{param(ws, 'segment_min_n'):g}")
-            L += ["", {"whole_number_within_usual_range": t["stop_quiet"], "top_group_too_small": small}.get(why, t["spread"])]
-        L += ["", t["dominance"].format(t=_dominance(ws, world, cut, lang))]
+        if not blocked:
+            L += _cut_verdict(ws, world, s, cut, lang)
         if out_dir is not None:
             vf = _cut_value(cut)
             tot_abs = math.fsum(abs(x[vf]) for x in cut["result"]["segments"]) or None
@@ -849,7 +1089,7 @@ def render(ws, s, lang="zh", out_dir: Path | None = None) -> str:
         L += _table([t["factor"], t["base"], t["cur"], t["contribution"]],
                     [[label(ws.metrics[f["factor"]].get("label", f["factor"]), lang), fmt(f["base"], ws.metrics[f["factor"]].get("unit")),
                       fmt(f["cur"], ws.metrics[f["factor"]].get("unit")), fmt(f["contribution"], unit, True)] for f in tree["leaves"]])
-        for x, sp in tree.get("ratio_splits", {}).items():
+        for x, sp in ({} if blocked else tree.get("ratio_splits", {})).items():
             L += ["", t["tree_split"].format(m=label(ws.metrics[x].get("label", x), lang),
                                              d=label(ws.dimensions[sp["dimension"]].get("label", sp["dimension"]), lang),
                                              s=fmt(sp["structure_total"], ws.metrics[x].get("unit"), True),
@@ -866,9 +1106,11 @@ def render(ws, s, lang="zh", out_dir: Path | None = None) -> str:
                     ([[t["pvm_new"], fmt(pv["new_total"], unit, True)]] if pv["new_total"] else []) +
                     ([[t["pvm_gone"], fmt(pv["gone_total"], unit, True)]] if pv["gone_total"] else []))
         top = next(x for x in pv["segments"] if x["key"] == pv["top_price_key"])
-        L += ["", t["pvm_line"].format(lead=t[f"pvm_{pv['larger_effect']}"], q=pct(pv["quantity_growth"]),
-                                       seg=seg_label(ws, world, pv["dimension"], top["key"], lang), v=fmt(top["price"], unit, True),
-                                       p0=fmt(top.get("price_base"), unit), p1=fmt(top.get("price_cur"), unit)), ""]
+        if not blocked:
+            L += ["", t["pvm_line"].format(lead=t[f"pvm_{pv['larger_effect']}"], q=pct(pv["quantity_growth"]),
+                                           seg=seg_label(ws, world, pv["dimension"], top["key"], lang), v=fmt(top["price"], unit, True),
+                                           p0=fmt(top.get("price_base"), unit), p1=fmt(top.get("price_cur"), unit))]
+        L.append("")
     ga = s.get("growth_accounting")
     if ga:
         L += [f"**{t['ga']}**", ""]
@@ -888,9 +1130,17 @@ def render(ws, s, lang="zh", out_dir: Path | None = None) -> str:
             (cdir / f"daily.{lang}.svg").write_text(daily_svg(ch["daily"], lang, ws.metrics[m].get("unit")), encoding="utf-8")
             L += [f"![{t['daily_title']}](charts/daily.{lang}.svg)", ""]
 
+    if len(L) == start:
+        reason = ""
+        if s["errors"]:
+            reason = (": " if lang == "en" else "：") + p["semi"].join(f"{e['dimension']}: {e['error']}" for e in s["errors"][:2])
+        elif not ws.metric_dimensions(m):
+            reason = t["no_breakdown_dims"]
+        L += [t["no_breakdown"].format(reason=reason), ""]
+
     L += [f"## {t['why']}", ""]
     # One entry per cause: a drill path is one cause seen at growing precision, so only its last step is listed.
-    for slot in [x for x in s["slots"] if x.get("leaf", True)]:
+    for slot in ([] if blocked else [x for x in s["slots"] if x.get("leaf", True)]):
         L += [f"**{slot_label(ws, world, slot, lang)}**", ""]
         if slot["status"] == "data_suspect":
             L.append("- " + t["data_suspect_slot"])
@@ -899,18 +1149,23 @@ def render(ws, s, lang="zh", out_dir: Path | None = None) -> str:
         for c in slot["citations"]:
             L += _cite_line(ws, c, lang, unit)
         L.append("")
-    if not s["slots"]:
-        first_cut = s["cuts"][0] if s["cuts"] else None
-        quiet = first_cut and first_cut["decision"]["then"].get("reason") == "whole_number_within_usual_range"
-        L += [t["stop_quiet"] if quiet else t["spread"], ""]
+    if blocked:
+        L += [t["blocked_why"], ""]
+    elif not s["slots"]:
+        L += [_stop_line(ws, s["cuts"][0], lang) if s["cuts"] else t["no_breakdown_why"], ""]
+
+    L += _not_checked(ws, s, lang)
 
     L += [f"## {t['who']}", ""]
     acts = {a["id"]: a for a in ws.world.get("actions", [])}
-    L += [f"- **{label(acts[a]['owner'], lang)}**{p['colon']}{label(acts[a]['action'], lang)}" for a in s["actions"]] or \
-        [_no_owner_line(ws, world, s, unit, lang)]
+    if blocked:
+        L.append(t["blocked_who"])
+    else:
+        L += [f"- **{label(acts[a]['owner'], lang)}**{p['colon']}{label(acts[a]['action'], lang)}" for a in s["actions"]] or \
+            [_no_owner_line(ws, world, s, unit, lang)]
     L.append("")
 
-    if s["gaps"] or s["to_confirm"]:
+    if not blocked and (s["gaps"] or s["to_confirm"]):
         L += [f"## {t['confirm']}", ""]
         for g in s["gaps"]:
             slot = next(x for x in s["slots"] if x["id"] == g["slot"])

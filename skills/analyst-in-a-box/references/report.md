@@ -10,8 +10,9 @@ The report is already in the order a reader needs; keep it:
 2. **Is it unusual**: against its own history, against the market, holiday alignment.
 3. **Breakdown**: formula first, then each cut, with the decision that ended it.
 4. **Why**: for every single point, what explains it, with source and status.
-5. **Who should act**: owners and actions recorded for those points. When none is recorded (always so on a first run), name the slices that carry the movement with their change, say plainly that no owner is recorded for them, and invite the user to say who owns it. Never invent an owner or an action.
-6. **Waiting for you**: gaps and entries to confirm. Turn these into questions.
+5. **What this report did not check**: the tables and columns used, the cuts made and not made, the rule (if any) that removes cancelled rows with the count removed, how exact copies were counted, blank values in the cut columns, whether any outside event or market figure was compared, and how many checks ran. Built only from facts the run holds; a line is left out when the run does not know the fact.
+6. **Who should act**: owners and actions recorded for those points. When none is recorded (always so on a first run), name the slices that carry the movement with their change, say plainly that no owner is recorded for them, and invite the user to say who owns it. When the run stopped at the first cut (a quiet week), name the largest movers of that cut the same way. Never invent an owner or an action.
+7. **Waiting for you**: gaps and entries to confirm. Turn these into questions.
 
 In conversation, lead with the conclusion in two or three sentences, then offer the rest.
 
@@ -34,6 +35,9 @@ In conversation, lead with the conclusion in two or three sentences, then offer 
 - **Hypotheses.** An outside event that passed all three checks is "a hypothesis supported by timing, slice
   and size", never "the cause". One that did not is "timing matches, not proven". Read out the refutation condition.
 - **Within the usual range.** Say so plainly; the breakdown is still useful, but it is not an anomaly.
+- **A blocked report.** When a pre-delivery check failed, the page speaks with one voice: the first block says what failed in plain words and that no number below is a finding yet. The tables stay, labelled as computed from the data as loaded; the main cause, ruled-out list, what led, the drill sentences, owners and questions are left out, and Why and Who say the check failed. Do not read a blocked page's numbers out as conclusions.
+- **Direction words.** "Rose", "fell", "up" and "down" follow the sign of the unrounded change. When both values print the same at the precision shown, the report says there is no visible change at this precision and gives both values with enough digits to tell them apart.
+- **A big group that was not drilled.** When the largest group carries at least the single-point share the user set but the analysis did not drill into it, the report gives the share, the threshold and the test it failed (the total within its usual range, in step with the others, or within its own swings). It does not also say that no group moved clearly.
 
 ## 3. Numbers
 

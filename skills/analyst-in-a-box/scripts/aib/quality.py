@@ -388,3 +388,79 @@ def _repeats_per_entity(ws, spec, df, col) -> list:
         if len(out) >= 2:
             break
     return out
+
+
+# ---------- what the run did and did not look at (for the report's "what this report did not check") ----------
+
+def _root_source(ws, name):
+    """The table a source is read from: a join stands on its base table."""
+    seen = set()
+    while ws.sources.specs.get(name, {}).get("type") == "join" and name not in seen:
+        seen.add(name)
+        name = ws.sources.specs[name]["base"]
+    return name
+
+
+def _removed_rows(ws, source, windows):
+    """Rows the source's `exclude_rows` rule removes, counted in each window on the table as read without the rule.
+    None when the source has no such rule."""
+    from .sources import LOADERS
+    spec = ws.sources.specs.get(source) or {}
+    rule = spec.get("exclude_rows")
+    if not rule or spec.get("type") not in ("csv", "excel"):
+        return None
+    raw = LOADERS[spec["type"]]({**spec, "exclude_rows": None, "drop_duplicates": False}, ws.root)
+    hit = pd.Series(False, index=raw.index)
+    for col, values in rule.items():
+        if col in raw.columns:
+            hit |= raw[col].astype(str).isin([str(v) for v in values])
+    if spec.get("rename"):
+        raw = raw.rename(columns=spec["rename"])
+    out = {"source": source, "rule": {c: [str(v) for v in vs] for c, vs in rule.items()}, "windows": {}}
+    for tag, w in windows.items():
+        date = next((d for d in spec.get("date_columns", []) if d in raw.columns), None)
+        if date is None:
+            continue
+        day = pd.to_datetime(raw[date]).dt.normalize()
+        inside = (day >= pd.Timestamp(w[0])) & (day <= pd.Timestamp(w[1]))
+        out["windows"][tag] = {"removed": int((hit & inside).sum()), "rows": int(inside.sum())}
+    return out
+
+
+def scope_facts(ws, s) -> dict:
+    """What this run used and what it did not look at, from facts the run holds. Nothing here is inferred from a name:
+    tables and columns come from the model, counts from the data, checks from the record."""
+    m = s["metric"]
+    names = list(ws.metric_measures(m))
+    for h in s.get("horizontal", []):
+        for f in h.get("factors", []):
+            if f["factor"] in ws.metrics:
+                names += [x for x in ws.metric_measures(f["factor"]) if x not in names]
+    measures = []
+    for n in dict.fromkeys(names):
+        spec = ws.measures[n]
+        measures.append({"name": n, "agg": spec["agg"], "column": spec.get("column"), "source": spec["source"], "date": spec["date"]})
+    cut = list(dict.fromkeys(c["dimension"] for c in s.get("cuts", []) if isinstance(c["dimension"], str)))
+    allowed = sorted(ws.metric_dimensions(m))
+    windows = {"current": s["current"], "base": s["base"]}
+    roots = list(dict.fromkeys(_root_source(ws, x["source"]) for x in measures))
+    removed = [r for r in (_removed_rows(ws, src, windows) for src in roots) if r]
+    first = ws.metric_measures(m)[0]
+    blank = []
+    for d in cut:
+        row = {"dimension": d, "column": ws.column(first, d)}
+        for tag, w in windows.items():
+            b, n = blank_share(ws, first, [d], w, s.get("filters"))
+            row[tag] = {"blank": b, "rows": n}
+        blank.append(row)
+    copies = ws.copies_readings(m, s["current"]) if ws.copies_policy(m) == "depends" else None
+    external = [c["id"] for x in s.get("slots", []) for c in x.get("citations", []) if c.get("external")]
+    qc = s.get("quality", {}).get("checks", [])
+    return {"measures": measures, "cut": cut, "not_cut": [d for d in allowed if d not in cut],
+            "removed": removed, "has_removal_rule": bool(removed), "copies_answer": (copies or {}).get("answer"),
+            "copies_matter": copies is not None, "blank": blank, "external": list(dict.fromkeys(external)),
+            "market_compared": (s.get("qualify") or {}).get("market_growth") is not None,
+            "checks": {"ran": len(s["checks"]), "failed": [c["check"] for c in s["checks"] if not c["pass"]]},
+            "quality": {"ran": len(qc), "failed": [c["check"] for c in qc if c["status"] == "fail"],
+                        "warned": [c["check"] for c in qc if c["status"] == "warn"]},
+            "notes": len(s.get("quality", {}).get("notes", []))}
