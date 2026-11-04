@@ -59,6 +59,37 @@ const geometry = () => {
   return { count: cards.length, overlaps, wide };
 };
 
+// Pairs of drawn links that cross, not counting links that share a card (each link sampled as 16 short segments).
+const crossings = () => {
+  const view = document.querySelector(".view:not([style*='none'])");
+  const links = [...view.querySelectorAll(".edge-g")].filter((g) => g.style.display !== "none").map((g) => {
+    const path = g.querySelector(".edge"), len = path.getTotalLength(), pts = [];
+    for (let i = 0; i <= 16; i++) { const q = path.getPointAtLength(len * i / 16); pts.push([q.x, q.y]); }
+    return { s: g.dataset.s, t: g.dataset.t, pts };
+  });
+  const o = (p, q, r) => (q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0]);
+  const x = (a, b, c, d) => o(a, b, c) * o(a, b, d) < 0 && o(c, d, a) * o(c, d, b) < 0;
+  let n = 0;
+  for (let i = 0; i < links.length; i++) for (let j = i + 1; j < links.length; j++) {
+    const A = links[i], B = links[j];
+    if (A.s === B.s || A.s === B.t || A.t === B.s || A.t === B.t) continue;
+    let hit = false;
+    for (let a = 0; a < 16 && !hit; a++) for (let b = 0; b < 16 && !hit; b++) hit = x(A.pts[a], A.pts[a + 1], B.pts[b], B.pts[b + 1]);
+    if (hit) n++;
+  }
+  return n;
+};
+// Crossings of the tree view before the hierarchical layout (force layout only), measured on the demo workspaces.
+const TREE_BEFORE = { store: { 1440: 21, 390: 14 }, intake: { 1440: 125, 390: 127 } };
+// Soft: a count that is not lower than before is reported but does not fail the run.
+const soft = (page, width, n) => {
+  const before = TREE_BEFORE[page.split("-")[0]]?.[width];
+  if (before == null) return;
+  const ok = n < before;
+  console.log(`${ok ? "ok  " : "WARN"} ${page}: tree link crossings at ${width} px: ${n} (before ${before})`);
+  results.push({ page, what: `tree crossings ${width}px`, pass: true, detail: `${n} vs ${before}` });
+};
+
 for (const file of pages) {
   const name = path.basename(file, ".html");
   const { ctx, page, errors, t0 } = await open(file, { width: 1440, height: 900 });
@@ -71,6 +102,7 @@ for (const file of pages) {
     await settle(page);
     const g = await page.evaluate(geometry);
     add(name, `${view}: nodes drawn`, g.count > 0, `${g.count}`);
+    if (view === "tree") soft(name, 1440, await page.evaluate(crossings));
     add(name, `${view}: no overlapping cards`, g.overlaps.length === 0, g.overlaps.slice(0, 4).join("; "));
     add(name, `${view}: label inside its card`, g.wide.length === 0, g.wide.slice(0, 4).join("; "));
     const tiers = await page.evaluate(() => [...new Set([...document.querySelectorAll(".view:not([style*='none']) .node")].map((n) => n.dataset.tier))]);
@@ -134,6 +166,7 @@ for (const file of pages) {
     await settle(c.page);
     const sw = await c.page.evaluate(() => ({ sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth }));
     add(name, "390 px: no horizontal scroll", sw.sw <= sw.cw, `${sw.sw} > ${sw.cw}`);
+    soft(name, 390, await c.page.evaluate(crossings));
     await c.page.screenshot({ path: path.join(OUT, `${name}-tree-390.png`) });
     await c.page.locator("#tab-world").click();
     await settle(c.page);

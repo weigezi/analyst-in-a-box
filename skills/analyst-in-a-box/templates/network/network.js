@@ -53,7 +53,7 @@ const SETTLE_TICKS = 160;
 const ALPHA_DECAY = 1 - Math.pow(ALPHA_MIN, 1 / SETTLE_TICKS);
 const VELOCITY_KEEP = 0.6;
 const DRAG_TARGET = 0.12;
-const P = { charge: -900, reach: 700, centre: 0.08, row: 0.22, time: 0.12, pad: 16, speed: 48, spread: 2.6, kMin: 0.7 };
+const P = { charge: -900, reach: 700, centre: 0.08, row: 0.22, level: 0.22, cross: 0.2, time: 0.12, pad: 16, speed: 48, spread: 2.6, kMin: 0.7 };
 const LINK_DIST = { formula: 144, cut: 184, relation: 152, about: 160 };
 
 /* ---------- text and card size ---------- */
@@ -146,6 +146,125 @@ const views = {};
 let cur = null;
 const stageBox = () => { const b = stage.getBoundingClientRect(); return { w: b.width, h: b.height }; };
 
+/* ---------- the tree: one level per formula depth, the cut dimensions last ---------- */
+/* Levels are columns on a landscape stage and rows on a portrait one. Cards of one level are ordered by the mean
+   position of their neighbours in the level before and after (a few barycentre sweeps, which removes most crossings),
+   then given an even slot. A level too crowded for the stage is split into staggered sub-rows. */
+function treeSize(v, sz) {
+  const land = sz.w >= sz.h;
+  const kMin = sz.w < 560 ? 0.55 : P.kMin;
+  const M = 48, gap = P.pad + 8, gapSub = 24, gapLevel = 88;
+  const metrics = v.nodes.filter((n) => n.d.kind !== "dimension");
+  const levels = [...new Set(metrics.map((n) => n.d.depth))].sort((a, b) => a - b).map((d) => metrics.filter((n) => n.d.depth === d));
+  const nMetric = levels.length;
+  const dims = v.nodes.filter((n) => n.d.kind === "dimension");
+  if (dims.length) levels.push(dims);
+  const rank = new Map();
+  const setRank = (lv) => lv.forEach((n, i) => rank.set(n, (i + 0.5) / lv.length));
+  levels.forEach(setRank);
+  const mean = (n, from) => {
+    const r = from.map((m) => rank.get(m));
+    return r.length ? r.reduce((a, b) => a + b, 0) / r.length : rank.get(n);
+  };
+  const parents = (n) => v.links.filter((l) => l.d.kind === "formula" && l.t === n).map((l) => l.s);
+  const children = (n) => v.links.filter((l) => l.d.kind === "formula" && l.s === n).map((l) => l.t);
+  const sortBy = (lv, f) => { const k = new Map(lv.map((n) => [n, f(n)])); lv.sort((a, b) => k.get(a) - k.get(b)); setRank(lv); };
+  for (let pass = 0; pass < 4; pass++) {
+    for (let i = 1; i < nMetric; i++) sortBy(levels[i], (n) => mean(n, parents(n)));
+    for (let i = nMetric - 2; i >= 0; i--) sortBy(levels[i], (n) => mean(n, children(n)));
+  }
+  if (dims.length) sortBy(dims, (n) => mean(n, v.links.filter((l) => l.d.kind === "cut" && l.t === n).map((l) => l.s)));
+
+  const cs = (n) => (land ? n.h : n.w), th = (n) => (land ? n.w : n.h);
+  /* On a wide stage the cut cards form a row along the bottom edge when the row fits, so their links drop down instead of
+     running through every metric column. */
+  let band = false;
+  const dh = dims.length ? Math.max(...dims.map((n) => n.h)) + 72 : 0;
+  if (land && dims.length) {
+    const metricLen = 2 * M + (levels.length - 2) * gapLevel + levels.slice(0, -1).reduce((a, lv) => a + Math.max(...lv.map(th)), 0);
+    band = dims.length * (Math.max(...dims.map((n) => n.w)) + gap) - gap + 2 * M <= metricLen;
+  }
+  const avail = (land ? sz.h : sz.w) / kMin - 2 * M - (band ? dh : 0);
+  let L = 2 * M + (levels.length - 1 - (band ? 1 : 0)) * gapLevel, C = 0;
+  for (const lv of band ? levels.slice(0, -1) : levels) {
+    const maxC = Math.max(...lv.map(cs)), maxT = Math.max(...lv.map(th));
+    const cap = Math.max(1, Math.floor((avail + gap) / (maxC + gap)));
+    lv.sub = Math.ceil(lv.length / cap);
+    const per = Math.ceil(lv.length / lv.sub);
+    L += lv.sub * maxT + (lv.sub - 1) * gapSub;
+    C = Math.max(C, per * maxC + (per - 1) * gap);
+  }
+  v.tl = { levels, land, M, gapSub, band };
+  C += 2 * M + (band ? dh : 0);
+  return land ? { W: L, H: C } : { W: C, H: L };
+}
+
+function crossCount(v) {
+  const o = (a, b, c) => (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
+  const seg = v.links.map((l) => ({ s: l.s, t: l.t, a: [l.s.gx, l.s.gy], b: [l.t.gx, l.t.gy] }));
+  let n = 0;
+  for (let i = 0; i < seg.length; i++) {
+    for (let j = i + 1; j < seg.length; j++) {
+      const p = seg[i], q = seg[j];
+      if (p.s === q.s || p.s === q.t || p.t === q.s || p.t === q.t) continue;
+      if (o(p.a, p.b, q.a) * o(p.a, p.b, q.b) < 0 && o(q.a, q.b, p.a) * o(q.a, q.b, p.b) < 0) n++;
+    }
+  }
+  return n;
+}
+
+function treePlace(v) {
+  const { levels: all, land, M, gapSub, band } = v.tl;
+  const levels = band ? all.slice(0, -1) : all;
+  const bandLv = band ? all[all.length - 1] : null;
+  const Lt = land ? v.W : v.H;
+  const Ct = (land ? v.H : v.W) - (band ? Math.max(...bandLv.map((n) => n.h)) + 72 : 0);
+  const th = levels.map((lv) => Math.max(...lv.map((n) => (land ? n.w : n.h))));
+  const used = levels.reduce((a, lv, i) => a + lv.sub * th[i] + (lv.sub - 1) * gapSub, 0);
+  const gapLevel = levels.length > 1 ? (Lt - 2 * M - used) / (levels.length - 1) : 0;
+  const start = [];
+  let pos = M;
+  levels.forEach((lv, i) => { start[i] = pos; pos += lv.sub * th[i] + (lv.sub - 1) * gapSub + gapLevel; });
+  const put = (n, i, j, lv) => {
+    if (lv === bandLv) { n.gx = M + (j + 0.5) * (Lt - 2 * M) / lv.length; n.gy = v.H - M - n.h / 2; return; }
+    const r = j % lv.sub, c = Math.floor(j / lv.sub), count = Math.ceil((lv.length - r) / lv.sub);
+    const along = start[i] + r * (th[i] + gapSub) + th[i] / 2;
+    const across = M + (c + 0.5) * (Ct - 2 * M) / count;
+    n.gx = land ? along : across; n.gy = land ? across : along;
+  };
+  all.forEach((lv, i) => lv.forEach((n, j) => put(n, i, j, lv)));
+
+  /* Order inside each level decides most crossings, above all through the many cut links. Start from the barycentre
+     order, then for each level in turn try every order (up to 7 cards; beyond that keep swapping neighbours while it
+     helps) and keep the one with fewest crossings. Repeat until a whole round changes nothing. */
+  let total = crossCount(v);
+  for (let round = 0; round < 4; round++) {
+    let improved = false;
+    all.forEach((lv, li) => {
+      if (lv.length < 2) return;
+      const apply = (order) => order.forEach((n, j) => put(n, li, j, lv));
+      let best = lv.slice();
+      const tryOrder = (order) => { apply(order); const c = crossCount(v); if (c < total) { total = c; best = order.slice(); improved = true; } };
+      if (lv.length <= 7) {
+        const rec = (rest, acc) => { if (!rest.length) return tryOrder(acc); rest.forEach((n, k) => rec(rest.filter((_, m) => m !== k), [...acc, n])); };
+        rec(lv, []);
+      } else {
+        for (let again = true, guard = 0; again && guard < 20; guard++) {
+          again = false;
+          for (let k = 0; k + 1 < best.length; k++) {
+            const o = best.slice(); [o[k], o[k + 1]] = [o[k + 1], o[k]];
+            const before = total; tryOrder(o); if (total < before) again = true;
+          }
+        }
+      }
+      lv.splice(0, lv.length, ...best);
+      apply(best);
+    });
+    if (!improved) break;
+  }
+  for (const l of v.links) l.dist = Math.hypot(l.s.gx - l.t.gx, l.s.gy - l.t.gy);
+}
+
 function createView(key) {
   const data = D.views[key];
   const v = { key, data, nodes: [], links: [], byId: new Map(), alpha: 1, target: 0, started: false, settled: false,
@@ -173,8 +292,7 @@ function createView(key) {
   const sz = stageBox();
   const area = v.nodes.reduce((a, n) => a + (n.w + P.pad) * (n.h + P.pad), 0) * P.spread;
   let W = Math.sqrt(area * sz.w / sz.h), H = area / W;
-  const rows = key === "tree" ? new Set(v.nodes.map((n) => n.d.depth)).size : 0;
-  if (rows > 1) H = Math.max(H, 128 + (rows - 1) * 136);
+  if (key === "tree") { const need = treeSize(v, sz); W = need.W; H = need.H; }
   const kMin = sz.w < 560 ? 0.55 : P.kMin;
   v.k = clamp(Math.min(sz.w / W, sz.h / H), kMin, 1.2);
   W = Math.max(W, sz.w / v.k); H = Math.max(H, sz.h / v.k);
@@ -183,14 +301,11 @@ function createView(key) {
   v.tx = (sz.w - W * v.k) / 2; v.ty = (sz.h - H * v.k) / 2;
 
   const mx = 120, ax = data.axis;
-  const depths = [...new Set(v.nodes.map((n) => n.d.depth))].sort((a, b) => a - b);
   for (const n of v.nodes) {
     n.x = 48 + v.rnd() * (W - 96);
     n.y = 48 + v.rnd() * (H - 96);
     if (key === "tree") {
-      const i = depths.indexOf(n.d.depth);
-      n.ty = depths.length > 1 ? 64 + i * (H - 128) / (depths.length - 1) : H / 2;
-      n.rowK = P.row;
+      continue;
     } else if (n.d.kind === "event") {
       n.ty = H - 128; n.rowK = P.row * 2;
       if (ax && n.d.t != null) { n.tx = ax.max > ax.min ? mx + (n.d.t - ax.min) / (ax.max - ax.min) * (W - 2 * mx) : W / 2; }
@@ -199,6 +314,7 @@ function createView(key) {
     }
   }
 
+  if (key === "tree") treePlace(v);
   v.g = make("g", { "class": "view", "data-view": key }, vp);
   v.gAxis = make("g", { "class": "axis" }, v.g);
   v.gEdges = make("g", {}, v.g);
@@ -219,7 +335,7 @@ function createView(key) {
 /* ---------- links ---------- */
 function linkDom(l, parent) {
   const e = l.d;
-  const g = make("g", { "class": "edge-g", "data-id": e.id }, parent);
+  const g = make("g", { "class": `edge-g k-${e.kind}`, "data-id": e.id, "data-s": e.s, "data-t": e.t }, parent);
   l.hit = make("path", { "class": "edge-hit" }, g);
   l.path = make("path", { "class": `edge ${e.tier}` }, g);
   if (e.kind === "relation") l.path.setAttribute("marker-end", "url(#arr)");
@@ -252,7 +368,8 @@ function drawLink(l) {
   const a = edgePoint(l.s, ctl[0], ctl[1]), b = edgePoint(l.t, ctl[0], ctl[1]);
   const d = `M${a[0].toFixed(1)} ${a[1].toFixed(1)} Q${ctl[0].toFixed(1)} ${ctl[1].toFixed(1)} ${b[0].toFixed(1)} ${b[1].toFixed(1)}`;
   l.path.setAttribute("d", d); l.hit.setAttribute("d", d);
-  const m = [(a[0] + 2 * ctl[0] + b[0]) / 4, (a[1] + 2 * ctl[1] + b[1]) / 4];
+  const u = l.d.kind === "cut" ? 0.72 : 0.5;
+  const m = [(1 - u) * (1 - u) * a[0] + 2 * (1 - u) * u * ctl[0] + u * u * b[0], (1 - u) * (1 - u) * a[1] + 2 * (1 - u) * u * ctl[1] + u * u * b[1]];
   if (l.gbg) { l.gbg.setAttribute("cx", m[0]); l.gbg.setAttribute("cy", m[1]); l.gtx.setAttribute("x", m[0]); l.gtx.setAttribute("y", m[1]); }
   if (l.txt) { l.txt.setAttribute("x", m[0]); l.txt.setAttribute("y", m[1] - 6); }
 }
@@ -305,7 +422,7 @@ function tick(v) {
     const s = l.s, t = l.t;
     let dx = cx(t) + t.vx - cx(s) - s.vx, dy = cy(t) + t.vy - cy(s) - s.vy;
     const len = Math.hypot(dx, dy) || 1e-6;
-    const k = (len - LINK_DIST[l.d.kind]) / len * a / Math.min(s.deg, t.deg) * (l.d.kind === "cut" ? 0.4 : 1);
+    const k = (len - (l.dist || LINK_DIST[l.d.kind])) / len * a / Math.min(s.deg, t.deg) * (l.d.kind === "cut" ? 0.4 : 1);
     dx *= k; dy *= k;
     const bias = s.deg / (s.deg + t.deg);
     t.vx -= dx * bias; t.vy -= dy * bias; s.vx += dx * (1 - bias); s.vy += dy * (1 - bias);
@@ -321,6 +438,12 @@ function tick(v) {
     }
   }
   for (const n of live) {
+    if (n.gx != null) {
+      const along = Math.max(a, 0.3) * 4 * P.level, across = a * 4 * P.cross;
+      n.vx += (n.gx - cx(n)) * (v.tl.land ? along : across);
+      n.vy += (n.gy - cy(n)) * (v.tl.land ? across : along);
+      continue;
+    }
     n.vx += (v.W / 2 - cx(n)) * P.centre * a;
     n.vy += (v.H / 2 - cy(n)) * P.centre * a;
     if (n.ty != null) n.vy += (n.ty - cy(n)) * n.rowK * a * 4;
