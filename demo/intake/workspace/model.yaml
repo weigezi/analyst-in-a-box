@@ -35,11 +35,11 @@ measures:
       zh: 访问量
       en: Visits
     source: traffic
-    agg: sum
-    column: visits
+    agg: count_distinct
     date: date
-    dimensions:
-    - channel
+    dimensions: []
+    column: visits
+    additive_over: []
   m_count:
     source: orders
     agg: count_distinct
@@ -210,15 +210,6 @@ priorities:
       date: '2026-10-31'
       note: order of the user's selection; not yet a priority, so every layer is chosen by score until the user confirms one
     status: proposed
-  visits:
-    order:
-    - channel
-    mode: drill
-    source:
-      kind: user
-      date: '2026-10-31'
-      note: order of the user's selection; not yet a priority, so every layer is chosen by score until the user confirms one
-    status: proposed
   id_count:
     order:
     - channel
@@ -255,15 +246,6 @@ priorities:
     - city
     - delivery
     - customer_type
-    mode: drill
-    source:
-      kind: user
-      date: '2026-10-31'
-      note: order of the user's selection; not yet a priority, so every layer is chosen by score until the user confirms one
-    status: proposed
-  conversion:
-    order:
-    - channel
     mode: drill
     source:
       kind: user
