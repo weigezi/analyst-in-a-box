@@ -34,8 +34,32 @@ MONTHS = {m: i for i, m in enumerate(["january", "february", "march", "april", "
 MONTHS.update({m[:3]: i for m, i in list(MONTHS.items())})
 
 
+DERIVE_OPS = {"add": lambda a, b: a + b, "sub": lambda a, b: a - b, "mul": lambda a, b: a * b}
+
+
+def apply_derived_columns(df: pd.DataFrame, specs: list) -> pd.DataFrame:
+    """New numeric columns from two existing ones, in order (a later one may use an earlier one):
+    [{name, op: add|sub|mul, columns: [a, b]}]. A fixed set of operations, never an expression that is evaluated.
+    A blank in either column gives a blank."""
+    for sp in specs or []:
+        name, op, cols = sp.get("name"), sp.get("op"), list(sp.get("columns") or [])
+        if op not in DERIVE_OPS:
+            raise ValueError(f"derived column '{name}': op must be one of {', '.join(DERIVE_OPS)}, not {op!r}")
+        if len(cols) != 2:
+            raise ValueError(f"derived column '{name}': needs exactly two columns, got {len(cols)}")
+        if not name or name in df.columns:
+            raise ValueError(f"derived column '{name}': the table already has a column of that name")
+        for c in cols:
+            if c not in df.columns:
+                raise ValueError(f"derived column '{name}': no column '{c}' in the table")
+            if not pd.api.types.is_numeric_dtype(df[c]) or pd.api.types.is_bool_dtype(df[c]):
+                raise ValueError(f"derived column '{name}': column '{c}' is not a number")
+        df[name] = DERIVE_OPS[op](df[cols[0]], df[cols[1]])
+    return df
+
+
 def clean(df: pd.DataFrame, derive: list | None = None, exclude_rows: dict | None = None,
-          drop_duplicates: bool = False) -> pd.DataFrame:
+          drop_duplicates: bool = False, derive_columns: list | None = None) -> pd.DataFrame:
     """The one place a table is tidied, for intake and for every later run: header cells lose their outer spaces,
     a text column of amounts such as "$1,025.00 " becomes numbers, and the dates the workspace derived from
     several columns (see `derive_dates`) are added. Columns that are not clearly amounts are left alone."""
@@ -53,6 +77,7 @@ def clean(df: pd.DataFrame, derive: list | None = None, exclude_rows: dict | Non
                                   errors="coerce")
     for d in derive or []:
         df[d["name"]] = derive_dates(df, d)
+    df = apply_derived_columns(df, derive_columns)
     # Cancelled, refunded or otherwise reversed rows, as named by the user at intake ({column: [values]}). They are
     # dropped here, once, so every number, every quality check and every group size sees the same table.
     for col, values in (exclude_rows or {}).items():
@@ -84,14 +109,14 @@ def derive_dates(df: pd.DataFrame, spec: dict) -> pd.Series:
 def _csv(spec, root):
     opts = {**READ_AS_TEXT, **READ_CSV_ONCE, **spec.get("options", {})}
     return clean(pd.read_csv(root / spec["path"], **opts), spec.get("derive_dates"), spec.get("exclude_rows"),
-                 spec.get("drop_duplicates", False))
+                 spec.get("drop_duplicates", False), spec.get("derive_columns"))
 
 
 @loader("excel")
 def _excel(spec, root):
     opts = {**READ_AS_TEXT, **spec.get("options", {})}
     return clean(pd.read_excel(root / spec["path"], sheet_name=spec.get("sheet", 0), **opts), spec.get("derive_dates"),
-                 spec.get("exclude_rows"), spec.get("drop_duplicates", False))
+                 spec.get("exclude_rows"), spec.get("drop_duplicates", False), spec.get("derive_columns"))
 
 
 @loader("sqlite")
@@ -159,6 +184,11 @@ class Sources:
             if not other[right].is_unique:
                 raise ValueError(f"source '{name}': key '{right}' repeats in '{j['source']}'; a lookup needs one row per key")
             cols = [c for c in j.get("columns", []) if c != right]
+            clash = [c for c in cols if c in df.columns]
+            if clash:
+                raise ValueError(f"source '{name}': '{j['source']}' would bring in {', '.join(clash)}, which '{spec['base']}' already has; "
+                                 "the two are not the same number (an order's price repeated on each of its items would be added up once per item). "
+                                 "Leave the column out of the join, or rename one of them.")
             look = other[[right, *cols]]
             if left != right:
                 look = look.rename(columns={right: left})

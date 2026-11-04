@@ -28,7 +28,7 @@ import pandas as pd
 import yaml
 
 from . import defaults, draft
-from .sources import derive_dates
+from .sources import apply_derived_columns, derive_dates
 
 TABLE_SUFFIXES = (".csv", ".csv.gz", ".xlsx", ".xls")
 
@@ -394,6 +394,35 @@ def _q(qid, zh, en, options, lang, **extra):
     return {"id": qid, "ask": zh if lang == "zh" else en, "options": options, **extra}
 
 
+def _derived_questions(main_qs, t, df, lang):
+    """A rate is never the number to analyse: ask which decimal column is a unit price and what it multiplies, and whether a
+    whole-number column is the sum of two others. Only when the table has both kinds of column. The role question of a
+    decimal column then offers 'a unit price' first."""
+    zh = lang == "zh"
+    decimals = [c for c in t["measure_columns"] if pd.api.types.is_float_dtype(df[c])]
+    wholes = [c for c in t["measure_columns"] if pd.api.types.is_integer_dtype(df[c])]
+    if not decimals or not wholes:
+        return main_qs
+    ex = lambda c: ", ".join(draft.profile(df[[c]])[0]["examples"][:3])   # noqa: E731
+    new = [
+        _q("unit_price", "有没有哪一列是单价（每一晚、每一件的价格），不能直接加起来、要乘上数量才是金额？" + "；".join(f"「{c}」例如 {ex(c)}" for c in decimals),
+           "Is any column a unit price (a price for one night, one item) that cannot be added up and must be multiplied by a quantity to give an amount? "
+           + "; ".join(f"\"{c}\" e.g. {ex(c)}" for c in decimals), [*decimals, "none"], lang, suggested="none"),
+        _q("sum_columns", "有没有一个数量其实是两列相加（比如周末晚数 + 工作日晚数 = 总晚数）？选两列，没有就不选。",
+           "Is a quantity the sum of two columns (weekend nights + week nights = nights)? Pick two, or none.", wholes, lang),
+        _q("unit_price_times", "单价乘以哪一列才是金额？（sum_columns = 上一题选的两列之和）",
+           "Which column does the unit price multiply to give an amount? (sum_columns = the sum picked in the previous question)",
+           ["sum_columns", *wholes], lang),
+    ]
+    new[1]["multi"] = True
+    for q in main_qs:
+        if q["id"].startswith("role:") and q.get("column") in decimals:
+            q["options"] = [{"value": "unit_price", "label": "单价（每一晚、每一件的价格，要乘上数量才是金额）" if zh else
+                             "A unit price (for one night, one item): multiplied by a quantity to give an amount"}, *q["options"]]
+    i = next((k for k, q in enumerate(main_qs) if q["id"].startswith("role:")), len(main_qs))
+    return [*main_qs[:i], *new, *main_qs[i:]]
+
+
 def init(paths, workspace, lang="zh", main=None) -> dict:
     """Read every table, propose what each one is and how they connect, and write draft.json with the questions."""
     d = _derive(paths, workspace, lang, main)
@@ -557,6 +586,7 @@ def _derive(paths, workspace, lang="zh", main=None) -> dict:
     for q in main_qs:
         if q["id"].startswith("role:"):
             q["table"] = main
+    main_qs = _derived_questions(main_qs, tables[main], frames[main], lang)
     qs += main_qs
     return {"kind": "tables", "language": lang, "main": main, "tables": tables, "links": links, "joins": joins, "grain": grain,
             "belongs_to": fds, "quiet_weekdays": quiet, "joined_profile": prof, "questions": qs}
@@ -614,6 +644,9 @@ def confirm(workspace, answers: dict, today: dt.date | None = None) -> dict:
         joined[date_col] = derive_dates(joined, cd)
     if not date_col:
         raise ValueError("answer 'date_column' first")
+    derived, price_col, per_unit = _derived_specs(answers, frames[main], joined)
+    if derived:
+        joined = apply_derived_columns(joined, derived)
     wanted = list(answers.get("dimensions") or [])
     dims = [x for x in wanted if x in joined.columns]
     problems = [(f"「{x}」不能用来切分：从主表「{main}」出发，没有一条确认过的链接能走到这一列。" if lang == "zh" else
@@ -625,6 +658,8 @@ def confirm(workspace, answers: dict, today: dt.date | None = None) -> dict:
     main_src = _spec(mt, ws)
     if derive:
         main_src["derive_dates"] = derive
+    if derived:
+        main_src["derive_columns"] = derived
     if answers.get("duplicate_rows") == "drop":
         main_src["drop_duplicates"] = True
         joined = joined.drop_duplicates()
@@ -646,6 +681,16 @@ def confirm(workspace, answers: dict, today: dt.date | None = None) -> dict:
 
     specs = [{"column": q["column"], "role": answers.get(q["id"]), "source": main, "date": date_col, "dimensions": dims}
              for q in d["questions"] if q["id"].startswith("role:") and q.get("table") == main and q["column"] in joined.columns]
+    for s_ in specs:
+        if s_["column"] == price_col:
+            s_["role"] = "skip"           # a unit price is multiplied, never added up
+        elif s_["role"] == "unit_price":
+            s_["role"] = "skip"
+        elif per_unit and s_["column"] == per_unit["quantity_source"] and s_["role"] in (None, "skip"):
+            s_["role"] = "quantity"
+    for dc in derived:
+        specs.append({"column": dc["name"], "role": "amount" if dc["name"] == (per_unit or {}).get("amount") else "quantity",
+                      "source": main, "date": date_col, "dimensions": dims})
     missing = [s["column"] for s in specs if s["role"] is None]
     if missing:
         raise ValueError(f"answer what these columns are first: {', '.join(missing)}")
@@ -709,7 +754,8 @@ def confirm(workspace, answers: dict, today: dt.date | None = None) -> dict:
                                "status": "proposed"})
     every_column = list(dict.fromkeys([c for f in frames.values() for c in f.columns] + list(joined.columns)))
     names = draft.name_map([{"column": c, "name": draft.readable(c)} for c in every_column], answers)
-    measures, metrics, identities, by_role = draft.build_metrics(specs, id_spec, answers.get("template", "orders"), said, names)
+    measures, metrics, identities, by_role = draft.build_metrics(specs, id_spec, answers.get("template", "orders"), said, names,
+                                                                 per_unit=per_unit)
     north = answers.get("north_star") if answers.get("north_star") in metrics else by_role.get("amount") or next(iter(metrics), None)
 
     project = {"name": _abs(mt["path"], ws).parent.name, "language": lang, "sources": sources}
@@ -760,6 +806,42 @@ def confirm(workspace, answers: dict, today: dt.date | None = None) -> dict:
                                                ensure_ascii=False, indent=1, default=str), encoding="utf-8")
     return {"north_star": north, "metrics": list(metrics), "dimensions": dims, "intake": record, "problems": problems,
             "first_run": draft.first_run(ws, north)}
+
+
+def _derived_specs(answers, main_df, joined):
+    """derive_columns from the answers: a sum of two columns, and a unit price times a quantity. Returns
+    (specs, the unit price column or None, {'amount', 'quantity', 'quantity_source'} for the average price per unit or None)."""
+    specs, price, per_unit = [], answers.get("unit_price"), None
+    if price in (None, "none"):
+        price = next((k[5:] for k, v in answers.items() if k.startswith("role:") and v == "unit_price"), None)
+    pair = answers.get("sum_columns") or []
+    pair = pair if isinstance(pair, list) else [pair]
+    pair = [c for c in pair if c != "none"]
+    if pair and len(pair) != 2:
+        raise ValueError(f"sum_columns takes exactly two columns, got {len(pair)}: {pair}")
+    sum_name = None
+    if pair:
+        sum_name = f"{pair[0]}_plus_{pair[1]}"
+        specs.append({"name": sum_name, "op": "add", "columns": pair})
+    if price:
+        if answers.get(f"role:{price}") not in (None, "skip", "unit_price"):
+            raise ValueError(f"'{price}' was named a unit price, so it cannot be 'money in' as well: it is multiplied by a quantity, never added up "
+                             "(adding up rates gives a meaningless number)")
+        times = answers.get("unit_price_times")
+        if times in (None, "none"):
+            raise ValueError(f"'{price}' is a unit price, but the column it multiplies was not named (unit_price_times): a unit price on its own is not an amount")
+        if times == "sum_columns":
+            if not sum_name:
+                raise ValueError("unit_price_times is sum_columns, but no two columns were given in sum_columns")
+            times = sum_name
+        amount = f"{price}_times_{times}"
+        specs.append({"name": amount, "op": "mul", "columns": [price, times]})
+        per_unit = {"amount": amount, "quantity": times, "quantity_source": times, "price": price}
+    for sp in specs:
+        for c in sp["columns"]:
+            if c not in main_df.columns and c not in {x["name"] for x in specs}:
+                raise ValueError(f"derived column '{sp['name']}' needs '{c}', which is not a column of the main table")
+    return specs, price, per_unit
 
 
 def _confirm_other_main(ws, d, chosen, answers, today):

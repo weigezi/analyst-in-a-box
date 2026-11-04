@@ -350,7 +350,8 @@ def name_map(profile: list, answers: dict) -> dict:
     return out
 
 
-def build_metrics(specs: list, id_spec: dict | None, template: str, said: dict, names: dict | None = None):
+def build_metrics(specs: list, id_spec: dict | None, template: str, said: dict, names: dict | None = None,
+                  per_unit: dict | None = None):
     """Measures, metrics and identities from the columns whose meaning the user confirmed.
 
     specs: [{column, role, source, date, dimensions[, columns]}]; id_spec: the order-id column, if any.
@@ -392,6 +393,14 @@ def build_metrics(specs: list, id_spec: dict | None, template: str, said: dict, 
                                 "source": {"kind": "formula", "ref": f"templates/formulas/{tpl['id']}.yaml"}, "status": "confirmed"}
         identities.append({"id": f"{resolve(f['identity']['left'])}_by_{f['metric']}", "left": resolve(f["identity"]["left"]),
                            "factors": [resolve(x) for x in f["identity"]["factors"]], "operator": "multiply",
+                           "source": {"kind": "formula"}, "status": "confirmed"})
+    if per_unit and per_unit["amount"] in metrics and per_unit["quantity"] in metrics:
+        # a weighted average price (an average rate per night): amount / quantity, never the average of the rates
+        metrics["per_unit"] = {"label": {"en": "Average price per unit", "zh": "平均单价"}, "kind": "ratio",
+                               "numerator": per_unit["amount"], "denominator": per_unit["quantity"], "unit": "currency",
+                               "source": {"kind": "formula"}, "status": "confirmed"}
+        identities.append({"id": f"{per_unit['amount']}_by_per_unit", "left": per_unit["amount"],
+                           "factors": [per_unit["quantity"], "per_unit"], "operator": "multiply",
                            "source": {"kind": "formula"}, "status": "confirmed"})
     return measures, metrics, identities, by_role
 
