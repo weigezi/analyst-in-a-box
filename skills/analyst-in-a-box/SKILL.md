@@ -149,3 +149,4 @@ see [references/workspace.md](references/workspace.md).
 | [references/operators.md](references/operators.md) | the user asks how a number was computed, or which method is used |
 | [references/report.md](references/report.md) | presenting a report, explaining structure vs rate, hypotheses |
 | [references/learning.md](references/learning.md) | recording a correction |
+| [references/network.md](references/network.md) | the user wants to see the workspace as a page: `network` writes `knowledge.html` |

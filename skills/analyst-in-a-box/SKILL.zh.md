@@ -115,3 +115,4 @@ python3 scripts/aib_cli.py <命令> --workspace <目录> ...
 | [references/operators.zh.md](references/operators.zh.md) | 用户问某个数怎么算的、用的什么方法 |
 | [references/report.zh.md](references/report.zh.md) | 呈现报告，讲结构和指标、讲推测 |
 | [references/learning.zh.md](references/learning.zh.md) | 记一条纠正 |
+| [references/network.zh.md](references/network.zh.md) | 用户想把工作目录看成一张页面：`network` 写出 `knowledge.html` |

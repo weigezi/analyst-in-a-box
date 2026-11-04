@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="{{lang_code}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{name}} · {{page_title}}</title>
+<style><!--STYLE--></style>
+</head>
+<body>
+<header class="top">
+  <div class="title">
+    <h1>{{page_title}}</h1>
+    <p class="proj">{{name}}</p>
+  </div>
+  <div class="tabs" role="tablist" aria-label="{{tabs_label}}">
+    <button role="tab" id="tab-tree" data-view="tree" aria-selected="true">{{tab_tree}}</button>
+    <button role="tab" id="tab-world" data-view="world" aria-selected="false">{{tab_world}}</button>
+  </div>
+  <label class="filter"><input type="checkbox" id="hide-inference"> <span>{{filter_inference}}</span></label>
+</header>
+<details class="legend" id="legend" open>
+  <summary>{{legend}}</summary>
+  <ul>
+    <li><svg width="40" height="24" aria-hidden="true"><rect x="2" y="2" width="36" height="20" rx="6" class="sw fact"/></svg><span><b>{{tier_fact}}</b> {{text_fact}}</span></li>
+    <li><svg width="40" height="24" aria-hidden="true"><rect x="2" y="2" width="36" height="20" rx="6" class="sw confirm"/></svg><span><b>{{tier_confirm}}</b> {{text_confirm}}</span></li>
+    <li><svg width="40" height="24" aria-hidden="true"><rect x="2" y="2" width="36" height="20" rx="6" class="sw inference"/></svg><span><b>{{tier_inference}}</b> {{text_inference}}</span></li>
+    <li><svg width="40" height="24" aria-hidden="true"><rect x="2" y="2" width="36" height="20" rx="6" class="sw retired"/></svg><span><b>{{tier_retired}}</b> {{text_retired}}</span></li>
+  </ul>
+</details>
+<main class="stage" id="stage">
+  <svg id="canvas" role="group" aria-label="{{page_title}}"></svg>
+  <p class="empty" id="empty" hidden></p>
+  <div class="zoom" role="group">
+    <button id="zin" aria-label="{{zoom_in}}" title="{{zoom_in}}">+</button>
+    <button id="zout" aria-label="{{zoom_out}}" title="{{zoom_out}}">−</button>
+    <button id="zfit" aria-label="{{zoom_fit}}" title="{{zoom_fit}}">⤢</button>
+  </div>
+  <aside class="panel" id="panel" role="dialog" aria-modal="false" aria-labelledby="p-title" hidden>
+    <button class="close" id="p-close" aria-label="{{close}}">×</button>
+    <p class="p-tag" id="p-tag"></p>
+    <h2 id="p-title"></h2>
+    <p class="p-banner" id="p-banner"></p>
+    <div id="p-body"></div>
+  </aside>
+</main>
+<p class="hint" id="hint">{{hint}}</p>
+<footer class="foot"><span id="counts"></span><span>{{footer}}</span></footer>
+<script type="application/json" id="aib-data"><!--DATA--></script>
+<script><!--SCRIPT--></script>
+</body>
+</html>
