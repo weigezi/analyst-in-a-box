@@ -242,6 +242,33 @@ params:
       note: A value that appears from nothing while another of similar size disappears, each at least 10% of the total, looks
         like a rename. example default, waiting for the user to confirm
     status: proposed
+  quality_blank_note_min_share:
+    value: 0.0
+    source:
+      kind: demo_setting
+      note: Any blank cell in a summed amount is stated with its share; raise this to hide a share you have accepted. example
+        default, waiting for the user to confirm
+    status: proposed
+  quality_zero_note_min_share:
+    value: 0.005
+    source:
+      kind: demo_setting
+      note: Rows whose summed amount is exactly 0 (zero nights, a rate of 0) are named from half a percent of the rows, because
+        they still count as orders and pull per-order figures down. example default, waiting for the user to confirm
+    status: proposed
+  quality_stock_min_entities:
+    value: 20
+    source:
+      kind: demo_setting
+      note: A column is called possibly a level (a balance) only if at least 20 customers or products appear on two or more
+        dates. example default, waiting for the user to confirm
+    status: proposed
+  quality_stock_min_share:
+    value: 0.9
+    source:
+      kind: demo_setting
+      note: '...and at least 90% of them carry the same value on every date. example default, waiting for the user to confirm'
+    status: proposed
   intake_link_ask_min:
     value: 0.5
     source:
@@ -275,6 +302,16 @@ params:
         in the Fuzzy Factory shop: orders.user_id against the session ids reached 0.83). Only for whole-number keys. example
         default, waiting for the user to confirm'
     status: proposed
+  intake_small_key_min_rows:
+    value: 3
+    source:
+      kind: demo_setting
+      note: A dated table shorter than 30 rows (four products, each with a launch date) can still be the parent of a column,
+        by a whole-number key. With fewer than 3 rows every column is unique by chance, so none is taken as a key. The id-range
+        test (intake_link_range_min) and the child-not-before-parent test still decide whether the link is suggested; a table
+        with a start and an end date on every row (a campaign) is never a parent. example default, waiting for the user to
+        confirm
+    status: proposed
   intake_id_distinct_share:
     value: 0.3
     source:
@@ -305,6 +342,32 @@ params:
       kind: demo_setting
       note: A quote shorter than this (spaces aside) proves nothing about where a claim came from, so a proposal citing it
         is refused. example default, waiting for the user to confirm
+    status: proposed
+  intake_grain_match_min:
+    value: 0.99
+    source:
+      kind: demo_setting
+      note: A table with more rows than the table it points at is its detail when, for at least 99% of the parent's rows,
+        the child's numbers add up (per key) to the parent's number. Two unrelated amounts agree on a row only by construction,
+        so the limit only has to leave room for a few late or corrected rows. The parent is then suggested as the main table;
+        the user answers. example default, waiting for the user to confirm
+    status: proposed
+  copies_second_number_min_diff:
+    value: 0.05
+    source:
+      kind: demo_setting
+      note: 'For a metric that depends on whether an exact copy of a row is a second real record (a count of rows, revenue
+        per row, nights per row), both readings are computed: copies each, copies once. A second number is shown when they
+        differ by more than 5%, so the reader sees how much the answer hangs on that question. Chosen from the hotel revenue-management
+        practice of reporting bookings with and without duplicate records. example default, waiting for the user to confirm'
+    status: proposed
+  intake_grain_tolerance:
+    value: 1.0e-06
+    source:
+      kind: demo_setting
+      note: Relative size of the difference below which two sums count as equal. Prices add up to the cent, so a difference
+        above one millionth is a real difference and only float noise is forgiven. example default, waiting for the user to
+        confirm
     status: proposed
 tables:
 - id: qualify.unusual

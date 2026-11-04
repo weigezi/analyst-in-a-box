@@ -9,7 +9,7 @@ The same data as the demo shop "Bloom & Basket", split into 9 tables shaped like
 | Kind | Count |
 |---|---|
 | inferred from the data (then confirmed in a question) | 45 |
-| questions (asked / answered) | 46 / 37 |
+| questions (asked / answered) | 29 / 28 |
 | from a document, to confirm (accepted / refused) | 3 / 0 |
 | only a person can add; empty so far | 6 |
 
@@ -47,35 +47,18 @@ The same data as the demo shop "Bloom & Basket", split into 9 tables shaped like
 | `link:traffic.channel>orders.channel` | yes | yes |
 | `link:weather.region>cities.region` | yes | yes |
 | `event_text:holidays` | name | name |
-| `role:market.market_sales` | — | skip |
-| `market_compares:market` | none | revenue (changed the suggestion) |
 | `event_text:price_changes` | reason | reason |
 | `event_kind:price_changes` | internal | internal |
 | `event_text:promotions` | campaign | campaign |
 | `event_kind:promotions` | internal | internal |
-| `role:traffic.visits` | — | visits |
-| `role:weather.rainfall_mm` | — | skip |
-| `market_compares:weather` | none | none |
 | `date_column` | order_date | order_date |
-| `role:revenue` | — | amount |
-| `role:gross_profit` | — | profit |
+| `measure_columns` | — | revenue, gross_profit |
 | `order_id` | — | order_id |
 | `template` | — | orders |
 | `north_star` | — | gross_profit |
 | `dimensions` | — | channel, category, region, city, delivery, customer_type |
-| `belongs:sku>category` | — | no |
-| `belongs:city>region` | — | yes |
-| `belongs:name>category` | — | no |
 | `single_point_share` | — | 0.5 |
 | `reversal_column` | none | — |
-| `reversal_values:sku` | — | — |
-| `reversal_values:channel` | — | — |
-| `reversal_values:city` | — | — |
-| `reversal_values:delivery` | — | — |
-| `reversal_values:customer_type` | — | — |
-| `reversal_values:category` | — | — |
-| `reversal_values:name` | — | — |
-| `reversal_values:region` | — | — |
 
 Metrics that exist because the user named a column's meaning (amount, profit, visits, orders): revenue, gross_profit, visits, id_count
 
