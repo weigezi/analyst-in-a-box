@@ -75,6 +75,10 @@ def step_frame(ws, s):
     if rule:
         s["notes"].append({"window": rule})
     s["problems"] = all_problems(ws, cur)
+    if s["problems"]:
+        mon = quality.monthly_mismatch(ws, s["metric"], cur, base)
+        if mon:
+            s["problems"].insert(0, mon)
     # Holidays in one period only: the run can leave those days out (with their paired days) or move the base.
     cal = _calendar(ws)
     plan = c.get("holiday")
@@ -592,6 +596,24 @@ def _results(s):
         yield c["result"]
 
 
+def _why_short(ws, s, cut) -> str:
+    """What a shortfall of the groups is made of, when the data can show it: rows with a blank in the cut's dimension."""
+    dims = [cut["dimension"]] if isinstance(cut["dimension"], str) else list(cut["dimension"])
+    try:
+        measure = ws.metric_measures(s["metric"])[0]
+        usable = [d for d in dims if d in ws.dimensions]
+        parts = []
+        for tag, w in (("current", s["current"]), ("base", s["base"])):
+            blank, rows = quality.blank_share(ws, measure, usable, w, cut["filters"])
+            if blank:
+                parts.append(f"{blank:,} of {rows:,} rows ({blank / rows:.1%}) in the {tag} period")
+        if parts:
+            return f"; blank {', '.join(usable)} on " + " and ".join(parts) + ", and rows with a blank value fall in no group"
+    except (KeyError, ValueError):
+        return ""
+    return ""
+
+
 def _reconcile(ws, s):
     """Independent check: the groups of every first-order cut add up to the total computed without grouping.
     Rows with no value on the dimension (or a measure that does not add across it) break this."""
@@ -612,7 +634,7 @@ def _reconcile(ws, s):
                      (math.fsum(x["den_cur"] for x in seg), ws.total(m["denominator"], s["current"], f))]
         for got, want in pairs:
             if not math.isclose(got, want, rel_tol=1e-9, abs_tol=1e-6):
-                off.append(f"{c['dimension']}: groups add to {got:,.2f}, total is {want:,.2f}")
+                off.append(f"{c['dimension']}: groups add to {got:,.2f}, total is {want:,.2f}" + _why_short(ws, s, c))
                 break
     return not off, "; ".join(off)
 
