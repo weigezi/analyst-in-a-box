@@ -72,3 +72,38 @@ def test_without_a_counted_entity_or_key_the_size_is_rows(tmp_path):
     w = (pd.Timestamp("2026-10-19").date(), pd.Timestamp("2026-10-25").date())
     size, unit = ws.group_size("revenue_m", w, ["channel"])
     assert unit == "rows" and float(size.sum()) == len(df[df["order_date"] >= "2026-10-19"])
+
+
+# ---------- findings from the stranger test: a short history is not a quiet number ----------
+
+SHORT = {"metric": "revenue", "current": ["2026-10-19", "2026-10-25"], "base": "pop", "dimensions": ["channel"]}
+
+
+def short_history_workspace(tmp_path):
+    df = synth.orders(seed=5, per_day=60, start="2026-10-05", end="2026-10-25",
+                      effects=[{"where": {"channel": "a"}, "start": "2026-10-19", "end": "2026-10-25", "orders": 3.0}])
+    return synth.workspace(tmp_path, df)
+
+
+def test_a_history_of_one_period_does_not_call_the_number_quiet(tmp_path):
+    s = run(Workspace(short_history_workspace(tmp_path)), SHORT, write=False)
+    assert s["qualify"]["history_n"] == 1 and s["qualify"]["robust_z"] is None
+    assert s["cuts"][0]["decision"]["then"]["reason"] != "whole_number_within_usual_range"
+    assert s["cuts"][0]["gate"]["overall_quiet"] is False
+
+
+def test_the_report_makes_one_statement_about_unusualness(tmp_path):
+    out = tmp_path / "out"
+    run(Workspace(short_history_workspace(tmp_path)), SHORT, out_dir=out)
+    en = (out / "report.en.md").read_text(encoding="utf-8")
+    assert "Not enough history" in en
+    assert "within its usual range" not in en
+    zh = (out / "report.zh.md").read_text(encoding="utf-8")
+    assert "历史太短" in zh and "整体在通常范围内" not in zh
+
+
+def test_a_segment_carrying_most_of_the_movement_is_named_even_without_history(tmp_path):
+    s = run(Workspace(short_history_workspace(tmp_path)), SHORT, write=False)
+    cut = s["cuts"][0]
+    assert cut["result"]["top1_key"] == "a" and cut["gate"]["top1_excess"] > 0.6
+    assert cut["decision"]["then"]["action"] == "drill"

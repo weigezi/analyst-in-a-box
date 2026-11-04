@@ -328,7 +328,10 @@ def gate(ws, s, res, order="first", layer=0) -> dict:
     z = top.get("z")
     verdict = ((s.get("verdict_unusual") or {}).get("then") or {}).get("verdict")
     drill_usual = s["config"].get("drill_when_usual", param(ws, "drill_when_usual"))
-    quiet = order == "first" and verdict == "within_usual_range" and not drill_usual and layer == 0
+    # With no z-score (history too short or flat) the table's last row still says "within_usual_range"; that is the
+    # absence of a verdict, not a finding, so it must not stop the search or be reported as a reason.
+    judged = (s.get("qualify") or {}).get("robust_z") is not None
+    quiet = order == "first" and verdict == "within_usual_range" and judged and not drill_usual and layer == 0
     # A group far outside its own history may override a quiet total: the total's noise is the sum of every group's,
     # so one group's real change can hide inside it (a level shift that started weeks ago, for instance).
     beats_quiet = bool(param(ws, "drill_quiet_total_when_group_stands_out")) and z is not None \
