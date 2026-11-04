@@ -24,6 +24,7 @@ ROLES = {
     "cost": {"en": "Cost amount", "zh": "成本金额"},
     "quantity": {"en": "A count or quantity (items)", "zh": "数量（件数）"},
     "visits": {"en": "Visits or visitors (people who came, bought or not)", "zh": "访问量（来过的人，不管买没买）"},
+    "records": {"en": "Each row is one visit or record: count the rows (or distinct keys)", "zh": "每一行是一次访问或一条记录：数行数（或数不重复的编号）"},
     "skip": {"en": "Not a number to analyse (an ID, a code, a name), ignore", "zh": "不是要分析的数（编号、代码、名称），忽略"},
 }
 TEMPLATES = Path(__file__).resolve().parents[2] / "templates" / "formulas"
@@ -43,6 +44,39 @@ def is_identifier(s: pd.Series, share: float | None = None) -> bool:
     if not pd.api.types.is_integer_dtype(s) or pd.api.types.is_bool_dtype(s) or len(s) == 0:
         return False
     return s.nunique(dropna=True) / len(s) >= share
+
+
+ID_NEVER_ADDED = {"en": "A column of identifiers (a session, an order, a user number) is never added up: choose \"visits\" or \"records\" "
+                        "to count its distinct values, or skip it.",
+                  "zh": "编号类的列（会话号、订单号、用户号）不会被加起来：选「访问量」或「记录」就是数不重复的编号个数，不分析就选忽略。"}
+
+
+def count_basis(role: str, column: str, identifier: bool, key: str | None) -> dict | None:
+    """What a role counts instead of adds, or None when the column is added up as usual.
+
+    "records": each row is one record. Distinct values of the column when it is an identifier, else of the table's declared
+    key, else the rows themselves ({"column": None}). "visits" on an identifier is the same count; on any other number
+    (visits per day) it is a sum. An identifier is never summed."""
+    if role == "records":
+        return {"column": column if identifier else key}
+    if role == "visits" and identifier:
+        return {"column": column}
+    return None
+
+
+def with_count(spec: dict, df: pd.DataFrame, key: str | None = None) -> dict:
+    """`spec` with `count` set by `count_basis` and its dimensions cut to those a count can be added over: distinct keys
+    add across a dimension only when each key has one value on it (a session has one channel). `spec["columns"]` maps a
+    dimension to the column that holds it in `df`."""
+    basis = count_basis(spec["role"], spec["column"], spec["column"] in df.columns and is_identifier(df[spec["column"]]), key)
+    if basis is None:
+        return spec
+    spec = {**spec, "count": basis}
+    if basis["column"] is not None and basis["column"] in df.columns:
+        cols = spec.get("columns") or {}
+        spec["dimensions"] = [d for d in spec["dimensions"] if cols.get(d, d) not in df.columns
+                              or df.groupby(basis["column"])[cols.get(d, d)].nunique().max() <= 1]
+    return spec
 
 
 def measure_columns(df: pd.DataFrame, number_columns: list[str]) -> list[str]:
@@ -206,8 +240,10 @@ def questions(prof: list[dict], fds: list[dict], lang: str = "zh", quiet: list[d
             note_zh = f"（有 {empty:.0%} 的格子是空的：空的不当 0 加，但这些单还在订单数里）" if empty else ""
             note_en = f" ({empty:.0%} of the cells are empty: they are not added as 0, yet those orders still count in the order total)" if empty else ""
             qs.append({"id": f"role:{p['column']}", "column": p["column"], **({"empty_share": empty} if empty else {}),
-                       "ask": (f"「{nm(p, 'zh')}」这一列是什么？例子：{', '.join(p['examples'][:3])}{note_zh}" if zh else
-                               f"What is the column \"{nm(p, 'en')}\"? Examples: {', '.join(p['examples'][:3])}{note_en}"),
+                       "ask": (f"「{nm(p, 'zh')}」这一列是什么？例子：{', '.join(p['examples'][:3])}{note_zh}"
+                               + (ID_NEVER_ADDED["zh"] if p["column"] in id_columns else "") if zh else
+                               f"What is the column \"{nm(p, 'en')}\"? Examples: {', '.join(p['examples'][:3])}{note_en}"
+                               + (" " + ID_NEVER_ADDED["en"] if p["column"] in id_columns else "")),
                        "options": [{"value": k, "label": v[lang]} for k, v in ROLES.items()],
                        **({"suggested": "skip"} if p["column"] in id_columns else {})})
     rows = max((p["distinct"] + p["nulls"] for p in prof), default=0)
@@ -364,12 +400,20 @@ def build_metrics(specs: list, id_spec: dict | None, template: str, said: dict, 
         col = sp["column"]
         m = {"label": nm(col), "source": sp["source"], "agg": "sum", "column": col, "date": sp["date"],
              "dimensions": list(sp["dimensions"])}
+        if sp.get("count"):
+            # counted, never summed: distinct values of the key, or the rows when nothing identifies one
+            by = sp["count"].get("column")
+            m = {**{k: v for k, v in m.items() if k != "column"}, "agg": "count_distinct" if by else "count",
+                 **({"column": by, "additive_over": list(sp["dimensions"])} if by else {})}
         if sp.get("columns"):
             m["columns"] = dict(sp["columns"])
         measures[f"m_{col}"] = m
-        metrics[col] = {"label": nm(col), "measure": f"m_{col}", "unit": "count" if sp["role"] in ("quantity", "visits") else "currency",
+        metrics[col] = {"label": sp.get("label") or nm(col), "measure": f"m_{col}",
+                        "unit": "count" if sp["role"] in ("quantity", "visits", "records") else "currency",
                         "role": sp["role"], "source": said, "status": "confirmed"}
         by_role.setdefault(sp["role"], col)
+    if "visits" not in by_role and "records" in by_role:
+        by_role["visits"] = by_role["records"]    # conversion = orders / (the records counted), when no column was called visits
     tpl = yaml.safe_load((TEMPLATES / f"{template}.yaml").read_text(encoding="utf-8"))
     tnames = dict(tpl["names"])
     rows_only = bool(id_spec and id_spec.get("rows_only"))
@@ -463,7 +507,7 @@ def confirm(workspace, answers: dict, today: dt.date | None = None) -> dict:
         project["quality"] = q
     _dump(ws / "project.yaml", project)
 
-    specs = [{"column": col, "role": role, "source": "data", "date": date_col, "dimensions": dims}
+    specs = [with_count({"column": col, "role": role, "source": "data", "date": date_col, "dimensions": dims}, df, source.get("key"))
              for col, role in roles.items()]
     id_spec = None
     if id_col:
