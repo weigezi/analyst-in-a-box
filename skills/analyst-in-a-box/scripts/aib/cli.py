@@ -136,7 +136,48 @@ def cmd_coverage(a):
     _out({"runs": rows})
 
 
+def _value_after(argv, flags):
+    return [argv[i + 1] for i, x in enumerate(argv[:-1]) if x in flags]
+
+
+def _plain_error(exc, argv) -> str | None:
+    """One sentence saying what to do next for the failures a user causes (a wrong path, a broken input file), else None."""
+    import pandas.errors as pde
+    if isinstance(exc, (FileNotFoundError, NotADirectoryError)):
+        if Path(str(exc.filename or "")).name == "draft.json":
+            return "There is no draft in this workspace yet. Run `init` on your data first, then `confirm`."
+        return f"Cannot find '{exc.filename or exc}'. Check the path (it is read from the folder you run this in) and try again."
+    if isinstance(exc, (IsADirectoryError, PermissionError)):
+        return f"Cannot open '{exc.filename}'. Give the path of a file you can read."
+    if isinstance(exc, (pde.EmptyDataError, pde.ParserError, UnicodeDecodeError)):
+        files = [x for x in argv[1:] if not x.startswith("-") and Path(x).suffix] or ["the table"]
+        return (f"A table could not be read ({files[0]}: {str(exc).splitlines()[0]}). "
+                "Check it is the right file and not empty, or save it again as UTF-8 CSV or xlsx.")
+    if isinstance(exc, (yaml.YAMLError, json.JSONDecodeError)):
+        given = _value_after(argv, ("--answers", "--config", "--json", "--file"))
+        return (f"The input '{given[0]}' is not valid YAML or JSON ({str(exc).splitlines()[0]}). Fix that file and retry."
+                if given else f"An input is not valid YAML or JSON ({str(exc).splitlines()[0]}).")
+    return None
+
+
 def main(argv=None):
+    """Run one command. A failure the user can fix ends in one sentence and exit code 2; any other failure in a short
+    line and exit code 1. --debug (anywhere on the line) lets the traceback through."""
+    argv = list(sys.argv[1:] if argv is None else argv)
+    debug = "--debug" in argv
+    argv = [x for x in argv if x != "--debug"]
+    try:
+        return _main(argv)
+    except Exception as exc:  # noqa: BLE001 - the one place where any failure becomes a sentence
+        if debug:
+            raise
+        msg = _plain_error(exc, argv)
+        print(msg or f"Something went wrong ({type(exc).__name__}: {exc}). Run again with --debug to see the full traceback.",
+              file=sys.stderr)
+        return 2 if msg else 1
+
+
+def _main(argv):
     ap = argparse.ArgumentParser(prog="aib", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     commands = ap.add_subparsers(dest="cmd", required=True)
     p = commands.add_parser("init")
