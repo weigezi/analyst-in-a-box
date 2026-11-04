@@ -102,6 +102,15 @@ PARAMS = {
                                                 "fact table that carries two dates (ordered, shipped). " + EXAMPLE),
     "intake_quote_min_chars": _p(8, note="A quote shorter than this (spaces aside) proves nothing about where a claim came "
                                          "from, so a proposal citing it is refused. " + EXAMPLE),
+    # intake: parent and child tables (an order and its items)
+    "intake_grain_match_min": _p(0.99, note="A table with more rows than the table it points at is its detail when, for at least "
+                                            "99% of the parent's rows, the child's numbers add up (per key) to the parent's "
+                                            "number. Two unrelated amounts agree on a row only by construction, so the limit "
+                                            "only has to leave room for a few late or corrected rows. The parent is then "
+                                            "suggested as the main table; the user answers. " + EXAMPLE),
+    "intake_grain_tolerance": _p(1e-6, note="Relative size of the difference below which two sums count as equal. Prices add up "
+                                            "to the cent, so a difference above one millionth is a real difference and only "
+                                            "float noise is forgiven. " + EXAMPLE),
 }
 
 TABLES = [

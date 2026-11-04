@@ -23,6 +23,7 @@ import os
 import re
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import yaml
 
@@ -34,6 +35,17 @@ TABLE_SUFFIXES = (".csv", ".csv.gz", ".xlsx", ".xls")
 
 class NoTimeAxis(ValueError):
     """No table has dates together with an amount to add up, so there is no 'this period against that one'."""
+
+
+class NeedsAnswers(ValueError):
+    """`confirm` was given a main table other than the suggested one, re-read the tables for it, and found questions
+    that only exist for that table. They are saved in draft.json; answer them and run `confirm` again."""
+
+    def __init__(self, message, ids, questions):
+        super().__init__(message)
+        self.ids, self.questions = ids, questions
+
+
 # Thresholds are named params (defaults.PARAMS, with their reasons); a workspace's rules.yaml may override them.
 def _param(name, ws_dir=None):
     if ws_dir is not None:
@@ -112,14 +124,17 @@ def _table_facts(name, path, df):
     return facts
 
 
-def _suggest_kind(t, main, links, df):
+def _suggest_kind(t, main, links, df, grain=()):
     if t["name"] == main:
         return "main"
     linked = any(lk["left_table"] == t["name"] for lk in links)
-    # A dated table that the main table points at by its own key, with the link suggested, describes the main table's
-    # rows (a session gives the order its channel). It is joined in as a lookup; its own dates stay out of the way.
-    if any(lk["left_table"] == main and lk["right_table"] == t["name"] and lk["right_is_key"] and lk["suggested"] == "yes"
-           for lk in links) and t["date_columns"] and not t.get("start_end"):
+    # The detail of the main table (its items) is already added up in the main table: using it too would count twice.
+    if any(g["child"] == t["name"] and g["parent"] == main for g in grain):
+        return "ignore"
+    # A dated table that the main table reaches by its own key, with the link suggested, describes the main table's
+    # rows (a session gives the order its channel; an item reaches the session through its order). It is joined in as a
+    # lookup; its own dates stay out of the way.
+    if t["name"] in {lk["right_table"] for lk in _chain(links, main)} and t["date_columns"] and not t.get("start_end"):
         return "lookup"
     if not t["date_columns"] and not t["composite_dates"]:
         return "lookup" if t["keys"] else "ignore"
@@ -220,19 +235,141 @@ def _links(tables, frames, main):
     return out
 
 
+def _chain(links, main, use=lambda lk: lk["suggested"] == "yes"):
+    """The links that bring other tables' columns onto the main table, in the order they are applied: first the tables the
+    main table points at by key, then the tables those point at (order_items -> orders -> sessions). A table is joined once."""
+    have, hops, grew = {main}, [], True
+    while grew:
+        grew = False
+        for lk in links:
+            if lk["left_table"] in have and lk["right_table"] not in have and lk["right_is_key"] and use(lk):
+                hops.append(lk)
+                have.add(lk["right_table"])
+                grew = True
+    return hops
+
+
 def _joined(main_df, links, frames, main, use=lambda lk: lk["suggested"] == "yes"):
-    """The main table with the attributes of every lookup it links to by key (the lookups' other columns)."""
+    """The main table with the attributes of every lookup it reaches by key, directly or through another lookup.
+
+    A column whose name the table already has is not brought in, and its name is kept in `skipped_same_name`: a
+    parent's own amount repeated on every row of its detail would be added up once per row."""
     df, joins = main_df.copy(), []
-    for lk in links:
-        if lk["left_table"] != main or not lk["right_is_key"] or lk["right_table"] == main or not use(lk):
-            continue
+    for lk in _chain(links, main, use):
+        if lk["left_column"] not in df.columns:
+            continue          # the column it points from was itself left out for a name clash
         other = frames[lk["right_table"]]
-        cols = [c for c in other.columns if c != lk["right_column"] and c not in df.columns]
+        rest = [c for c in other.columns if c != lk["right_column"]]
+        cols = [c for c in rest if c not in df.columns]
         look = other[[lk["right_column"], *cols]].rename(columns={lk["right_column"]: lk["left_column"]})
         look[lk["left_column"]] = look[lk["left_column"]].astype(df[lk["left_column"]].dtype)
         df = df.merge(look, on=lk["left_column"], how="left")
-        joins.append({"source": lk["right_table"], "on": {lk["left_column"]: lk["right_column"]}, "columns": cols})
+        join = {"source": lk["right_table"], "on": {lk["left_column"]: lk["right_column"]}, "columns": cols}
+        if len(cols) < len(rest):
+            join["skipped_same_name"] = [c for c in rest if c not in cols]
+        joins.append(join)
     return df, joins
+
+
+def _grain(tables, frames, links):
+    """Detail tables: a table with more rows than the table it points at, whose numbers add up (per key) to the parent's
+    numbers. Found from the values only, for each pair of a child column and a parent column:
+    {child, parent, child_link, parent_link, child_rows, parent_rows, sums: [{child_column, parent_column,
+    parent_rows_matching, child_total, parent_total}]}. A pair counts when the sum agrees on at least
+    `intake_grain_match_min` of the parent's rows that have a value."""
+    need, tol = _param("intake_grain_match_min"), _param("intake_grain_tolerance")
+    out = []
+    for lk in links:
+        c, p = lk["left_table"], lk["right_table"]
+        ct, pt = tables[c], tables[p]
+        if not (lk["right_is_key"] and lk["suggested"] == "yes" and ct["rows"] > pt["rows"] and ct["date_columns"] and pt["date_columns"]
+                and ct["measure_columns"] and pt["measure_columns"]):
+            continue
+        cf, pf = frames[c], frames[p]
+        parent_key = pf[lk["right_column"]].astype(str)
+        child_key = cf[lk["left_column"]].astype(str)
+        sums = []
+        for cc in ct["measure_columns"]:
+            per = cf[cc].groupby(child_key).sum(min_count=1).reindex(parent_key.values)
+            for pc in pt["measure_columns"]:
+                have = pf[pc].notna().values
+                if not have.any():
+                    continue
+                agree = np.isclose(per.values[have], pf[pc].values[have], rtol=tol, atol=tol)
+                share = float(agree.mean())
+                if share >= need:
+                    sums.append({"child_column": cc, "parent_column": pc, "parent_rows_matching": share,
+                                 "child_total": float(cf[cc].sum()), "parent_total": float(pf[pc].sum())})
+        if sums:
+            out.append({"child": c, "parent": p, "child_link": lk["left_column"], "parent_link": lk["right_column"],
+                        "child_rows": ct["rows"], "parent_rows": pt["rows"], "sums": sums})
+    return out
+
+
+def _climb(main, grain):
+    """The table to analyse: the main table, or its parent when its rows are the parent's detail, and so on upwards."""
+    seen = {main}
+    while True:
+        up = next((g for g in grain if g["child"] == main and g["parent"] not in seen), None)
+        if up is None:
+            return main
+        main = up["parent"]
+        seen.add(main)
+
+
+def _one_row(t, grain, lang):
+    """What one row of the table is, said from the columns that never repeat, and for a detail table how often the
+    column that points at its parent repeats."""
+    keys = t["row_keys"] or t["keys"]
+    zh = lang == "zh"
+    if keys:
+        said = ("每行一个 " if zh else "one row per ") + (" / ".join(keys[:3]))
+    else:
+        said = "没有一列能唯一标识一行" if zh else "no column identifies one row"
+    for g in grain:
+        if g["child"] == t["name"]:
+            per = g["child_rows"] / max(g["parent_rows"], 1)
+            said += (f"；{g['child_link']} 会重复，平均每个 {per:.2f} 行" if zh else
+                     f"; {g['child_link']} repeats, {per:.2f} rows for each")
+    return said
+
+
+def _candidates(tables, grain, main, lang):
+    """The tables that can be the one to analyse, with what the user needs to choose: rows, what one row is, and the
+    totals that were found to agree."""
+    names = list(dict.fromkeys([main, *[x for g in grain for x in (g["parent"], g["child"])]]))
+    out = []
+    for n in names:
+        sums = {}
+        for g in grain:
+            for s in g["sums"]:
+                if g["child"] == n:
+                    sums[s["child_column"]] = s["child_total"]
+                if g["parent"] == n:
+                    sums[s["parent_column"]] = s["parent_total"]
+        out.append({"table": n, "rows": tables[n]["rows"], "one_row": _one_row(tables[n], grain, lang), "sums": sums})
+    return out
+
+
+def _main_evidence(tables, grain, main, lang):
+    zh = lang == "zh"
+    t = tables[main]
+    text = (f"「{main}」{t['rows']:,} 行（{_one_row(t, grain, lang)}）。" if zh else
+            f"\"{main}\" has {t['rows']:,} rows ({_one_row(t, grain, lang)}). ")
+    for g in grain:
+        s = g["sums"][0]
+        c, p = g["child"], g["parent"]
+        if zh:
+            text += (f"「{c}」{g['child_rows']:,} 行，按 {g['child_link']} 把「{s['child_column']}」加起来，"
+                     f"在「{p}」的 {s['parent_rows_matching']:.1%} 的行上等于「{s['parent_column']}」，"
+                     f"总数也相同（{s['child_total']:,.2f} 与 {s['parent_total']:,.2f}）。所以「{c}」是「{p}」的明细，一行一行加就会重复算；"
+                     f"建议以「{p}」为主表。要按订单里面的东西（商品、每件价格）切，才选「{c}」。")
+        else:
+            text += (f"\"{c}\" has {g['child_rows']:,} rows; adding up \"{s['child_column']}\" per {g['child_link']} gives "
+                     f"\"{s['parent_column']}\" of \"{p}\" on {s['parent_rows_matching']:.1%} of its rows, and the totals are equal "
+                     f"({s['child_total']:,.2f} and {s['parent_total']:,.2f}). So \"{c}\" is the detail of \"{p}\": its rows add up to "
+                     f"the parent's. \"{p}\" is suggested as the main table. Choose \"{c}\" only to cut by what is inside an order.")
+    return text.strip()
 
 
 def _no_time_axis(tables, lang) -> str:
@@ -259,6 +396,12 @@ def _q(qid, zh, en, options, lang, **extra):
 
 def init(paths, workspace, lang="zh", main=None) -> dict:
     """Read every table, propose what each one is and how they connect, and write draft.json with the questions."""
+    d = _derive(paths, workspace, lang, main)
+    (Path(workspace) / "draft.json").write_text(json.dumps(d, ensure_ascii=False, indent=1, default=str), encoding="utf-8")
+    return d
+
+
+def _derive(paths, workspace, lang="zh", main=None) -> dict:
     files = find_tables(paths)
     if not files:
         raise ValueError("no tables found (csv, csv.gz, xlsx)")
@@ -277,6 +420,7 @@ def init(paths, workspace, lang="zh", main=None) -> dict:
     # passed over for a real fact table, but when it is the only table with something to analyse (a small orders
     # table: ordered, shipped) it is the main table: the row-count line between the two cannot be drawn reliably.
     facts = [t for t in dated if not t.get("start_end")] or dated
+    given = main is not None
     if main is None:
         if not facts:
             raise NoTimeAxis(_no_time_axis(tables, lang))
@@ -285,14 +429,26 @@ def init(paths, workspace, lang="zh", main=None) -> dict:
     elif main not in tables:
         raise ValueError(f"--main {main}: no table of that name; the tables are {', '.join(tables)}")
     links = _links(tables, frames, main)
+    grain = _grain(tables, frames, links)
+    if not given:
+        # A table whose rows add up to the totals of the table it points at is that table's detail: analyse the parent.
+        up = _climb(main, grain)
+        if up != main:
+            main = up
+            links = _links(tables, frames, main)
+            grain = _grain(tables, frames, links)
     for t in tables.values():
-        t["suggested_kind"] = _suggest_kind(t, main, links, frames[t["name"]])
+        t["suggested_kind"] = _suggest_kind(t, main, links, frames[t["name"]], grain)
     joined, joins = _joined(frames[main], links, frames, main)
 
     zh = lang == "zh"
-    qs = [_q("main_table", f"主表（每行一笔交易、要分析的那张）是「{main}」吗？它有日期、有数字、行数最多（{tables[main]['rows']:,} 行）。",
-             f"Is \"{main}\" the main table (one row per transaction, the one to analyse)? It has dates, numbers and the most rows "
-             f"({tables[main]['rows']:,}).", [main, *[t for t in tables if t != main]], lang, suggested=main)]
+    mq = _q("main_table", f"主表（每行一笔交易、要分析的那张）是「{main}」吗？它有日期、有数字（{tables[main]['rows']:,} 行）。",
+            f"Is \"{main}\" the main table (one row per transaction, the one to analyse)? It has dates and numbers "
+            f"({tables[main]['rows']:,} rows).", [main, *[t for t in tables if t != main]], lang, suggested=main)
+    if grain:
+        mq["evidence"] = _main_evidence(tables, grain, main, lang)
+        mq["candidates"] = _candidates(tables, grain, main, lang)
+    qs = [mq]
     kinds = {"lookup": ("查找表（一行一个编号，其余是属性）", "a lookup table (one row per key, the rest are attributes)"),
              "business": ("另一份业务数据（要拿来算数的，比如访问量）", "more business data (to compute with, e.g. visits)"),
              "events": ("事件记录（活动、调价之类，每行一件事、有起止日期）", "event records (campaigns, price changes: one per row, with start and end)"),
@@ -313,6 +469,13 @@ def init(paths, workspace, lang="zh", main=None) -> dict:
         if "per_date" in t:
             ev += (f"；每个日期{'和「' + t['per_date'][0] + '」' if t['per_date'] else ''}只有一行" if zh else
                    f"; one row per date{' and ' + t['per_date'][0] if t['per_date'] else ''}")
+        for g in grain:
+            if g["child"] == t["name"]:
+                s = g["sums"][0]
+                ev += (f"；按 {g['child_link']} 把「{s['child_column']}」加起来，等于「{g['parent']}」的「{s['parent_column']}」"
+                       f"（{s['parent_rows_matching']:.1%} 的行相同），是它的明细，已经加在「{g['parent']}」里了" if zh else
+                       f"; its \"{s['child_column']}\" add up per {g['child_link']} to \"{s['parent_column']}\" of \"{g['parent']}\" "
+                       f"({s['parent_rows_matching']:.1%} of rows), so it is the detail of \"{g['parent']}\" and already added up there")
         qs.append({"id": f"kind:{t['name']}", "ask": (f"「{t['name']}」这张表是什么？（{ev}）" if zh else f"What is the table \"{t['name']}\"? ({ev})"),
                    "options": [{"value": k, "label": v[0] if zh else v[1]} for k, v in kinds.items()],
                    "suggested": t["suggested_kind"], "evidence": ev})
@@ -395,10 +558,8 @@ def init(paths, workspace, lang="zh", main=None) -> dict:
         if q["id"].startswith("role:"):
             q["table"] = main
     qs += main_qs
-    d = {"kind": "tables", "language": lang, "main": main, "tables": tables, "links": links, "joins": joins,
-         "belongs_to": fds, "quiet_weekdays": quiet, "joined_profile": prof, "questions": qs}
-    (ws / "draft.json").write_text(json.dumps(d, ensure_ascii=False, indent=1, default=str), encoding="utf-8")
-    return d
+    return {"kind": "tables", "language": lang, "main": main, "tables": tables, "links": links, "joins": joins, "grain": grain,
+            "belongs_to": fds, "quiet_weekdays": quiet, "joined_profile": prof, "questions": qs}
 
 
 # ---------------------------------------------------------------- confirm
@@ -425,8 +586,11 @@ def confirm(workspace, answers: dict, today: dt.date | None = None) -> dict:
     ws = Path(workspace)
     d = json.loads((ws / "draft.json").read_text(encoding="utf-8"))
     lang, main, tables = d["language"], d["main"], d["tables"]
-    if answers.get("main_table", main) != main:
-        raise ValueError(f"the main table was answered as '{answers['main_table']}'; re-run init with --main {answers['main_table']}")
+    chosen = answers.get("main_table", main)
+    if chosen != main:
+        if chosen not in tables:
+            raise ValueError(f"main_table was answered as '{chosen}', but there is no table of that name; the tables are {', '.join(tables)}")
+        return _confirm_other_main(ws, d, chosen, answers, today)
     today_s = (today or dt.date.today()).isoformat()
     said = {"kind": "user", "date": today_s}
     kind = {n: (answers.get(f"kind:{n}") or "ignore") if n != main else "main" for n in tables}
@@ -450,7 +614,11 @@ def confirm(workspace, answers: dict, today: dt.date | None = None) -> dict:
         joined[date_col] = derive_dates(joined, cd)
     if not date_col:
         raise ValueError("answer 'date_column' first")
-    dims = [x for x in answers.get("dimensions", []) if x in joined.columns]
+    wanted = list(answers.get("dimensions") or [])
+    dims = [x for x in wanted if x in joined.columns]
+    problems = [(f"「{x}」不能用来切分：从主表「{main}」出发，没有一条确认过的链接能走到这一列。" if lang == "zh" else
+                 f"\"{x}\" cannot be used to cut the numbers: no confirmed link leads from the main table \"{main}\" to a column of that name.")
+                for x in wanted if x not in joined.columns]
     id_col = answers.get("order_id") if answers.get("order_id") not in (None, "none") else None
 
     sources, external = {}, {}
@@ -590,8 +758,37 @@ def confirm(workspace, answers: dict, today: dt.date | None = None) -> dict:
               "questions": len(asked), "answered": sum(1 for x in asked if x in answers)}
     (ws / "intake.json").write_text(json.dumps({"draft": "draft.json", "answers": answers, "confirmed": record},
                                                ensure_ascii=False, indent=1, default=str), encoding="utf-8")
-    return {"north_star": north, "metrics": list(metrics), "dimensions": dims, "intake": record,
+    return {"north_star": north, "metrics": list(metrics), "dimensions": dims, "intake": record, "problems": problems,
             "first_run": draft.first_run(ws, north)}
+
+
+def _confirm_other_main(ws, d, chosen, answers, today):
+    """The user chose a main table other than the suggested one. Read the tables again for that table, keep the answers
+    that still fit the new questions, and either confirm or say which questions only exist now."""
+    files = [_abs(t["path"], ws) for t in d["tables"].values()]
+    new = _derive(files, ws, d["language"], chosen)
+    new["main_changed_from"] = d["main"]
+    (ws / "draft.json").write_text(json.dumps(new, ensure_ascii=False, indent=1, default=str), encoding="utf-8")
+    asked_before = {q["id"] for q in d["questions"]}
+    fit = {}
+    for q in new["questions"]:
+        if q["id"] not in answers:
+            continue
+        vals = [o["value"] if isinstance(o, dict) else o for o in q["options"]]
+        v = answers[q["id"]]
+        if not vals or all(x in vals for x in (v if isinstance(v, list) else [v])):
+            fit[q["id"]] = v
+    fresh = [q for q in new["questions"] if q["id"] not in fit and q["id"].startswith(("kind:", "link:", "role:", "order_id"))
+             and (q["id"] not in asked_before or q["id"] in answers)]
+    stale = [q for q in fresh if q["id"].startswith("link:") and q.get("suggested") != "yes" and q["id"] not in answers]
+    fresh = [q for q in fresh if q not in stale]
+    rest = {k: v for k, v in answers.items() if k not in {q["id"] for q in new["questions"]} or k in fit}
+    rest["main_table"] = chosen
+    if fresh:
+        ids = [q["id"] for q in fresh]
+        raise NeedsAnswers(f"the main table is now '{chosen}' (it was '{d['main']}'). {len(ids)} questions are new or no longer fit your earlier "
+                           f"answers: {', '.join(ids)}. They are saved in draft.json; answer them and run confirm again.", ids, fresh)
+    return confirm(ws, rest, today)
 
 
 # ---------------------------------------------------------------- propose
