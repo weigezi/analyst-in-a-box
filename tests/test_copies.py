@@ -33,7 +33,7 @@ def _ws(tmp_path, frame, copies, name="ws"):
     frame.to_csv(f, index=False)
     ws = tmp_path / name
     d = intake.init([f], ws, lang="en")
-    ans = {q["id"]: "skip" for q in d["questions"] if q["id"].startswith("role:")}
+    ans = {"measure_columns": []}
     ans.update(date_column="day", dimensions=["site"], order_id="none", unit_price="rate", unit_price_times="nights",
                **({"exact_copies": copies} if copies else {}))
     intake.confirm(ws, ans)

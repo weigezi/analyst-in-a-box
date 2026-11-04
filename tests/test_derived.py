@@ -107,7 +107,7 @@ def _q(d, qid):
 
 
 def _answers(d, **extra):
-    ans = {q["id"]: "skip" for q in d["questions"] if q["id"].startswith("role:")}
+    ans = {"measure_columns": []}
     ans.update(date_column="composite:arrival_year+arrival_month+arrival_day", dimensions=["hotel"],
                reversal_column="status", **{"reversal_values:status": ["Canceled", "No-Show"]})
     ans.update(extra)
@@ -123,15 +123,21 @@ def test_the_unit_price_questions_are_asked_for_a_table_with_a_decimal_and_a_who
     d = _init(tmp_path, _stays())
     assert _q(d, "unit_price")["options"][:1] == ["rate"] and "none" in _q(d, "unit_price")["options"]
     assert set(_q(d, "sum_columns")["options"]) == {"weekend_nights", "week_nights"}
-    times = [o["value"] if isinstance(o, dict) else o for o in _q(d, "unit_price_times")["options"]]
-    assert "sum_columns" in times and "week_nights" in times
+    assert "unit_price_times" not in [q["id"] for q in d["questions"]]          # asked once a unit price is picked
+    with pytest.raises(intake.NeedsAnswers) as need:
+        intake.confirm(tmp_path / "ws", _answers(d, unit_price="rate", sum_columns=["weekend_nights", "week_nights"]))
+    times = [o["value"] if isinstance(o, dict) else o for o in need.value.questions[0]["options"]]
+    assert need.value.ids == ["unit_price_times"] and "sum_columns" in times and "week_nights" in times
 
 
-def test_the_role_question_of_a_decimal_column_offers_unit_price_first(tmp_path):
+def test_a_unit_price_is_picked_in_its_own_question_and_is_not_offered_as_an_amount_to_analyse_twice(tmp_path):
     d = _init(tmp_path, _stays())
-    opts = [o["value"] for o in _q(d, "role:rate")["options"]]
-    assert opts[0] == "unit_price" and "amount" in opts
-    assert "unit_price" not in [o["value"] for o in _q(d, "role:week_nights")["options"]]
+    assert not [q["id"] for q in d["questions"] if q["id"].startswith("role:")]
+    offered = [o["value"] for o in _q(d, "measure_columns")["options"]]
+    assert "rate" in offered and "week_nights" in offered                       # selectable, and then its role is not asked:
+    r = intake.confirm(tmp_path / "ws", _answers(d, unit_price="rate", unit_price_times="week_nights",
+                                                 measure_columns=["rate", "week_nights"]))
+    assert r["problems"] == [] and "rate" not in Workspace(tmp_path / "ws").metrics       # a unit price is multiplied, never added
 
 
 def test_room_revenue_is_the_rate_times_the_nights_and_the_average_rate_is_weighted(tmp_path):
