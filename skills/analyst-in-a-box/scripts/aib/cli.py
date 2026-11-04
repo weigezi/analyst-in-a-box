@@ -169,7 +169,9 @@ def _plain_error(exc, argv) -> str | None:
 def main(argv=None):
     """Run one command. A failure the user can fix ends in one sentence and exit code 2; any other failure in a short
     line and exit code 1. --debug (anywhere on the line) lets the traceback through."""
-    argv = list(sys.argv[1:] if argv is None else argv)
+    if argv is None:
+        argv = sys.argv[1:]
+    argv = list(argv)
     debug = "--debug" in argv
     argv = [x for x in argv if x != "--debug"]
     try:
