@@ -601,6 +601,10 @@ def _why_short(ws, s, cut) -> str:
     dims = [cut["dimension"]] if isinstance(cut["dimension"], str) else list(cut["dimension"])
     try:
         measure = ws.metric_measures(s["metric"])[0]
+        spec = ws.measures[measure]
+        if spec["agg"] == "count_distinct" and not ws._row_unique(spec["source"], spec["column"]):
+            return (f"; {measure} counts distinct {spec['column']} and the same {spec['column']} appears in more than one "
+                    f"{', '.join(dims)}, so it is counted in each group and the groups cannot be added up")
         usable = [d for d in dims if d in ws.dimensions]
         parts = []
         for tag, w in (("current", s["current"]), ("base", s["base"])):
@@ -658,6 +662,8 @@ def step_checks(ws, s):
         # Ratio metrics are defined as numerator / denominator, so an identity like revenue = orders x AOV holds by
         # construction. This only proves every factor can be computed (no zero denominator, no missing source).
         dp = data_problems(ws, s["current"]) + data_problems(ws, s["base"])
+        if s["filters"]:
+            dp += data_problems(ws, s["current"], s["filters"]) + data_problems(ws, s["base"], s["filters"])
         add("identities_computable", not dp, "; ".join(dp[:5]))
     add("segments_add_up_to_total", *_reconcile(ws, s))
     bad = [r.get("label") for r in _results(s) if not r.get("closed")]
