@@ -6,7 +6,7 @@ import datetime as dt
 import math
 
 from . import judge
-from .sources import AGGS
+from .sources import AGGS, EXACT_COPIES
 from .workspace import SOURCE_KINDS, STATUSES, Workspace, label
 
 ADDITIVE_AGGS = {"sum", "count"}
@@ -23,6 +23,9 @@ def _check_source(where, obj, problems):
 def model_problems(ws: Workspace) -> list[str]:
     p = []
     dims = ws.dimensions
+    for name, spec in ws.sources.specs.items():
+        if spec.get("exact_copies") not in (None, *EXACT_COPIES):
+            p.append(f"source {name}: exact_copies must be one of {', '.join(EXACT_COPIES)}, not {spec['exact_copies']!r}")
     for name, m in ws.measures.items():
         w = f"measure {name}"
         if m.get("source") not in ws.sources.specs:

@@ -28,7 +28,7 @@ import pandas as pd
 import yaml
 
 from . import defaults, draft
-from .sources import apply_derived_columns, derive_dates
+from .sources import EXACT_COPIES, apply_derived_columns, derive_dates
 
 TABLE_SUFFIXES = (".csv", ".csv.gz", ".xlsx", ".xls")
 
@@ -553,12 +553,16 @@ def _derive(paths, workspace, lang="zh", main=None) -> dict:
     dups = tables[main]["duplicate_rows"]
     if dups and not row_keys:
         # asked on its own: a table with copies and no key often has no identifier column to hang the warning on
-        main_qs.append(_q("duplicate_rows",
-                          f"这张表有 {dups:,} 行与别的行完全相同，而且没有一列能唯一标识一行，没法判断它们是重复录入还是真的发生了两次。保留还是去掉这些重复的行？",
+        main_qs.append(_q("exact_copies",
+                          f"这张表有 {dups:,} 行与别的行完全相同，而且没有一列能唯一标识一行，没法判断它们是重复录入还是真的发生了两次。哪一种说法对？",
                           f"{dups:,} rows are exact copies of other rows and no column identifies one row, so there is no telling "
-                          "whether they are double entries or two real events. Keep the copies or drop them?",
-                          [{"value": "keep", "label": "保留（当作真的发生了两次）" if zh else "Keep (two real events)"},
-                           {"value": "drop", "label": "去掉（当作重复录入）" if zh else "Drop (double entries)"}], lang, suggested="keep"))
+                          "whether they are double entries or two real events. Which is true?",
+                          [{"value": "every_row", "label": "每一行都是一条真实记录" if zh else "Every row is a real record"},
+                           {"value": "once", "label": "完全相同的行是重复录入，只算一次" if zh else "Identical rows are double entries: count each once"},
+                           {"value": "unknown", "label": "我不知道（数量、金额、均价按每一行算；条数类的指标两种算法都给出）" if zh else
+                            "I do not know (quantities, revenue and average price count every row; counts of rows get both readings)"}],
+                          lang, suggested="unknown",
+                          note="a sum counts every row either way; a count of rows, revenue per row and the like change with the answer"))
     # a column of a few words could say that a row was cancelled or refunded: ask, never assume
     # a few words, or a two-valued number (0/1): either can mark a reversed row. Asked, never assumed.
     flag_cols = [p["column"] for p in prof if p["column"] in joined.columns and p["column"] not in parts
@@ -660,9 +664,12 @@ def confirm(workspace, answers: dict, today: dt.date | None = None) -> dict:
         main_src["derive_dates"] = derive
     if derived:
         main_src["derive_columns"] = derived
-    if answers.get("duplicate_rows") == "drop":
-        main_src["drop_duplicates"] = True
-        joined = joined.drop_duplicates()
+    # nothing is removed at import: a sum counts every row either way, and the metrics that depend on the answer read it
+    copies = answers.get("exact_copies") or {"keep": "every_row", "drop": "once"}.get(answers.get("duplicate_rows"))
+    if copies is not None and copies not in EXACT_COPIES:
+        raise ValueError(f"exact_copies must be one of {', '.join(EXACT_COPIES)}, not {copies!r}")
+    if copies:
+        main_src["exact_copies"] = copies
     rc = answers.get("reversal_column")
     rv = answers.get(f"reversal_values:{rc}") if rc and rc != "none" else None
     if rv:
@@ -695,6 +702,8 @@ def confirm(workspace, answers: dict, today: dt.date | None = None) -> dict:
     if missing:
         raise ValueError(f"answer what these columns are first: {', '.join(missing)}")
     id_spec = {"column": id_col, "source": main, "date": date_col, "dimensions": draft._additive_dims(joined, id_col, dims)} if id_col else None
+    if id_spec is None and copies:
+        id_spec = {"column": None, "rows_only": True, "source": main, "date": date_col, "dimensions": list(dims)}
 
     events, skipped, intake_log = [], [], []
     for n, t in tables.items():

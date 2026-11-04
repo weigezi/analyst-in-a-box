@@ -371,11 +371,18 @@ def build_metrics(specs: list, id_spec: dict | None, template: str, said: dict, 
                         "role": sp["role"], "source": said, "status": "confirmed"}
         by_role.setdefault(sp["role"], col)
     tpl = yaml.safe_load((TEMPLATES / f"{template}.yaml").read_text(encoding="utf-8"))
-    names = tpl["names"]
+    names = dict(tpl["names"])
+    rows_only = bool(id_spec and id_spec.get("rows_only"))
+    if rows_only:
+        # no column identifies a record: what can be counted is rows, and what a row is stays for the user to say
+        names["id_count"] = {"en": "Rows", "zh": "行数"}
+        names["per_id"] = {"en": "Amount per row", "zh": "每行金额"}
     if id_spec:
         d = list(id_spec["dimensions"])
-        measures["m_count"] = {"source": id_spec["source"], "agg": "count_distinct", "column": id_spec["column"],
-                               "date": id_spec["date"], "dimensions": d, "additive_over": d}
+        measures["m_count"] = ({"source": id_spec["source"], "agg": "count", "date": id_spec["date"], "dimensions": d}
+                               if rows_only else
+                               {"source": id_spec["source"], "agg": "count_distinct", "column": id_spec["column"],
+                                "date": id_spec["date"], "dimensions": d, "additive_over": d})
         amount_col = next((s["column"] for s in specs if s.get("role") == "amount"), None)
         if amount_col:
             # a blank amount means the order has no amount: it is not an order of value, so it leaves the order total
@@ -394,6 +401,14 @@ def build_metrics(specs: list, id_spec: dict | None, template: str, said: dict, 
         identities.append({"id": f"{resolve(f['identity']['left'])}_by_{f['metric']}", "left": resolve(f["identity"]["left"]),
                            "factors": [resolve(x) for x in f["identity"]["factors"]], "operator": "multiply",
                            "source": {"kind": "formula"}, "status": "confirmed"})
+    if rows_only:
+        for col in [c for c, mt in list(metrics.items()) if mt.get("role") == "quantity"]:
+            name = f"{col}_per_id"
+            metrics[name] = {"label": {"en": f"{nm(col)['en']} per row", "zh": f"每行{nm(col)['zh']}"}, "kind": "ratio",
+                             "numerator": col, "denominator": "id_count", "unit": "count",
+                             "source": {"kind": "formula"}, "status": "confirmed"}
+            identities.append({"id": f"{col}_by_{name}", "left": col, "factors": ["id_count", name], "operator": "multiply",
+                               "source": {"kind": "formula"}, "status": "confirmed"})
     if per_unit and per_unit["amount"] in metrics and per_unit["quantity"] in metrics:
         # a weighted average price (an average rate per night): amount / quantity, never the average of the rates
         metrics["per_unit"] = {"label": {"en": "Average price per unit", "zh": "平均单价"}, "kind": "ratio",

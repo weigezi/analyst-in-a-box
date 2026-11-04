@@ -170,6 +170,14 @@ class Sources:
             self._cache[name] = df
         return self._cache[name]
 
+    def frame_once(self, name: str) -> pd.DataFrame:
+        """The source with exact copies of a row counted once (computed on the finished table, cached). Nothing is
+        removed from `frame`: whether a copy is a second real record is decided per metric."""
+        key = ("once", name)
+        if key not in self._cache:
+            self._cache[key] = self.frame(name).drop_duplicates()
+        return self._cache[key]
+
     def _join(self, name, spec):
         """A base table with attribute columns looked up from other tables by a key.
 
@@ -199,6 +207,7 @@ class Sources:
 
 
 AGGS = {"sum", "count", "count_distinct", "mean", "min", "max"}
+EXACT_COPIES = ("every_row", "once", "unknown")
 
 
 def aggregate(df: pd.DataFrame, agg: str, column: str | None, date_col: str,
