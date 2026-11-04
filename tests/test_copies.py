@@ -67,7 +67,7 @@ def test_nights_revenue_and_the_average_price_count_every_row_under_every_readin
     for choice in ("every_row", "once", "unknown"):
         w = _ws(tmp_path, frame, choice, name=f"ws_{choice}")
         assert w.total("nights", W_ALL) == frame.nights.sum()
-        assert w.total("rate_times_nights", W_ALL) == pytest.approx((frame.rate * frame.nights).sum())
+        assert w.total("rate_x_nights", W_ALL) == pytest.approx((frame.rate * frame.nights).sum())
         assert w.total("per_unit", W_ALL) == pytest.approx((frame.rate * frame.nights).sum() / frame.nights.sum())
         assert w.copies_policy("nights") == "every" and w.copies_policy("per_unit") == "every"
 

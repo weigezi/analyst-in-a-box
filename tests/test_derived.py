@@ -149,11 +149,11 @@ def test_room_revenue_is_the_rate_times_the_nights_and_the_average_rate_is_weigh
     k, nights = _kept(frame)
     W = Workspace(ws)
     w = (pd.Timestamp("2015-01-01").date(), pd.Timestamp("2016-12-31").date())
-    assert W.total("weekend_nights_plus_week_nights", w) == nights.sum()
-    assert W.total("rate_times_weekend_nights_plus_week_nights", w) == pytest.approx((k.rate * nights).sum())
+    assert W.total("nights", w) == nights.sum()
+    assert W.total("rate_x_nights", w) == pytest.approx((k.rate * nights).sum())
     assert W.total("per_unit", w) == pytest.approx((k.rate * nights).sum() / nights.sum())
     assert "rate" not in W.metrics
-    by = {h: W.total("rate_times_weekend_nights_plus_week_nights", w, {"hotel": h}) for h in ("City", "Resort")}
+    by = {h: W.total("rate_x_nights", w, {"hotel": h}) for h in ("City", "Resort")}
     assert sum(by.values()) == pytest.approx((k.rate * nights).sum())
 
 
@@ -175,4 +175,4 @@ def test_the_derived_columns_are_recorded_in_the_source(tmp_path):
     intake.confirm(tmp_path / "ws", _answers(d, sum_columns=["weekend_nights", "week_nights"], unit_price="rate", unit_price_times="sum_columns"))
     spec = Workspace(tmp_path / "ws").project["sources"]["stays"]
     assert [x["op"] for x in spec["derive_columns"]] == ["add", "mul"]
-    assert spec["derive_columns"][1]["columns"] == ["rate", "weekend_nights_plus_week_nights"]
+    assert spec["derive_columns"][1]["columns"] == ["rate", "nights"]
