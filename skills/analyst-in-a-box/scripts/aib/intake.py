@@ -568,16 +568,10 @@ def _derive(paths, workspace, lang="zh", main=None) -> dict:
     flag_cols = [p["column"] for p in prof if p["column"] in joined.columns and p["column"] not in parts
                  and ((p["shape"] == "category" and 2 <= p["distinct"] <= 12) or (p["shape"] == "number" and p["distinct"] == 2))]
     if flag_cols:
-        main_qs.append(_q("reversal_column", "有没有一列说明这一行是被取消、退款或作废的？（选了的话，下一步选哪些取值算。）",
-                          "Is there a column that says a row was cancelled, refunded or voided? (If so, the next question lists its values.)",
+        # the values are asked only for the column picked: `confirm` raises NeedsAnswers with reversal_values:<column>
+        main_qs.append(_q("reversal_column", "有没有一列说明这一行是被取消、退款或作废的？（选了的话，下一步只问这一列的取值。）",
+                          "Is there a column that says a row was cancelled, refunded or voided? (If so, the next question lists the values of that column only.)",
                           [*flag_cols, "none"], lang, suggested="none"))
-        for c in flag_cols:
-            vals = [str(v) for v in joined[c].dropna().unique()]
-            q = _q(f"reversal_values:{c}", f"「{c}」的哪些取值表示这一行是被取消、退款或作废的？这些行会从所有数字里去掉。",
-                   f"Which values of \"{c}\" mean the row was cancelled, refunded or voided? Those rows are left out of every number.",
-                   [{"value": v, "label": v} for v in sorted(vals)], lang)
-            q["multi"] = True
-            main_qs.append(q)
     for q in main_qs:
         if q["id"] == "date_column":
             # composite dates are offered as composite:<name>; the single derived column is not offered twice
@@ -671,6 +665,11 @@ def confirm(workspace, answers: dict, today: dt.date | None = None) -> dict:
     if copies:
         main_src["exact_copies"] = copies
     rc = answers.get("reversal_column")
+    if rc and rc != "none":
+        if rc not in joined.columns:
+            raise ValueError(f"reversal_column was answered as '{rc}', but the main table has no column of that name")
+        if f"reversal_values:{rc}" not in answers:
+            raise _ask_reversal_values(ws, d, rc, joined, lang)
     rv = answers.get(f"reversal_values:{rc}") if rc and rc != "none" else None
     if rv:
         main_src["exclude_rows"] = {rc: list(rv)}
@@ -815,6 +814,23 @@ def confirm(workspace, answers: dict, today: dt.date | None = None) -> dict:
                                                ensure_ascii=False, indent=1, default=str), encoding="utf-8")
     return {"north_star": north, "metrics": list(metrics), "dimensions": dims, "intake": record, "problems": problems,
             "first_run": draft.first_run(ws, north)}
+
+
+def _ask_reversal_values(ws, d, column, joined, lang):
+    """The follow-up to reversal_column, for the one column the user picked: saved in draft.json (so the next confirm
+    and the count of questions see it) and returned as the NeedsAnswers to raise."""
+    zh = lang == "zh"
+    vals = sorted(str(v) for v in joined[column].dropna().unique())
+    q = _q(f"reversal_values:{column}", f"「{column}」的哪些取值表示这一行是被取消、退款或作废的？这些行会从所有数字里去掉。",
+           f"Which values of \"{column}\" mean the row was cancelled, refunded or voided? Those rows are left out of every number.",
+           [{"value": v, "label": v} for v in vals], lang)
+    q["multi"] = True
+    if q["id"] not in {x["id"] for x in d["questions"]}:
+        d["questions"].append(q)
+        (ws / "draft.json").write_text(json.dumps(d, ensure_ascii=False, indent=1, default=str), encoding="utf-8")
+    msg = (f"先回答「{column}」的哪些取值算取消（{q['id']}），再运行 confirm。问题已写进 draft.json。" if zh else
+           f"Answer which values of \"{column}\" mean cancelled ({q['id']}), then run confirm again. The question is saved in draft.json.")
+    return NeedsAnswers(msg, [q["id"]], [q])
 
 
 def _derived_specs(answers, main_df, joined):
