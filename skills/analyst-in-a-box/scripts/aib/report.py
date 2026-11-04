@@ -39,7 +39,8 @@ T = {
         "refute": "推翻条件：剔除事件那几天后这一块仍然同样下滑，这个推测就不成立。",
         "gap": "数据上看到「{seg}」的变化，原因待你确认。直接告诉我原因，我会记下来，下次不再问。",
         "status_confirmed": "已确认", "status_proposed": "待确认", "source": "出处", "refuted_by": "什么数据出现就推翻它", "owner": "负责人",
-        "no_action": "还没有登记可做的动作。", "coverage": "需要业务解释的地方：{e}/{n} 处有记录可引（覆盖率 {p}）。",
+        "no_action": "还没有登记可做的动作。",
+        "no_owner": "变动落在这里：{items}。这些地方还没有登记负责人，也没有登记动作。直接告诉我谁负责，我会记下来，下次不再问。", "coverage": "需要业务解释的地方：{e}/{n} 处有记录可引（覆盖率 {p}）。",
         "definitions": "口径版本", "decisions": "命中的规则", "checks": "交付前自检", "pass": "通过", "fail": "未通过",
         "blocked": "⚠️ 交付前自检没通过，以下结论不能用：", "you_may_not_know": "你可能还不知道",
         "gap_a_b": "{a} 同比 {ga}，{b} 同比 {gb}，差 {gap}。", "horizontal": "按公式拆",
@@ -112,7 +113,7 @@ T = {
         "market_usual": "同期大盘 {mg}。这家店过去通常比大盘 {gap}，按这个常态估计本期应变化 {ep}；实际 {d}，差出来的 {op} 是自己的。这是估计，不是精确账目（只按大盘算的话，自己的部分是 {plain}）。",
         "flat_history": "过去 {n} 期的变化一模一样（波动为零），没法用波动大小判断这一期算不算异常。",
         "short_history": "历史太短（{n} 期），判断不了这一期算不算异常。",
-        "share_abs": "占变动幅度", "w_base": "基期", "w_cur": "本期", "w_others": "其他 {n} 组",
+        "share_abs": "占变动幅度", "bar_note": "括号内为占变动幅度", "w_base": "基期", "w_cur": "本期", "w_others": "其他 {n} 组",
         "daily_title": "逐日对比", "waterfall_title": "从基期到本期",
         "pvm": "量、结构、价格", "pvm_term": "部分", "pvm_volume": "卖得多少（量）", "pvm_mix": "卖了什么（结构）",
         "pvm_price": "卖多少钱（价格）", "pvm_new": "新上的", "pvm_gone": "下架的",
@@ -149,7 +150,8 @@ T = {
         "refute": "Refuted if, without the event's days, this slice still falls just as much.",
         "gap": "The data shows a change in \"{seg}\"; the reason is waiting for you. Tell me the reason and I will record it and not ask again.",
         "status_confirmed": "confirmed", "status_proposed": "to confirm", "source": "source", "refuted_by": "what data would refute it", "owner": "owner",
-        "no_action": "No actions recorded yet.", "coverage": "Places that need a business explanation: {e} of {n} can cite a record (coverage {p}).",
+        "no_action": "No actions recorded yet.",
+        "no_owner": "The movement sits here: {items}. No owner and no action is recorded for these yet. Tell me who owns it and I will record it and not ask again.", "coverage": "Places that need a business explanation: {e} of {n} can cite a record (coverage {p}).",
         "definitions": "Definitions version", "decisions": "Rules that fired", "checks": "Pre-delivery checks", "pass": "pass", "fail": "FAIL",
         "blocked": "⚠️ Pre-delivery checks failed; do not use the conclusions below:", "you_may_not_know": "You may not know",
         "gap_a_b": "{a} {ga} year on year, {b} {gb}; a gap of {gap}.", "horizontal": "By formula",
@@ -223,7 +225,7 @@ T = {
         "market_usual": "The market moved {mg}. This business usually runs {gap} against the market; on that basis it should have changed by {ep}. It changed by {d}, so {op} is its own. This is an estimate, not an exact account (counting only the market, its own part would be {plain}).",
         "flat_history": "The last {n} periods all changed by exactly the same amount (flat history), so their spread cannot say whether this one is unusual.",
         "short_history": "Not enough history ({n} periods) to say whether this period is unusual.",
-        "share_abs": "Share of all movement", "w_base": "Base", "w_cur": "Current", "w_others": "{n} others",
+        "share_abs": "Share of all movement", "bar_note": "brackets: share of all movement", "w_base": "Base", "w_cur": "Current", "w_others": "{n} others",
         "daily_title": "Day by day", "waterfall_title": "From base to current",
         "pvm": "Volume, mix and price", "pvm_term": "Part", "pvm_volume": "Selling more or less (volume)",
         "pvm_mix": "Selling a different mix", "pvm_price": "Charging differently (price)", "pvm_new": "New items", "pvm_gone": "Items gone",
@@ -286,14 +288,17 @@ def slot_label(ws, world, slot, lang):
     return " → ".join(f"{label(ws.dimensions[d].get('label', d), lang)}={seg_label(ws, world, d, v, lang)}" for d, v in parts)
 
 
-def bar_svg(rows, title=""):
-    """rows: [(label, value, share)] -> a horizontal bar chart of contributions, as an SVG string."""
+def bar_svg(rows, title="", value_text=None):
+    """rows: [(label, value, share)] -> a horizontal bar chart of contributions, as an SVG string.
+    Each bar is labelled with its signed change, as in the table, and its share of all movement in brackets
+    (the share has no sign: the sign belongs to the change, so a label cannot contradict the bar's direction)."""
+    value_text = value_text or (lambda v: fmt(v, None, True))
     w, h, left, pad = 640, 26, 170, 8
     height = pad * 2 + h * len(rows) + (22 if title else 0)
     top = pad + (22 if title else 0)
     mx = max((abs(v) for _, v, _ in rows), default=1) or 1
     has_neg, has_pos = any(v < 0 for _, v, _ in rows), any(v > 0 for _, v, _ in rows)
-    span = w - left - 70
+    span = w - left - 150
     zero = left + (span / 2 if has_neg and has_pos else span if has_neg else 0)
     scale = (span / 2 if has_neg and has_pos else span) / mx
     out = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{height}" font-family="sans-serif" font-size="12">']
@@ -305,8 +310,8 @@ def bar_svg(rows, title=""):
         color = "#0072B2" if v >= 0 else "#D55E00"
         out.append(f'<text x="{left - 6}" y="{y + 17}" text-anchor="end">{_esc(lab)}</text>')
         out.append(f'<rect x="{x0:.1f}" y="{y + 5}" width="{max(x1 - x0, 1):.1f}" height="{h - 10}" fill="{color}"/>')
-        tx = x1 + 4 if v >= 0 else x0 - 4
-        out.append(f'<text x="{tx:.1f}" y="{y + 17}" text-anchor="{"start" if v >= 0 else "end"}">{_esc(pct(sh) if sh is not None else "")}</text>')
+        txt = value_text(v) + (f" ({pct(sh, False)})" if sh is not None else "")
+        out.append(f'<text x="{left + span + 8:.1f}" y="{y + 17}" text-anchor="start">{_esc(txt)}</text>')
     out.append(f'<line x1="{zero:.1f}" y1="{top}" x2="{zero:.1f}" y2="{top + h * len(rows)}" stroke="#555"/>')
     out.append("</svg>")
     return "\n".join(out)
@@ -333,11 +338,9 @@ def waterfall_svg(ws, world, wf, lang):
         else:
             tops.append((level, level + v))
             level += v
+    # The axis always includes zero: a bar chart with a cut-off axis draws a 1.6x change as a 7x one.
     lo = min(0.0, *(min(a, b) for a, b in tops))
-    hi = max(*(max(a, b) for a, b in tops))
-    # amounts start the axis near the smallest bar end so small steps stay visible; the axis value is printed
-    if unit != "ratio" and lo == 0:
-        lo = min(min(a, b) for a, b in tops if not (a == 0)) * 0.9 if any(a for a, _ in tops) else 0.0
+    hi = max(0.0, *(max(a, b) for a, b in tops))
     span = (hi - lo) or 1.0
     y = lambda v: top + (H - top - bottom) * (1 - (v - lo) / span)  # noqa: E731
     bw = (W - 2 * left) / len(items)
@@ -345,14 +348,14 @@ def waterfall_svg(ws, world, wf, lang):
            f'<text x="{left}" y="18" font-weight="bold">{_esc(t["waterfall_title"])}</text>']
     for i, ((lab, v, kind), (a, b)) in enumerate(zip(items, tops)):
         x = left + i * bw + bw * 0.15
-        a2, b2 = (max(a, lo), b) if kind == "total" else (a, b)
-        y0, y1 = sorted((y(a2), y(b2)))
+        y0, y1 = sorted((y(a), y(b)))
         color = NEUTRAL if kind == "total" else (UP if v >= 0 else DOWN)
         out.append(f'<rect x="{x:.1f}" y="{y0:.1f}" width="{bw * 0.7:.1f}" height="{max(y1 - y0, 1):.1f}" fill="{color}"/>')
         txt = fmt(v, unit) if kind == "total" else fmt(v, unit, True)
         out.append(f'<text x="{x + bw * 0.35:.1f}" y="{y0 - 4:.1f}" text-anchor="middle">{_esc(txt)}</text>')
         out.append(f'<text x="{x + bw * 0.35:.1f}" y="{H - bottom + 16}" text-anchor="middle">{_esc(lab)}</text>')
-    out.append(f'<text x="{left}" y="{H - 8}" fill="#555">{_esc(fmt(lo, unit))}</text>')
+    out.append(f'<line x1="{left}" y1="{y(0):.1f}" x2="{W - left}" y2="{y(0):.1f}" stroke="#555"/>')
+    out.append(f'<text x="{left - 4}" y="{y(0) + 4:.1f}" text-anchor="end" fill="#555">0</text>')
     out.append("</svg>")
     return "\n".join(out)
 
@@ -365,7 +368,7 @@ def daily_svg(daily, lang, unit):
     vals = [v for v in cur + base if v is not None]
     if not vals:
         return f'<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"></svg>'
-    W, H, top, bottom, left = 680, 260, 30, 50, 60
+    W, H, top, bottom, left = 680, 276, 30, 66, 60
     lo, hi = min(vals), max(vals)
     span = (hi - lo) or 1.0
     n = len(cur)
@@ -380,16 +383,27 @@ def daily_svg(daily, lang, unit):
            f'<polyline points="{path(base)}" fill="none" stroke="{NEUTRAL}" stroke-width="2" stroke-dasharray="5,4"/>',
            f'<polyline points="{path(cur)}" fill="none" stroke="{UP}" stroke-width="2.5"/>']
     ex = set(daily.get("excluded_days") or [])
-    for i, (c, b) in enumerate(zip(cur, base)):
+    # A date label needs about 55 px and a signed value about 70 px. Beyond that many days, every Nth date is
+    # labelled and only the largest rise and the largest fall carry a value; the rest stay readable as points.
+    step_px = (W - left - 20) / max(n - 1, 1)
+    date_every = max(1, math.ceil(55 / step_px))
+    gaps = {i: c - b for i, (c, b) in enumerate(zip(cur, base)) if c is not None and b is not None}
+    if step_px >= 70 or len(gaps) <= 1:
+        valued = set(gaps)
+    else:
+        valued = {max(gaps, key=gaps.get), min(gaps, key=gaps.get)}
+        i, j = sorted(valued, key=lambda k: -abs(gaps[k]))[:2] if len(valued) == 2 else (None, None)
+        if j is not None and abs(i - j) * step_px < 70:
+            valued = {i}
+    for i, g in gaps.items():
         day = daily["current"][i]["day"]
-        if c is None or b is None:
-            continue
-        g = c - b
-        out.append(f'<circle cx="{x(i):.1f}" cy="{y(c):.1f}" r="3" fill="{UP if g >= 0 else DOWN}"/>')
-        out.append(f'<text x="{x(i):.1f}" y="{H - bottom + 30}" text-anchor="middle" fill="{UP if g >= 0 else DOWN}">'
-                   f'{_esc(fmt(g, unit, True))}</text>')
-        grey = ' fill="#999"' if day in ex else ""
-        out.append(f'<text x="{x(i):.1f}" y="{H - bottom + 14}" text-anchor="middle"{grey}>{_esc(day[5:])}</text>')
+        out.append(f'<circle cx="{x(i):.1f}" cy="{y(cur[i]):.1f}" r="3" fill="{UP if g >= 0 else DOWN}"/>')
+        if i in valued:
+            out.append(f'<text x="{x(i):.1f}" y="{H - bottom + 46}" text-anchor="middle" fill="{UP if g >= 0 else DOWN}">'
+                       f'{_esc(fmt(g, unit, True))}</text>')
+        if i % date_every == 0:
+            grey = ' fill="#999"' if day in ex else ""
+            out.append(f'<text x="{x(i):.1f}" y="{H - bottom + 30}" text-anchor="middle"{grey}>{_esc(day[5:])}</text>')
     out.append(f'<text x="{left - 6}" y="{y(hi) + 4:.1f}" text-anchor="end">{_esc(fmt(hi, unit))}</text>')
     out.append(f'<text x="{left - 6}" y="{y(lo) + 4:.1f}" text-anchor="end">{_esc(fmt(lo, unit))}</text>')
     out.append(f'<text x="{W - 200}" y="18" fill="{UP}">— {_esc(t["w_cur"])}</text>'
@@ -452,6 +466,18 @@ def _cut_table(ws, world, cut, unit, lang):
         rows.append([sl(x["key"]), pp(a) if a is not None else "", pp(b) if b is not None else "",
                      pp(x["change"]) if unit != "currency" or a is not None else fmt(x["change"], unit, True), pct(x["share"])])
     return _table([t["segment"], "w1", "w2", t["delta"], t["share"]], rows)
+
+
+def _value_text(cut, unit):
+    """The signed change of a segment, written the way the table beside the chart writes it."""
+    r = cut["result"]
+    if r["operator"] == "additive":
+        if unit not in ("ratio", "count") and any(abs(x[k]) >= 1000 for x in r["segments"] for k in ("base", "cur", "delta")):
+            unit = "count"
+        return lambda v: fmt(v, unit, True)
+    if r["operator"] == "divisive":
+        return lambda v: fmt(v, unit, True)
+    return pp
 
 
 def _cut_value(cut):
@@ -582,6 +608,20 @@ def _ruled_out(ws, s, n, lang, unit):
 def leaf_slot(s):
     leaves = [x for x in s["slots"] if x.get("leaf", True)]
     return leaves[0] if leaves else None
+
+
+def _no_owner_line(ws, world, s, unit, lang):
+    """No action is recorded: name the slices that carry the movement and say plainly that nobody owns them yet."""
+    t = T[lang]
+    items = []
+    for slot in [x for x in s["slots"] if x.get("leaf", True)][:2]:
+        cut = s["cuts"][slot["cut"]]
+        seg = next((x for x in cut["result"]["segments"] if x["key"] == slot["value"]), None)
+        change = f" {_value_text(cut, unit)(seg[_cut_value(cut)])}" if seg else ""
+        items.append(f"{slot_label(ws, world, slot, lang)}{change}")
+    if not items:
+        return t["no_action"]
+    return t["no_owner"].format(items=PUNCT[lang]["semi"].join(items))
 
 
 def _decision_text(d):
@@ -783,7 +823,8 @@ def render(ws, s, lang="zh", out_dir: Path | None = None) -> str:
             charts = Path(out_dir) / "charts"
             charts.mkdir(parents=True, exist_ok=True)
             name = f"cut{i + 1}.{lang}.svg"
-            (charts / name).write_text(bar_svg(rows, dl), encoding="utf-8")
+            (charts / name).write_text(bar_svg(rows, f"{dl}{p['open']}{t['bar_note']}{p['close']}", _value_text(cut, unit)),
+                                       encoding="utf-8")
             L += ["", f"![{dl}](charts/{name})"]
         L.append("")
     tree = s.get("tree")
@@ -850,7 +891,8 @@ def render(ws, s, lang="zh", out_dir: Path | None = None) -> str:
 
     L += [f"## {t['who']}", ""]
     acts = {a["id"]: a for a in ws.world.get("actions", [])}
-    L += [f"- **{label(acts[a]['owner'], lang)}**{p['colon']}{label(acts[a]['action'], lang)}" for a in s["actions"]] or [t["no_action"]]
+    L += [f"- **{label(acts[a]['owner'], lang)}**{p['colon']}{label(acts[a]['action'], lang)}" for a in s["actions"]] or \
+        [_no_owner_line(ws, world, s, unit, lang)]
     L.append("")
 
     if s["gaps"] or s["to_confirm"]:
