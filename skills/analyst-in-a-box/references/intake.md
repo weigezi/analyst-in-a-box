@@ -20,8 +20,15 @@ Only from the shape of the data, never from a column's name:
 | daily series | one row per date, or per date and one group | outside data (weather, a market index) or more business data (visits); grouped whole counts that link to the main table are suggested as business data, measurements as outside data |
 
 Coverage is the share of the left column's rows whose value is found on the right. A pair below 50% is not
-asked about. Between 50% and 95% it is asked with the suggested answer "no", and from 95% with "yes". Nothing is
-joined without an explicit "yes": an unanswered link is not a link.
+found. A pair that is found but not suggested (coverage under 95%, or a child that happens before its parent, or ids
+that use only a small part of the parent's id range) is not asked: it is named, with the number that decided it, in
+the evidence of the `kind:<table>` question of the table it would join, and stays in `draft.json` under `links`. A
+person can still join it by answering `link:<id>` "yes". Only pairs suggested "yes" become `link:` questions.
+Nothing is joined without an explicit "yes": an unanswered link is not a link.
+
+A table with dates can be the parent of a column through a whole-number key even when it is short (four products,
+each with a launch date, at least 3 rows; `intake_small_key_min_rows`). A table with a start and an end date on
+every row is never a parent. The id-range test still decides the suggestion.
 
 ## 2. The questions
 
@@ -34,9 +41,35 @@ column is never after which). Ask them as multiple choice, a few at a time; show
 | `kind:<table>` | lookup / business / events / calendar / series / market / ignore |
 | `link:<table>.<col>><table>.<col>` | are these the same thing (with coverage) |
 | `event_text:<table>`, `event_kind:<table>` | which column says what happened; internal or external |
-| `role:<table>.<col>` | what a number in a second table is (`visits` makes conversion = orders / visits) |
-| `market_compares:<table>` | which main-table number a market index compares with |
-| the single-table questions | date column, roles, order id, dimensions, belongs to, closing days, single-point share |
+| `date_column`, `unit_price`, `sum_columns` | the date to count by; a unit price that is multiplied, never added; a quantity that is the sum of two columns |
+| `measure_columns` | one multi-select: which of the numbers that look like amounts or counts to analyse. The other number columns are listed in `not_analysed` |
+| `order_id`, `template`, `north_star`, `dimensions`, `closing days`, `single_point_share` | the order id, what a row records, the number that matters most (among those offered), the cuts, closing days, the single-point share |
+| `exact_copies`, `reversal_column` | what exact copies of a row mean (only when no column identifies a row); which column says a row was cancelled or refunded |
+
+`init --main <table>` names the main table yourself. Answering `main_table` with another table in `confirm`
+re-reads the tables for it and asks only the questions that are new.
+
+### Follow-up questions
+
+Some questions exist only because of an earlier answer. `init` does not list them; `confirm` raises them as
+`NeedsAnswers`, saves them in `draft.json`, prints `needs_answers` and exits with code 3 (not an error: ask them, add
+the answers to the same answers file, run `confirm` again).
+
+| Question id | Raised when |
+|---|---|
+| `reversal_values:<col>` | `reversal_column` is a column: which of that column's values mean cancelled (only that column) |
+| `measure_roles` | a selected number's role is not given by the other answers: amount / profit / cost / quantity / visits / skip, as `{column: option}`. A unit price, the quantity it multiplies and a selected part of a sum are not asked |
+| `unit_price_times` | a `unit_price` was picked without the column it multiplies |
+| `role:<table>.<col>` | a table was answered as business data: what each of its numbers is (`visits` makes conversion = orders / visits) |
+| `market_compares:<table>` | a table was answered as series or market: which main-table number it compares with |
+| `belongs:<child>><parent>` | both were chosen as dimensions |
+
+The old per-column answers `role:<col>` (amount, profit, cost, quantity, visits, skip, unit_price) are still accepted
+and win over `measure_roles`.
+
+A derived measure takes its id from the words the two chosen columns end with: `stays_in_weekend_nights` + `stays_in_week_nights`
+becomes `nights`, and a unit price `adr` times it becomes `adr_x_nights`, labelled "Adr × (Stays In Weekend Nights +
+Stays In Week Nights)". Columns that share no closing word keep `a_plus_b`. Answer `name:<id>` to set the label yourself.
 
 Questions about a joined attribute (a list price, a product name) appear because the suggested links were
 assumed. If the user says "no" to a link, those questions no longer matter; `confirm` ignores them.
