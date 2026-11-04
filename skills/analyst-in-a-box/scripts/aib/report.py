@@ -9,6 +9,7 @@ from __future__ import annotations
 import math
 from pathlib import Path
 
+from .defaults import param
 from .explain import World, entry_text
 from .workspace import label
 
@@ -53,12 +54,18 @@ T = {
         "confirm_external": "「{what}」目前是推测（{st}）。你确认后我会把它标成已确认。",
         "confirm_proposed": "「{what}」还没确认。",
         "suspect": "**数据存疑**：{items}。下面的拆解照算，但在数据核实之前，不把任何原因当成已解释。",
+        "note_blank_amounts": "{column} 有空白：本期 {blank:,} / {rows:,} 行（{share}）为空，基期 {base_blank:,} / {base_rows:,} 行（{base_share}）为空，空白的行没有计入金额",
+        "note_zero_amounts": "{column} 为 0 的行：本期 {zero:,} / {rows:,} 行（{share}）；这些行仍算作一单，会拉低按单计的数",
+        "note_looks_like_rate": "{column} 的所有值都在 0 到 1 之间（{min} 到 {max}，{n:,} 行），像是比率而不是金额；比率加总没有意义，请确认它真的是可以相加的量",
+        "note_repeats_per_entity": "{column} 对同一个 {entity} 在不同日期上几乎总是同一个值（{entities:,} 个里有 {pct} 如此），像是存量或价目而不是每次发生的金额；加总会把它每期重复算一次，请确认",
+        "data_note": "**数据说明**：{items}。以上不阻止出报告，但会影响怎么读这些数。",
         "quality_warn": "**数据提醒**：{items}。这些不影响下面的数怎么算，结论照常给出，但值得核一下。",
         "closed_inferred": "{days}按不营业处理，这是从数据推出来的假设，还没人确认（{note}）。这几天没有数据不算缺数据。",
         "closed_evidence": "数据里 {e}/{w} 个{d}没有任何记录", "closed_no_evidence": "依据见工作区记录",
         "q_calendar_complete": "有些该有数据的日子一条记录都没有（{v}）",
         "q_key_unique": "订单编号有重复（{v}）",
         "q_row_ratio": "一期的记录比另一期少得多，两期没法比（{v}）",
+        "q_monthly": "{src} 的数据按月记（每条记录的日期都是当月 1 号），而这次的时间窗不是整月，所以窗里没有记录；请改用整月的窗口",
         "q_daily_volume_steady": "有几天的记录条数和平常差太多，像是重复导入或只导了一部分（{v}）",
         "q_daily_value_steady": "有几天的金额是平常的好几倍或几分之一，像是单位或口径变了（{v}）",
         "q_no_single_row_dominates": "一条记录就占了变化的一大块（{v}）",
@@ -74,7 +81,7 @@ T = {
         "quote_line": "原文：「{q}」", "pending_line": "这条还没人确认，所以不算已解释。你确认后我会把它标成已确认。",
         "drill_quiet": "整体在通常范围内，但这一组的变化远超它自己过去的波动，往下看：",
         "stop_quiet": "整体在通常范围内，各组也没有明显超出自己的波动，停在这一层。",
-        "stop_small": "第一名这一组样本太少，不点名。",
+        "stop_small": "第一名这一组样本太少，不点名（{n} 个 {unit}，门槛 {min}）。",
         "cross_check": "反过来验证：", "cross_ok": "从另一边切也指向同一组，两层说的是同一个原因。",
         "cross_no": "从另一边切指向的不是同一组，两层可能是两件事。",
         "head_amount": "**{m}**{p}比基期{dir} {a}（{g}，{b} → {c}）。",
@@ -157,12 +164,18 @@ T = {
         "confirm_external": "\"{what}\" is a hypothesis ({st}). Confirm it and I will mark it confirmed.",
         "confirm_proposed": "\"{what}\" is not confirmed yet.",
         "suspect": "**Data in doubt**: {items}. The breakdown below is still computed, but no cause counts as explained until the data is checked.",
+        "note_blank_amounts": "{column} has blank cells: {blank:,} of {rows:,} rows ({share}) in the current period and {base_blank:,} of {base_rows:,} ({base_share}) in the base are blank; blank rows add nothing to the amount",
+        "note_zero_amounts": "{column} is exactly 0 on {zero:,} of {rows:,} rows ({share}) in the current period; these rows still count as an order and pull per-order figures down",
+        "note_looks_like_rate": "every value of {column} is between 0 and 1 ({min} to {max}, {n:,} rows), which looks like a rate, not an amount; rates cannot be added up, so confirm it is a quantity that adds",
+        "note_repeats_per_entity": "{column} carries the same value for the same {entity} on different dates for {pct} of {entities:,} of them, which looks like a level (a balance, a price list) rather than an amount that happens each time; summing counts it again every period, so confirm",
+        "data_note": "**Data note**: {items}. This does not stop the report, but it changes how to read these numbers.",
         "quality_warn": "**Data note**: {items}. This does not change how the numbers below are computed and the conclusions stand, but it is worth a look.",
         "closed_inferred": "{days} treated as closed: an assumption drawn from the data, not yet confirmed by anyone ({note}). Missing rows on these days are not counted as missing data.",
         "closed_evidence": "no rows on {e} of the {w} {d}s in the data", "closed_no_evidence": "the evidence is in the workspace record",
         "q_calendar_complete": "some days that should have data have no rows at all ({v})",
         "q_key_unique": "order ids repeat ({v})",
         "q_row_ratio": "one period has almost no rows compared with the other, so the two cannot be compared ({v})",
+        "q_monthly": "{src} is monthly data (every record is dated the 1st of a month) and this window is not whole months, so it holds no records; use a window of whole months",
         "q_daily_volume_steady": "some days have far more or far fewer rows than usual, as if loaded twice or only partly ({v})",
         "q_daily_value_steady": "some days' totals are several times (or a fraction of) the usual, as if a unit or definition changed ({v})",
         "q_no_single_row_dominates": "one row carries a large part of the change ({v})",
@@ -179,7 +192,7 @@ T = {
         "pending_line": "Nobody has confirmed this yet, so it does not count as explained. Confirm it and I will mark it confirmed.",
         "drill_quiet": "The whole number is within its usual range, but this group moved far beyond its own past swings; looking inside: ",
         "stop_quiet": "The whole number is within its usual range and no group stands out from its own swings; stopping here.",
-        "stop_small": "The top group is too small to name.",
+        "stop_small": "The top group is too small to name ({n} {unit}, threshold {min}).",
         "cross_check": "Checked from the other side: ", "cross_ok": "cutting the other way points to the same group, so the two layers describe one cause.",
         "cross_no": "cutting the other way points elsewhere, so the two layers may be two separate things.",
         "head_amount": "**{m}**{p} was {dir} {a} on the base ({g}, {b} → {c}).",
@@ -508,11 +521,31 @@ def _quality_items(s, lang, names=None):
             v = p["comma"].join(f"{x['key']} {fmt(x['effect'], None, True)}" for x in c["rows"][:3])
         elif name == "row_ratio":
             v = p["comma"].join(f"{x['source']} {x['base_rows']:,.0f} → {x['current_rows']:,.0f}" for x in c["sources"])
+            mon = [x["source"] for x in c["sources"] if x.get("monthly") and not x.get("whole_months")]
+            if mon:
+                v += p["semi"] + t["q_monthly"].format(src=p["comma"].join(mon))
         elif name == "dimension_values_stable":
             v = p["comma"].join(f"{x['dimension']}: {'/'.join(x['gone'])} → {'/'.join(x['new'])}" for x in c["dimensions"] if x["looks_renamed"])
         else:
             v = ""
         out.append(t.get(f"q_{name}", name).format(v=v))
+    return p["semi"].join(out)
+
+
+def _data_notes(s, lang) -> str:
+    t, p = T[lang], PUNCT[lang]
+    out = []
+    for n in s.get("quality", {}).get("notes", []):
+        d = dict(n)
+        for k in ("share", "base_share"):
+            if d.get(k) is not None:
+                d[k] = f"{d[k]:.1%}"
+        if "share_constant" in d:
+            d["pct"] = f"{d['share_constant']:.0%}"
+        for k in ("min", "max"):
+            if k in d:
+                d[k] = f"{d[k]:.3g}"
+        out.append(t[f"note_{n['note']}"].format(**d))
     return p["semi"].join(out)
 
 
@@ -574,6 +607,9 @@ def render(ws, s, lang="zh", out_dir: Path | None = None) -> str:
             if next((c for c in s["quality"]["checks"] if c["check"] == n), {}).get("status") == "fail"]
     if warn:
         L += [t["quality_warn"].format(items=_quality_items(s, lang, warn)), ""]
+    notes = _data_notes(s, lang)
+    if notes:
+        L += [t["data_note"].format(items=notes), ""]
     period = f"{s['current'][0]}~{s['current'][1]} {t['vs']} {s['base'][0]}~{s['base'][1]}"
     first = s["cuts"][0]["result"] if s["cuts"] else None
     head = f"**{mlab}**{p['open']}{period}{p['close']}"
@@ -735,7 +771,9 @@ def render(ws, s, lang="zh", out_dir: Path | None = None) -> str:
                 t["drill"] if s.get("vertical_mode", "drill") != "each" else t["single"]
             L += ["", lead + topname]
         else:
-            L += ["", {"whole_number_within_usual_range": t["stop_quiet"], "top_group_too_small": t["stop_small"]}.get(why, t["spread"])]
+            small = t["stop_small"].format(n=f"{cut['gate'].get('top1_n') or 0:,.0f}", unit=cut["gate"].get("size_unit") or "rows",
+                                           min=f"{param(ws, 'segment_min_n'):g}")
+            L += ["", {"whole_number_within_usual_range": t["stop_quiet"], "top_group_too_small": small}.get(why, t["spread"])]
         L += ["", t["dominance"].format(t=_dominance(ws, world, cut, lang))]
         if out_dir is not None:
             vf = _cut_value(cut)

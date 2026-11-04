@@ -75,6 +75,10 @@ def step_frame(ws, s):
     if rule:
         s["notes"].append({"window": rule})
     s["problems"] = all_problems(ws, cur)
+    if s["problems"]:
+        mon = quality.monthly_mismatch(ws, s["metric"], cur, base)
+        if mon:
+            s["problems"].insert(0, mon)
     # Holidays in one period only: the run can leave those days out (with their paired days) or move the base.
     cal = _calendar(ws)
     plan = c.get("holiday")
@@ -592,6 +596,28 @@ def _results(s):
         yield c["result"]
 
 
+def _why_short(ws, s, cut) -> str:
+    """What a shortfall of the groups is made of, when the data can show it: rows with a blank in the cut's dimension."""
+    dims = [cut["dimension"]] if isinstance(cut["dimension"], str) else list(cut["dimension"])
+    try:
+        measure = ws.metric_measures(s["metric"])[0]
+        spec = ws.measures[measure]
+        if spec["agg"] == "count_distinct" and not ws._row_unique(spec["source"], spec["column"]):
+            return (f"; {measure} counts distinct {spec['column']} and the same {spec['column']} appears in more than one "
+                    f"{', '.join(dims)}, so it is counted in each group and the groups cannot be added up")
+        usable = [d for d in dims if d in ws.dimensions]
+        parts = []
+        for tag, w in (("current", s["current"]), ("base", s["base"])):
+            blank, rows = quality.blank_share(ws, measure, usable, w, cut["filters"])
+            if blank:
+                parts.append(f"{blank:,} of {rows:,} rows ({blank / rows:.1%}) in the {tag} period")
+        if parts:
+            return f"; blank {', '.join(usable)} on " + " and ".join(parts) + ", and rows with a blank value fall in no group"
+    except (KeyError, ValueError):
+        return ""
+    return ""
+
+
 def _reconcile(ws, s):
     """Independent check: the groups of every first-order cut add up to the total computed without grouping.
     Rows with no value on the dimension (or a measure that does not add across it) break this."""
@@ -612,7 +638,7 @@ def _reconcile(ws, s):
                      (math.fsum(x["den_cur"] for x in seg), ws.total(m["denominator"], s["current"], f))]
         for got, want in pairs:
             if not math.isclose(got, want, rel_tol=1e-9, abs_tol=1e-6):
-                off.append(f"{c['dimension']}: groups add to {got:,.2f}, total is {want:,.2f}")
+                off.append(f"{c['dimension']}: groups add to {got:,.2f}, total is {want:,.2f}" + _why_short(ws, s, c))
                 break
     return not off, "; ".join(off)
 
@@ -636,6 +662,8 @@ def step_checks(ws, s):
         # Ratio metrics are defined as numerator / denominator, so an identity like revenue = orders x AOV holds by
         # construction. This only proves every factor can be computed (no zero denominator, no missing source).
         dp = data_problems(ws, s["current"]) + data_problems(ws, s["base"])
+        if s["filters"]:
+            dp += data_problems(ws, s["current"], s["filters"]) + data_problems(ws, s["base"], s["filters"])
         add("identities_computable", not dp, "; ".join(dp[:5]))
     add("segments_add_up_to_total", *_reconcile(ws, s))
     bad = [r.get("label") for r in _results(s) if not r.get("closed")]

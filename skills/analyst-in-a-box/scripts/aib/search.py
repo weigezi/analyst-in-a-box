@@ -115,15 +115,20 @@ def segment_history(ws, metric, dim, filters, pairs) -> dict:
     return out
 
 
-def sizes(ws, metric, dim, cur, filters, res) -> dict:
-    """Rows behind each group in the current period (for a ratio: its denominator)."""
+def sizes(ws, metric, dim, cur, filters, res) -> tuple:
+    """({group: size}, unit) in the current period: how many of the counted things (orders, or rows when nothing is
+    counted) sit behind each group. For a ratio it is the size behind its denominator measure, so an amount
+    denominator (margin = profit / revenue) is never mistaken for a count."""
+    m = ws.metrics[metric]
     if is_ratio(ws, metric):
-        return {x["key"]: x["den_cur"] for x in res["segments"]}
-    name = ws.metrics[metric]["measure"]
-    spec = ws.measures[name]
-    fcols = {ws.column(name, k): v for k, v in (filters or {}).items()}
-    s = ws.rows(spec["source"], cur, [ws.column(name, dim)], fcols)
-    return {str(k): float(v) for k, v in s.items()}
+        den = ws.metrics[m["denominator"]]
+        if "measure" not in den:
+            return {x["key"]: x["den_cur"] for x in res["segments"]}, "denominator"
+        name = den["measure"]
+    else:
+        name = m["measure"]
+    s, unit = ws.group_size(name, cur, [dim], filters)
+    return {str(k): float(v) for k, v in s.items()}, unit
 
 
 def residuals(r: dict) -> dict:
@@ -223,7 +228,7 @@ def annotate(ws, metric, dim, base, cur, filters, res, pairs) -> None:
     """Add z (against the group's own history), n and, for amounts, the residual change to every row, in place."""
     vf = value_field(ws, metric)
     hist = segment_history(ws, metric, dim, filters, pairs) if pairs else {}
-    n = sizes(ws, metric, dim, cur, filters, res)
+    n, unit = sizes(ws, metric, dim, cur, filters, res)
     res_now = residuals(res) if not is_ratio(ws, metric) else None
     if res_now is not None:
         tb = res.get("total_base")
@@ -241,7 +246,7 @@ def annotate(ws, metric, dim, base, cur, filters, res, pairs) -> None:
         q = qualify.unusualness(hist.get(x["key"], []), x["residual"] if res_now is not None else x[vf])
         x["z_week"], x["z_method"], x["history_n"] = q["robust_z"], q["z_method"], q["history_n"]
         x["z"] = x["z_week"]
-        x["n"] = n.get(x["key"], 0.0)
+        x["n"], x["n_unit"] = n.get(x["key"], 0.0), unit
         if now_scan is not None and x["key"] in now_scan:
             qs = qualify.unusualness(hist_scan.get(x["key"], []), now_scan[x["key"]])
             x["z_run"], x["run_change"] = qs["robust_z"], now_scan[x["key"]]
@@ -323,7 +328,10 @@ def gate(ws, s, res, order="first", layer=0) -> dict:
     z = top.get("z")
     verdict = ((s.get("verdict_unusual") or {}).get("then") or {}).get("verdict")
     drill_usual = s["config"].get("drill_when_usual", param(ws, "drill_when_usual"))
-    quiet = order == "first" and verdict == "within_usual_range" and not drill_usual and layer == 0
+    # With no z-score (history too short or flat) the table's last row still says "within_usual_range"; that is the
+    # absence of a verdict, not a finding, so it must not stop the search or be reported as a reason.
+    judged = (s.get("qualify") or {}).get("robust_z") is not None
+    quiet = order == "first" and verdict == "within_usual_range" and judged and not drill_usual and layer == 0
     # A group far outside its own history may override a quiet total: the total's noise is the sum of every group's,
     # so one group's real change can hide inside it (a level shift that started weeks ago, for instance).
     beats_quiet = bool(param(ws, "drill_quiet_total_when_group_stands_out")) and z is not None \
@@ -344,4 +352,5 @@ def gate(ws, s, res, order="first", layer=0) -> dict:
             "n_groups": len(segs), "top1_abs_share": res.get("top1_abs_share"),
             "top1_excess": ex,
             "top1_abs_z": abs(z) if z is not None else None, "top1_z": z, "top1_n": top.get("n"),
+            "size_unit": top.get("n_unit"),
             "has_history": z is not None, "order": order}

@@ -229,6 +229,45 @@ class Workspace:
         df = self.sources.frame(source)
         return aggregate(df, "count", None, date, w, list(by or []), filters or {})
 
+    def group_size(self, measure: str, w: tuple, by=None, filters=None) -> tuple:
+        """(size per group, unit) behind a measure in a window: how many of the things it is about, not how many rows.
+
+        The unit is, in order: the measure's own counted column; else the finest counted column of another measure on
+        the same source (an orders measure over an order-lines table); else the source's declared key; else 'rows'.
+        Same window, filters, blank handling and excluded days as the measure itself."""
+        import pandas as pd
+        m = self.measures[measure]
+        d = self.sources.frame(m["source"])
+        d = d[(d[m["date"]] >= pd.Timestamp(w[0])) & (d[m["date"]] <= pd.Timestamp(w[1]))]
+        if m.get("where_filled"):
+            d = d[d[m["where_filled"]].notna()]
+        if self.exclude_days:
+            d = d[~d[m["date"]].isin([pd.Timestamp(x) for x in self.exclude_days])]
+        for k, v in (filters or {}).items():
+            d = d[d[self.column(measure, k)].isin(v if isinstance(v, (list, tuple, set)) else [v])]
+        cols = [self.column(measure, x) for x in (by or [])]
+        unit = self._count_unit(m)
+        if unit is None:
+            return (d.groupby(cols).size().astype(float) if cols else float(len(d))), "rows"
+        if cols:
+            return d.drop_duplicates([*unit, *cols]).groupby(cols).size().astype(float), "+".join(unit)
+        return float(len(d.drop_duplicates(unit))), "+".join(unit)
+
+    def _count_unit(self, m: dict):
+        """Columns whose distinct values a group's size counts, or None for plain rows."""
+        if m["agg"] == "count_distinct":
+            return [m["column"]]
+        frame = self.sources.frame(m["source"])
+        cands = [x["column"] for x in self.measures.values()
+                 if x["source"] == m["source"] and x["agg"] == "count_distinct" and x["column"] in frame.columns]
+        key = self.sources.specs[m["source"]].get("key")
+        key = [key] if isinstance(key, str) else list(key or [])
+        if len(key) == 1 and key[0] in frame.columns:
+            cands.append(key[0])
+        if cands:
+            return [max(dict.fromkeys(cands), key=lambda c: frame[c].nunique())]
+        return key if key and all(k in frame.columns for k in key) else None
+
     def source_of(self, metric: str) -> tuple:
         """(source name, date column) of a metric's first measure."""
         m = self.measures[self.metric_measures(metric)[0]]

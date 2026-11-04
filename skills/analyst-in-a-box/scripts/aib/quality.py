@@ -67,6 +67,20 @@ def is_monthly(df, date) -> bool:
     return d.nunique() >= 2 and bool((d.dt.day == 1).all())
 
 
+def whole_months(w) -> bool:
+    """The window starts on the 1st and ends on the last day of a month."""
+    return w[0].day == 1 and (w[1] + dt.timedelta(days=1)).day == 1
+
+
+def monthly_mismatch(ws, metric, cur, base) -> str | None:
+    """One plain sentence when the metric's source is dated by month and a window is not whole months, else None."""
+    for src, (date, _) in _sources_for(ws, [metric]).items():
+        if is_monthly(ws.sources.frame(src), date) and not (whole_months(cur) and whole_months(base)):
+            return (f"source '{src}' is monthly data (every date is the 1st of a month) and the window is not whole months, "
+                    "so the window holds no records; ask for whole calendar months")
+    return None
+
+
 def expected_months(w) -> list:
     """The first of each calendar month a window touches."""
     return [m.date() for m in pd.date_range(pd.Timestamp(w[0]).replace(day=1), pd.Timestamp(w[1]), freq="MS")]
@@ -179,10 +193,13 @@ def assess(ws, metric, base, cur, filters, holidays=frozenset(), metrics=None, p
 
     # 4. row ratio
     rr = []
-    for src in srcs:
-        nb, nc = ws.rows(src, base), ws.rows(src, cur)
+    for src, (date, measures) in srcs.items():
+        # Counted in the unit the measure is about (orders, not order lines) when the workspace says what that is.
+        nb, unit = ws.group_size(measures[0][0], base)
+        nc, _ = ws.group_size(measures[0][0], cur)
         r = nc / nb if nb else None
-        rr.append({"source": src, "base_rows": nb, "current_rows": nc, "ratio": r})
+        rr.append({"source": src, "base_rows": nb, "current_rows": nc, "ratio": r, "unit": unit,
+                   "monthly": is_monthly(ws.sources.frame(src), date), "whole_months": whole_months(base) and whole_months(cur)})
     mx, bx = param(ws, "quality_row_ratio_max"), param(ws, "quality_row_ratio_block")
     broken = [x for x in rr if not x["base_rows"] or not x["current_rows"] or x["ratio"] > bx or x["ratio"] < 1 / bx]
     bad = [x for x in rr if x["ratio"] is None or x["ratio"] > mx or x["ratio"] < 1 / mx]
@@ -201,10 +218,11 @@ def assess(ws, metric, base, cur, filters, holidays=frozenset(), metrics=None, p
     levels = param(ws, "quality_check_levels") or {}
     for c in checks:
         c["level"] = levels.get(c["check"], "warn")
+    notes = data_notes(ws, metrics, base, cur, filters)
     blocking = [c["check"] for c in checks if c["status"] == "fail" and c["level"] == "block"]
     warned = [c["check"] for c in checks if c["status"] == "warn" or (c["status"] == "fail" and c["level"] != "block")]
     status = "suspect" if blocking else "warn" if warned else "ok"
-    return {"status": status, "suspect": bool(blocking), "checks": checks, "failed": blocking, "warned": warned,
+    return {"status": status, "suspect": bool(blocking), "checks": checks, "notes": notes, "failed": blocking, "warned": warned,
             "failed_any": [c["check"] for c in checks if c["status"] == "fail"]}
 
 
@@ -291,3 +309,82 @@ def _values(ws, metric, base, cur, filters):
             found.append({"dimension": dim, "gone": gone, "new": new, "looks_renamed": bool(gone and new)})
     st = "fail" if any(x["looks_renamed"] for x in found) else "warn" if found else "ok"
     return st, {"dimensions": found, "column_source": spec["source"]}
+
+
+# ---------- data notes: what the summed columns look like (never a block) ----------
+
+def _summed(ws, metrics):
+    """{(source, column): [measure names]} for the summed measures behind these metrics."""
+    out: dict = {}
+    for m in metrics:
+        for name in ws.metric_measures(m):
+            spec = ws.measures[name]
+            if spec["agg"] == "sum":
+                out.setdefault((spec["source"], spec["column"]), []).append(name)
+    return out
+
+
+def blank_share(ws, measure, dims, w, filters=None) -> tuple:
+    """(rows with a blank in any of these dimensions, rows) of the measure's source in a window, same filters as the numbers."""
+    d = _frame(ws, measure, w, filters)
+    cols = [ws.column(measure, x) for x in dims]
+    return int(d[cols].isna().any(axis=1).sum()), len(d)
+
+
+def data_notes(ws, metrics, base, cur, filters) -> list:
+    """Facts about the summed columns behind the headline that a reader should know, each with its count and share.
+    They are shown in the report and never stop it; the shape tests only say what the numbers look like."""
+    notes = []
+    mn_blank, mn_zero = param(ws, "quality_blank_note_min_share"), param(ws, "quality_zero_note_min_share")
+    for (src, col), names in _summed(ws, metrics).items():
+        name = names[0]
+        spec = ws.measures[name]
+        d_cur, d_base = _frame(ws, name, cur, filters), _frame(ws, name, base, filters)
+        n, nb = len(d_cur), len(d_base)
+        if not n:
+            continue
+        v = d_cur[col]
+        blank, blank_b = int(v.isna().sum()), int(d_base[col].isna().sum())
+        if blank / n > mn_blank and blank or (nb and blank_b / nb > mn_blank and blank_b):
+            notes.append({"note": "blank_amounts", "source": src, "column": col, "rows": n, "blank": blank, "share": blank / n,
+                          "base_rows": nb, "base_blank": blank_b, "base_share": blank_b / nb if nb else None})
+        zero = int((v == 0).sum())
+        if zero and zero / n >= mn_zero:
+            notes.append({"note": "zero_amounts", "source": src, "column": col, "rows": n, "zero": zero, "share": zero / n})
+        both = pd.concat([d_cur, d_base])
+        x = pd.to_numeric(both[col], errors="coerce").dropna()
+        if len(x) >= 20 and x.min() >= 0 and x.max() <= 1 and x.nunique() > 2 and ((x > 0) & (x < 1)).any():
+            notes.append({"note": "looks_like_rate", "source": src, "column": col, "n": len(x), "min": float(x.min()),
+                          "max": float(x.max())})
+        notes += _repeats_per_entity(ws, spec, both, col)
+    return notes
+
+
+def _repeats_per_entity(ws, spec, df, col) -> list:
+    """A value that stays the same for the same customer or product across dates is a level (a balance, a price list),
+    not an amount that happens each time; adding it up over dates counts it again every period."""
+    date = spec["date"]
+    key = ws.sources.specs[spec["source"]].get("key")
+    skip = {col, date, *( [key] if isinstance(key, str) else list(key or []))}
+    min_entities, min_share = int(param(ws, "quality_stock_min_entities")), param(ws, "quality_stock_min_share")
+    d = df[df[col].notna()]
+    if d[col].nunique() < 2:
+        return []
+    out = []
+    for c in d.columns:
+        if c in skip or pd.api.types.is_float_dtype(d[c]) or pd.api.types.is_datetime64_any_dtype(d[c]):
+            continue
+        if not 2 <= d[c].nunique() < len(d):
+            continue
+        g = d.groupby(c)
+        dates, levels = g[date].nunique(), g[col].nunique()
+        multi = dates[dates >= 2].index
+        if len(multi) < min_entities:
+            continue
+        same = float((levels.loc[multi] == 1).mean())
+        if same >= min_share:
+            out.append({"note": "repeats_per_entity", "source": spec["source"], "column": col, "entity": c,
+                        "entities": int(len(multi)), "share_constant": same})
+        if len(out) >= 2:
+            break
+    return out

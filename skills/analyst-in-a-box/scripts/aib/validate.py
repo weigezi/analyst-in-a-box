@@ -152,16 +152,21 @@ def world_problems(ws: Workspace) -> list[str]:
     return p
 
 
-def data_problems(ws: Workspace, w: tuple) -> list[str]:
-    """Identities must actually hold on the data; a formula that does not close is a wrong formula."""
+def data_problems(ws: Workspace, w: tuple, filters: dict | None = None) -> list[str]:
+    """Identities must actually hold on the data; a formula that does not close is a wrong formula.
+    With filters, the identity is also tested inside that slice (a factor whose table labels the slice differently
+    would otherwise break the tree only there); identities whose parts cannot be cut by the filter are skipped."""
     p = []
+    where = "".join(f" {k}={v}" for k, v in (filters or {}).items())
     for ident in ws.model.get("identities", []):
+        if filters and not all(set(filters) <= ws.metric_dimensions(x) for x in [ident["left"], *ident["factors"]]):
+            continue
         try:
-            left = ws.total(ident["left"], w)
-            vals = [ws.total(f, w) for f in ident["factors"]]
+            left = ws.total(ident["left"], w, filters)
+            vals = [ws.total(f, w, filters) for f in ident["factors"]]
             right = math.prod(vals) if ident["operator"] == "multiply" else vals[0] / vals[1]
             if not math.isclose(left, right, rel_tol=1e-9, abs_tol=1e-9):
-                p.append(f"identity {ident['id']}: {left} != {right} on {w[0]}..{w[1]}")
+                p.append(f"identity {ident['id']}: {left} != {right} on {w[0]}..{w[1]}{' in' + where if where else ''}")
         except Exception as exc:  # report, do not hide: the user must see which identity cannot be computed
             p.append(f"identity {ident.get('id')}: cannot compute ({exc})")
     return p

@@ -77,6 +77,15 @@ PARAMS = {
     "quality_row_ratio_block": _p(20.0, note="One period with 20x the rows of the other (or none) cannot be compared. " + EXAMPLE),
     "quality_new_value_min_share": _p(0.1, note="A value that appears from nothing while another of similar size disappears, "
                                                 "each at least 10% of the total, looks like a rename. " + EXAMPLE),
+    # data notes (quality.data_notes): facts about summed columns, shown in the report, never a block
+    "quality_blank_note_min_share": _p(0.0, note="Any blank cell in a summed amount is stated with its share; raise this to hide "
+                                                 "a share you have accepted. " + EXAMPLE),
+    "quality_zero_note_min_share": _p(0.005, note="Rows whose summed amount is exactly 0 (zero nights, a rate of 0) are named from "
+                                                  "half a percent of the rows, because they still count as orders and pull "
+                                                  "per-order figures down. " + EXAMPLE),
+    "quality_stock_min_entities": _p(20, note="A column is called possibly a level (a balance) only if at least 20 customers or "
+                                              "products appear on two or more dates. " + EXAMPLE),
+    "quality_stock_min_share": _p(0.9, note="...and at least 90% of them carry the same value on every date. " + EXAMPLE),
     # intake: how sure the reader must be before it even asks, and what counts as a quote
     "intake_link_ask_min": _p(0.5, note="Two columns are offered as a link only when at least half the rows of one find a "
                                         "match in the other; below that it is a coincidence of codes, not a link. " + EXAMPLE),
