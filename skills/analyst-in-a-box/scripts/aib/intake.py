@@ -114,6 +114,10 @@ def _table_facts(name, path, df):
             facts["start_end"] = [a, b]
         elif small and (db <= da).all():
             facts["start_end"] = [b, a]
+    if dates and not facts.get("start_end") and len(df) < 30 and len(df) >= _param("intake_small_key_min_rows"):
+        # A short dated table (four products, each with a launch date) has keys too. Only whole numbers: with so few rows
+        # any word column is unique by chance. A link to such a key must still pass the id-range test in _links.
+        facts["row_keys"] = [c for c in df.columns if c not in dates and pd.api.types.is_integer_dtype(df[c]) and _is_key(df[c])]
     if len(dates) == 1:
         d = dates[0]
         groups = [c for c in words if c not in keys and shape[c] == "category"]
@@ -430,6 +434,24 @@ def _measure_question(main_qs, prof, joined, exclude, lang):
     return out
 
 
+def _link_id(lk):
+    return f"link:{lk['left_table']}.{lk['left_column']}>{lk['right_table']}.{lk['right_column']}"
+
+
+def _why_not(lk, zh):
+    """One phrase saying why a link is not suggested, from the numbers that decided it."""
+    name = f"{lk['left_table']}.{lk['left_column']} → {lk['right_table']}.{lk['right_column']}"
+    if lk.get("child_not_before_parent") is not None and lk["child_not_before_parent"] < _param("intake_link_order_min"):
+        why = (f"{1 - lk['child_not_before_parent']:.0%} 的行比它指向的那行还早发生" if zh else
+               f"{1 - lk['child_not_before_parent']:.0%} of the rows happen before the row they would point to")
+    elif lk.get("id_range_used") is not None and lk["id_range_used"] < _param("intake_link_range_min"):
+        why = (f"编号只用到对方编号范围的 {lk['id_range_used']:.1%}" if zh else
+               f"its ids use only {lk['id_range_used']:.1%} of the other side's id range")
+    else:
+        why = (f"只有 {lk['coverage']:.1%} 的行对得上" if zh else f"only {lk['coverage']:.1%} of the rows match")
+    return f"{name}（{why}）" if zh else f"{name} ({why})"
+
+
 def _derived_questions(main_qs, t, df, lang):
     """A rate is never the number to analyse: ask which decimal column is a unit price, and whether a whole-number column is
     the sum of two others. Only when the table has both kinds of column. What the unit price multiplies is asked by
@@ -514,6 +536,13 @@ def _derive(paths, workspace, lang="zh", main=None) -> dict:
              "series": ("外部的连续数据（天气之类）", "outside daily data (weather and the like)"),
              "market": ("行业大盘", "a market benchmark"),
              "ignore": ("不用", "not used")}
+    rejected = {}
+    for lk in links:
+        if lk["suggested"] == "no":
+            # not asked: the tool's own suggestion is "no". Said in the evidence of the table it would have joined, and
+            # still in d["links"], so a person can confirm it by answering link:<id> "yes".
+            home = lk["right_table"] if lk["right_table"] != main else lk["left_table"]
+            rejected.setdefault(home, []).append(lk)
     for t in tables.values():
         if t["name"] == main:
             continue
@@ -534,12 +563,19 @@ def _derive(paths, workspace, lang="zh", main=None) -> dict:
                        f"（{s['parent_rows_matching']:.1%} 的行相同），是它的明细，已经加在「{g['parent']}」里了" if zh else
                        f"; its \"{s['child_column']}\" add up per {g['child_link']} to \"{s['parent_column']}\" of \"{g['parent']}\" "
                        f"({s['parent_rows_matching']:.1%} of rows), so it is the detail of \"{g['parent']}\" and already added up there")
+        no = rejected.get(t["name"], [])
+        if no:
+            ev += "；另外找到但不建议连（所以没问）：" if zh else "; also found but not suggested, so not asked: "
+            ev += ("；" if zh else "; ").join(_why_not(lk, zh) for lk in no)
         qs.append({"id": f"kind:{t['name']}", "ask": (f"「{t['name']}」这张表是什么？（{ev}）" if zh else f"What is the table \"{t['name']}\"? ({ev})"),
                    "options": [{"value": k, "label": v[0] if zh else v[1]} for k, v in kinds.items()],
-                   "suggested": t["suggested_kind"], "evidence": ev})
+                   "suggested": t["suggested_kind"], "evidence": ev,
+                   **({"rejected_links": [{"id": _link_id(lk), "reason": _why_not(lk, False)} for lk in no]} if no else {})})
     for lk in links:
+        if lk["suggested"] == "no":
+            continue
         cov = f"{lk['coverage']:.1%}"
-        qs.append(_q(f"link:{lk['left_table']}.{lk['left_column']}>{lk['right_table']}.{lk['right_column']}",
+        qs.append(_q(_link_id(lk),
                      f"「{lk['left_table']}」的「{lk['left_column']}」和「{lk['right_table']}」的「{lk['right_column']}」是同一个东西吗？"
                      f"{lk['matched_rows']:,}/{lk['rows']:,} 行能对上（覆盖 {cov}）。",
                      f"Are \"{lk['left_column']}\" in \"{lk['left_table']}\" and \"{lk['right_column']}\" in \"{lk['right_table']}\" the same thing? "

@@ -191,3 +191,89 @@ def test_a_unit_price_without_the_column_it_multiplies_is_asked_not_refused(tmp_
     with pytest.raises(intake.NeedsAnswers) as e:
         intake.confirm(tmp_path / "ws", {"date_column": "day", "order_id": "none", "dimensions": [], "unit_price": "rate"})
     assert e.value.ids == ["unit_price_times"] and "nights" in _plain_options(e.value.questions[0])
+
+
+# ---------- 3. links: ask the ones that may be true, say the others in the evidence of the table ----------
+
+def _shop_with_products(n=400, n_sessions=3000):
+    rng = _rng()
+    started = pd.Timestamp("2024-06-01") + pd.to_timedelta(np.arange(n_sessions), unit="m")
+    sessions = pd.DataFrame({"session_id": np.arange(1, n_sessions + 1), "started_at": started,
+                             "channel": rng.choice(["search", "social"], n_sessions)})
+    pick = np.sort(rng.choice(np.arange(1, n_sessions + 1), n, replace=False))
+    uid = rng.integers(1, int(n_sessions * 0.8), n)
+    uid[0], uid[1] = 1, int(n_sessions * 0.8)                    # spans 0.8 of the session ids, like a real user id
+    placed = started[np.maximum(pick, uid) - 1] + pd.Timedelta(minutes=5)
+    orders = pd.DataFrame({"order_id": np.arange(n), "session_id": pick, "user_id": uid, "placed_at": placed,
+                           "product_id": rng.integers(1, 5, n), "items_purchased": rng.integers(1, 3, n),
+                           "amount": rng.normal(60, 9, n).round(2)})
+    products = pd.DataFrame({"product_id": [1, 2, 3, 4], "created_at": pd.to_datetime(["2024-01-01", "2024-02-01", "2024-03-01", "2024-04-01"]),
+                             "product_name": ["a", "b", "c", "d"]})
+    return orders, sessions, products
+
+
+def _link_ids(d):
+    return [q["id"] for q in d["questions"] if q["id"].startswith("link:")]
+
+
+def test_a_key_of_a_small_dated_table_is_offered_as_a_link_target(tmp_path):
+    orders, sessions, products = _shop_with_products()
+    folder = tmp_path / "t"
+    folder.mkdir()
+    for n, f in (("orders", orders), ("sessions", sessions), ("products", products)):
+        f.to_csv(folder / f"{n}.csv", index=False)
+    d = intake.init([folder], tmp_path / "ws", lang="en")
+    q = {x["id"]: x for x in d["questions"]}["link:orders.product_id>products.product_id"]
+    assert q["suggested"] == "yes" and q["coverage"] == 1.0
+    assert d["tables"]["products"]["suggested_kind"] == "lookup"
+
+
+def test_the_false_links_stay_out_of_the_questions_and_are_named_where_the_table_is_asked_about(tmp_path):
+    orders, sessions, products = _shop_with_products()
+    folder = tmp_path / "t"
+    folder.mkdir()
+    for n, f in (("orders", orders), ("sessions", sessions), ("products", products)):
+        f.to_csv(folder / f"{n}.csv", index=False)
+    d = intake.init([folder], tmp_path / "ws", lang="en")
+    q = {x["id"]: x for x in d["questions"]}
+    assert all(q[i]["suggested"] == "yes" for i in _link_ids(d))                # nothing is asked with "no" suggested
+    for nonsense in ("link:orders.user_id>sessions.session_id", "link:orders.items_purchased>products.product_id"):
+        assert nonsense not in q
+    names = {(lk["left_table"], lk["left_column"], lk["right_table"]): lk for lk in d["links"]}
+    assert names[("orders", "user_id", "sessions")]["suggested"] == "no"          # still found, still in the draft
+    assert "user_id" in q["kind:sessions"]["evidence"] and "not suggested" in q["kind:sessions"]["evidence"]
+    assert "link:orders.user_id>sessions.session_id" in [r["id"] for r in q["kind:sessions"]["rejected_links"]]
+
+
+def test_a_rejected_link_can_still_be_confirmed_by_naming_it(tmp_path):
+    orders, sessions, products = _shop_with_products()
+    folder = tmp_path / "t"
+    folder.mkdir()
+    for n, f in (("orders", orders), ("sessions", sessions), ("products", products)):
+        f.to_csv(folder / f"{n}.csv", index=False)
+    intake.init([folder], tmp_path / "ws", lang="en")
+    r = intake.confirm(tmp_path / "ws", {"kind:sessions": "lookup", "kind:products": "lookup",
+                                         "link:orders.session_id>sessions.session_id": "yes",
+                                         "link:orders.product_id>products.product_id": "yes",
+                                         "date_column": "placed_at", "order_id": "order_id", "dimensions": ["channel", "product_name"],
+                                         "measure_columns": ["amount"], "measure_roles": {"amount": "amount"}})
+    assert r["problems"] == []
+    W = Workspace(tmp_path / "ws")
+    w = (orders.placed_at.min().date(), orders.placed_at.max().date())
+    by = orders.merge(products, on="product_id").groupby("product_name").amount.sum()
+    assert {p: W.total("amount", w, {"product_name": p}) for p in "abcd"} == pytest.approx(by.to_dict())
+
+
+def test_an_event_table_of_two_rows_is_not_the_parent_of_a_small_whole_number_column(tmp_path):
+    rng = _rng()
+    n = 400
+    orders = pd.DataFrame({"day": pd.date_range("2025-01-01", periods=n), "order_id": np.arange(n),
+                           "tier": rng.integers(1, 3, n), "amount": rng.normal(60, 9, n).round(2)})
+    campaigns = pd.DataFrame({"campaign_id": [1, 2], "starts": pd.to_datetime(["2025-02-01", "2025-05-01"]),
+                              "ends": pd.to_datetime(["2025-02-10", "2025-05-09"]), "what": ["spring", "may"]})
+    folder = tmp_path / "t"
+    folder.mkdir()
+    orders.to_csv(folder / "orders.csv", index=False)
+    campaigns.to_csv(folder / "campaigns.csv", index=False)
+    d = intake.init([folder], tmp_path / "ws", lang="en")
+    assert not [lk for lk in d["links"] if lk["right_table"] == "campaigns" and lk["right_column"] == "campaign_id"]
