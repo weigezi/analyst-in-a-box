@@ -38,10 +38,13 @@ The tier of a card or link comes only from `source.kind` and `status` of its own
 | To confirm | `status` is `proposed`, or `source.kind` is `document` | dashed outline, "to confirm" badge, the quoted sentence in the panel |
 | AI inference | `source.kind` is `general_knowledge` or `demo_setting` | dotted outline, light fill, "inference" badge |
 | Retired | `status` is `retired` (wins over the others) | grey, struck through |
+| No source recorded | a metric that no formula record names; there is no claim for a person to confirm | neutral grey dash-dot outline, "no source" badge |
 
 Inference stays inference even when marked `confirmed`. A record with no usable source is shown as "to confirm", never
-as a fact. A metric has no source of its own: it takes the weakest tier of the formulas it appears in, and says so.
+as a fact. A metric has no source of its own: it takes the weakest tier of the formulas it appears in, and says so. A metric that appears in no formula is "no source recorded": the model uses it, but no record says where it came from.
 A dimension takes the weakest tier of the cut orders that name it. The legend explains the tiers and a switch hides AI inference.
+
+A demo workspace's settings (`demo_setting`) are shown as AI inference on purpose, until a person confirms them.
 
 ## 4. Using the page
 

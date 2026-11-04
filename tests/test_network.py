@@ -53,6 +53,14 @@ def test_a_record_without_a_usable_source_is_never_a_fact():
         assert netpage.tier_of(rec) == "confirm", rec
 
 
+def test_a_metric_in_a_formula_takes_its_tier_and_one_in_none_has_no_source(demo):
+    ws, en, _ = demo
+    in_formula = {m for i in ws.model.get("identities", []) for m in [i["left"], *i["factors"]]}
+    for n in embedded(en)["views"]["tree"]["nodes"]:
+        if n["kind"] == "metric":
+            assert (n["tier"] == "none") == (n["id"].split(":", 1)[1] not in in_formula), n["id"]
+
+
 def test_weakest_tier_of_several_records():
     assert netpage.weakest(["fact", "fact"]) == "fact"
     assert netpage.weakest(["fact", "confirm"]) == "confirm"
@@ -134,13 +142,14 @@ def test_the_page_is_self_contained(demo):
         assert not re.search(r"(?:fetch|XMLHttpRequest|WebSocket|importScripts|sendBeacon)\s*\(", page)
         assert not re.search(r"https?://", page), re.findall(r".{20}https?://.{20}", page)[:3]
         assert "ontology" not in page.lower()
-        assert "世界描述" not in page
+        assert not re.search(r"(?<!业务)世界描述", page)
 
 
 def test_page_language_follows_the_flag(demo):
     _, en, zh = demo
     assert '<html lang="en">' in en and "Business knowledge graph" in en and "AI inference" in en
     assert '<html lang="zh">' in zh and "业务知识图谱" in zh and "AI 推断" in zh
+    assert "指标树" in zh and "业务世界描述" in zh and "无出处记录" in zh
     assert embedded(zh)["lang"] == "zh"
 
 
@@ -162,7 +171,9 @@ def test_nothing_is_invented_for_a_workspace_without_a_world(tmp_path):
     data = netpage.build_data(ws, "en")
     assert [n["id"] for n in data["views"]["tree"]["nodes"]] == ["metric:m"]
     only = data["views"]["tree"]["nodes"][0]
-    assert only["tier"] == "confirm" and only["no_source"] and only["sources"] == []
+    assert only["tier"] == "none" and only["sources"] == []
+    assert only["note"] == "This metric appears in the model but no record says where it came from."
+    assert data["views"]["tree"]["counts"]["none"] == 1
     assert data["views"]["world"]["nodes"] == []
 
 
