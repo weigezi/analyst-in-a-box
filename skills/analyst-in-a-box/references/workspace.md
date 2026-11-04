@@ -78,7 +78,14 @@ comparisons:         # second order across sides
 - A measure can be cut only by its own `dimensions`; a ratio only by dimensions both its parts have.
 - `priorities.<metric>.mode` (0.2): `drill` (default) scores the candidates at every layer, and a confirmed
   `order` fixes the first cut. `each` cuts every dimension from the top and merges slots that are one cause.
-  `fixed` cuts `order` as given, without scoring. A `proposed` order is only a candidate list.
+  `fixed` cuts `order` as given, without scoring. A `proposed` order is only a candidate list. `confirm` writes the
+  dimensions the person chose, in the order they chose them, as a `proposed` order for each metric. When the
+  whole number is within its usual range (the same `overall_quiet` signal the stop decision uses), the scores
+  say nothing, because nothing moved. The person's own interest then decides what to show first: the first
+  dimension of the `proposed` or `confirmed` order is cut first, and the scores stay in the record. When the
+  number did move, the highest score wins; with no order, the scores decide (ties go alphabetical). The run
+  records which rule picked the first cut in `notes` (`first_cut`: `quiet_user_order`, `highest_score`,
+  `stated_order` or `fixed_order`).
 - `pvm` (0.2): `[{metric: revenue, quantity: orders, dimension: category}]` adds a price-volume-mix breakdown
   to every first-order question on that metric.
 - Identities are expanded to the leaves (`revenue` → `orders × aov`, `orders` → `visits × cr`). Expansion stops
@@ -144,6 +151,11 @@ actions:       # who can do what
 `refuted_by` says, in plain words, what data would show the entry is wrong. It is printed under every citation so
 the reader knows what to check; the engine's own checks (the fit of a reason to the change, the three checks for
 outside events) run regardless. `source.label` is the readable name of a source in each language.
+
+A dimension value that is empty or the word `NULL` is shown in reports as `(blank)` (`(空)` in Chinese): the rows
+have no recorded value, they are not a group called NULL. Only the shown name changes; the group keeps its key and
+every number. Give that entity a `label` of your own (for example an agent code that really is `NULL`) and the
+report shows your name instead.
 
 An entry is cited for a slice only if **all** its entities are in that slice's context (filters, drill path,
 the slice itself, compared sides). Mechanisms also need a matching metric; events must overlap the window.

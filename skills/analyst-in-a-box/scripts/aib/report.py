@@ -278,9 +278,24 @@ def pp(v):
     return "—" if v is None else _m(f"{v * 100:+.1f}pp")
 
 
+BLANK = {"en": "(blank)", "zh": "(空)"}
+
+
+def is_blank(key) -> bool:
+    """An empty cell or the word NULL: a row with no recorded value, not a group called NULL. Display only; the
+    group keeps its key, so no number and no grouping changes."""
+    if key is None or (isinstance(key, float) and key != key):
+        return True
+    return str(key).strip().casefold() in ("", "null")
+
+
 def seg_label(ws, world, dim, key, lang):
     eid = world.entity_for(dim, key)
-    return label(world.entities[eid].get("label"), lang) if eid else str(key)
+    named = label(world.entities[eid].get("label"), lang) if eid else None
+    # A name a person gave the value wins; the label intake writes is the raw key itself.
+    if is_blank(key) and (named is None or is_blank(named)):
+        return BLANK.get(lang, BLANK["en"])
+    return named if named is not None else str(key)
 
 
 def slot_label(ws, world, slot, lang):
