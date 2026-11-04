@@ -73,6 +73,9 @@ comparisons:         # 二阶，比维度两侧
 
 - `unit`：`currency`、`count` 或 `ratio`。比率的变化用百分点报告。
 - `count_distinct` 一般不能直接相加。`additive_over` 里只列「每个编号在这个维度上只有一个值」的维度；`confirm` 会拿数据核。
+- 每行是一次访问的表（会话表）是数出来的，不是加出来的：对它的主键用 `agg: count_distinct`（没有一列能标识一行时用 `agg: count`），
+  `source` 和 `date` 都用这张表自己的。编号列永远不是 `agg: sum`。一个比值在两个时期都显示成 0.00%、而分子分母都大于零时，运行会停下
+  （参数 `ratio_shows_zero_below`）：分母是编号的和。
 - 一个度量只能按它自己的 `dimensions` 切；比率只能按分子分母都有的维度切。
 - `priorities.<指标>.mode`（0.2）：`drill`（默认）每层都给候选维度打分，确认过的 `order` 决定第一刀；
   `each` 每个维度都从头切一遍，再把是同一个原因的槽位合并；`fixed` 照 `order` 原样切，不打分。`proposed` 状态的顺序只当候选清单。
