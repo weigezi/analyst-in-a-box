@@ -93,6 +93,7 @@ All of this was measured on generated data or one public dataset, not on a real 
 
 ## Documentation
 
+- [Purpose and design](AGENTS.md): what it is for, how we know it works, the seven pillars. Read this first.
 - [Trial guide](docs/trial.en.md): trying it on your own business, and what to send back.
 - [Decisions](docs/decisions.en.md): why it is built this way.
 - [Several tables to a workspace](demo/intake/README.md) and [the public dataset](demo/public/README.md).

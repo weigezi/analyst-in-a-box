@@ -93,6 +93,7 @@ npx skills add weigezi/analyst-in-a-box
 
 ## 文档
 
+- [初心与设计](AGENTS.zh.md)：它为了什么、怎么算做到了、七根柱子。先读这个。
 - [试用者说明](docs/trial.zh.md)：拿自己的生意试，以及要寄回什么。
 - [决策记录](docs/decisions.zh.md)：为什么这样做。
 - [几张表到一个工作区](demo/intake/README.zh.md)和[公开数据集](demo/public/README.zh.md)。
