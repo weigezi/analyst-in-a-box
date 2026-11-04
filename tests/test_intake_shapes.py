@@ -491,22 +491,26 @@ def test_exact_duplicate_rows_in_a_table_without_a_key_are_named_in_the_draft(tm
     d = _init(tmp_path, {"lines": dup})
     t = d["tables"]["lines"]
     assert t["duplicate_rows"] == 20
-    q = {x["id"]: x for x in d["questions"]}["duplicate_rows"]     # asked even though no column could identify a row
-    assert "20" in q["ask"] and [o["value"] for o in q["options"]] == ["keep", "drop"] and q["suggested"] == "keep"
+    q = {x["id"]: x for x in d["questions"]}["exact_copies"]       # asked even though no column could identify a row
+    assert "20" in q["ask"] and [o["value"] for o in q["options"]] == ["every_row", "once", "unknown"] and q["suggested"] == "unknown"
 
 
-def test_dropping_exact_copies_is_applied_when_the_table_is_loaded(tmp_path):
+def test_the_answer_about_exact_copies_decides_how_rows_are_counted_and_no_row_is_removed(tmp_path):
     rng = _rng()
     base = pd.DataFrame({"day": pd.date_range("2025-01-01", periods=100).repeat(2)[:150],
                          "amount": rng.normal(60, 9, 150).round(2)})
     dup = pd.concat([base, base.iloc[:20]], ignore_index=True)
     dup.to_csv(tmp_path / "l.csv", index=False)
-    for choice, rows in (("drop", 150), ("keep", 170)):
+    w = (pd.Timestamp("2025-01-01").date(), pd.Timestamp("2025-12-31").date())
+    for choice, rows in (("once", 150), ("every_row", 170), ("unknown", 170)):
         ws = tmp_path / f"ws_{choice}"
         intake.init([tmp_path / "l.csv"], ws, lang="en")
         intake.confirm(ws, {"date_column": "day", "role:amount": "amount", "order_id": "none", "dimensions": [],
-                            "duplicate_rows": choice})
-        assert len(Workspace(ws).sources.frame("l")) == rows
+                            "exact_copies": choice})
+        W = Workspace(ws)
+        assert len(W.sources.frame("l")) == 170                    # nothing is removed at import
+        assert W.total("id_count", w) == rows                      # the answer decides the count of rows
+        assert W.total("amount", w) == pytest.approx(dup.amount.sum())   # a sum counts every row whatever the answer
 
 
 def test_a_zero_one_flag_column_is_offered_as_a_reversal_marker(tmp_path):

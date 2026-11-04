@@ -40,10 +40,9 @@ def _load_json_or_yaml(arg: str):
 
 
 def cmd_init(a):
-    if len(a.data) == 1 and Path(a.data[0]).is_file() and not a.main:
-        d = draft.init(a.data[0], a.workspace, a.lang)
-        _out({"rows": d["rows"], "questions": d["questions"], "next": "answer the questions, then run confirm"})
-        return
+    # One table is a folder of one table: it gets every question that several tables get (reversed rows, exact copies,
+    # composite dates). `confirm` below still reads drafts that `draft.init` wrote (they have no "kind"), so a workspace
+    # started before this change can still be confirmed.
     d = intake.init(a.data, a.workspace, a.lang, main=a.main)
     _out({"main": d["main"], "tables": {n: {"rows": t["rows"], "suggested_kind": t["suggested_kind"]} for n, t in d["tables"].items()},
           "links": d["links"], "questions": d["questions"],
@@ -53,7 +52,9 @@ def cmd_init(a):
 def cmd_confirm(a):
     d = json.loads((Path(a.workspace) / "draft.json").read_text(encoding="utf-8"))
     fn = intake.confirm if d.get("kind") == "tables" else draft.confirm
-    _out({**fn(a.workspace, _load_json_or_yaml(a.answers)), "problems": all_problems(Workspace(a.workspace))})
+    out = fn(a.workspace, _load_json_or_yaml(a.answers))
+    # what confirm itself had to leave out (a dimension no link reaches) comes first: the workspace check cannot see it
+    _out({**out, "problems": [*out.get("problems", []), *all_problems(Workspace(a.workspace))]})
 
 
 def cmd_propose(a):
