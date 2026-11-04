@@ -59,6 +59,9 @@ def _answer_all(d, amounts, dims, order_id):
             ans[i] = q["suggested"]
         elif i.startswith("role:"):
             ans[i] = "amount" if q["column"] in amounts else "skip"
+        elif i == "measure_columns":
+            ans[i] = [c for c in amounts if c in [o["value"] for o in q["options"]]]
+            ans["measure_roles"] = {c: "amount" for c in ans[i]}
     ans.update({"main_table": d["main"], "dimensions": dims, "order_id": order_id})
     return ans
 
@@ -183,7 +186,7 @@ def test_another_main_table_is_derived_by_confirm_without_running_init_again(tmp
     first["main_table"] = "items"
     with pytest.raises(intake.NeedsAnswers) as e:
         intake.confirm(ws, first)
-    assert "role:price" in e.value.ids and "kind:orders" in e.value.ids
+    assert "measure_columns" in e.value.ids and "kind:orders" in e.value.ids
     d2 = _draft(tmp_path)
     assert d2["main"] == "items" and d2["main_changed_from"] == "orders"
     second = _answer_all(d2, {"price"}, ["channel"], "item_id")

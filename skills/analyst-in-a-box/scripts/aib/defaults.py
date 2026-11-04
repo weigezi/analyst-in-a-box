@@ -100,6 +100,11 @@ PARAMS = {
                                           "page views of the same shop would use a third of them, and are a coincidence of "
                                           "small whole numbers (measured 1.00 for every real link, and 0.03 to 0.83 for the false ones "
                                           "in the Fuzzy Factory shop: orders.user_id against the session ids reached 0.83). Only for whole-number keys. " + EXAMPLE),
+    "intake_small_key_min_rows": _p(3, note="A dated table shorter than 30 rows (four products, each with a launch date) can still be "
+                                            "the parent of a column, by a whole-number key. With fewer than 3 rows every column is unique "
+                                            "by chance, so none is taken as a key. The id-range test (intake_link_range_min) and the "
+                                            "child-not-before-parent test still decide whether the link is suggested; a table with a "
+                                            "start and an end date on every row (a campaign) is never a parent. " + EXAMPLE),
     "intake_id_distinct_share": _p(0.3, note="A whole-number column whose distinct values are at least 30% of the rows reads as an "
                                              "identifier (an order, a session, a user), not as an amount: a measure repeats "
                                              "its values far more than that. A heuristic that only decides which tables may be "

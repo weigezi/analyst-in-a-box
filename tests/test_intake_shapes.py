@@ -45,7 +45,9 @@ def _values(q):
 def _answers(d, roles, **extra):
     """Answer every role question (skip, unless the column is named in roles) so confirm has what it needs."""
     asked = {q["id"]: roles.get(q["column"], "skip") for q in d["questions"] if q["id"].startswith("role:")}
-    return {**asked, **extra}
+    offered = [o["value"] for q in d["questions"] if q["id"] == "measure_columns" for o in q["options"]]
+    picked = [c for c in offered if roles.get(c, "skip") != "skip"]
+    return {**asked, "measure_columns": picked, "measure_roles": {c: roles[c] for c in picked}, **extra}
 
 
 # ---------- 1. which table is the main one ----------
@@ -410,9 +412,10 @@ def test_the_amount_question_says_how_many_cells_are_empty(tmp_path):
     amt[:60] = np.nan                                     # 30% empty
     df = pd.DataFrame({"day": _days(rng, 200), "order_id": np.arange(200), "amount": amt})
     d = _init(tmp_path, {"sales": df})
-    q = {x["id"]: x for x in d["questions"]}["role:amount"]
-    assert q["empty_share"] == pytest.approx(0.30, abs=0.01)
-    assert "30%" in q["ask"] and "empty" in q["ask"]
+    q = {x["id"]: x for x in d["questions"]}["measure_columns"]
+    assert q["empty_share"]["amount"] == pytest.approx(0.30, abs=0.01)
+    label = next(o["label"] for o in q["options"] if o["value"] == "amount")
+    assert "30%" in label and "empty" in label
 
 
 # ---------- 7. blanks, reversals and duplicates (decided with the owner, 2026-11-03) ----------
@@ -452,7 +455,12 @@ def test_a_column_that_could_mark_reversals_is_asked_about_with_its_values(tmp_p
     assert "reversal_column" in q
     opts = [o["value"] if isinstance(o, dict) else o for o in q["reversal_column"]["options"]]
     assert "state" in opts and "none" in opts
-    v = q["reversal_values:state"]
+    assert "reversal_values:state" not in q                          # asked after the column is picked, for that column only
+    with pytest.raises(intake.NeedsAnswers) as need:
+        intake.confirm(tmp_path / "ws", {"date_column": "day", "role:amount": "amount", "order_id": "order_id",
+                                         "dimensions": [], "reversal_column": "state"})
+    v = need.value.questions[0]
+    assert v["id"] == "reversal_values:state"
     assert sorted(o["value"] if isinstance(o, dict) else o for o in v["options"]) == ["cancelled", "paid", "refunded"]
     assert v.get("multi") is True
 
@@ -520,7 +528,10 @@ def test_a_zero_one_flag_column_is_offered_as_a_reversal_marker(tmp_path):
     d = _init(tmp_path, {"sales": df})
     q = {x["id"]: x for x in d["questions"]}
     assert "is_cancelled" in [o if isinstance(o, str) else o["value"] for o in q["reversal_column"]["options"]]
-    assert sorted(o["value"] for o in q["reversal_values:is_cancelled"]["options"]) == ["0", "1"]
+    with pytest.raises(intake.NeedsAnswers) as need:
+        intake.confirm(tmp_path / "ws", {"date_column": "day", "role:amount": "amount", "order_id": "order_id",
+                                         "dimensions": [], "reversal_column": "is_cancelled"})
+    assert sorted(o["value"] for o in need.value.questions[0]["options"]) == ["0", "1"]
 
 
 # ---------- 8. one type per column, and exact copies counted the same way every time ----------
@@ -587,7 +598,7 @@ def test_revenue_can_be_cut_by_a_channel_that_lives_in_the_sessions_table(tmp_pa
     d = _init(tmp_path, {"orders": orders, "sessions": sessions})
     ans = {"kind:sessions": "lookup", "link:orders.session_id>sessions.session_id": "yes", "date_column": "placed_at",
            "order_id": "order_id", "dimensions": ["channel"]}
-    ans.update({q["id"]: ("amount" if q["column"] == "amount" else "skip") for q in d["questions"] if q["id"].startswith("role:")})
+    ans.update({"measure_columns": ["amount"], "measure_roles": {"amount": "amount"}})
     ws = tmp_path / "ws"
     intake.confirm(ws, ans)
     W = Workspace(ws)

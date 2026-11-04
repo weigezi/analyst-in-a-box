@@ -28,9 +28,14 @@
   "market_compares:market": "revenue",
   "market_compares:weather": "none",
   "date_column": "order_date",
-  "role:revenue": "amount",
-  "role:gross_profit": "profit",
-  "role:list_price": "skip",
+  "measure_columns": [
+   "revenue",
+   "gross_profit"
+  ],
+  "measure_roles": {
+   "revenue": "amount",
+   "gross_profit": "profit"
+  },
   "order_id": "order_id",
   "template": "orders",
   "north_star": "gross_profit",
@@ -95,7 +100,7 @@
   ],
   "events_imported": 3,
   "events_skipped": [],
-  "questions": 46,
-  "answered": 37
+  "questions": 29,
+  "answered": 28
  }
 }

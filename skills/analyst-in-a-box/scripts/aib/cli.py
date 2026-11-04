@@ -53,7 +53,13 @@ def cmd_init(a):
 def cmd_confirm(a):
     d = json.loads((Path(a.workspace) / "draft.json").read_text(encoding="utf-8"))
     fn = intake.confirm if d.get("kind") == "tables" else draft.confirm
-    out = fn(a.workspace, _load_json_or_yaml(a.answers))
+    try:
+        out = fn(a.workspace, _load_json_or_yaml(a.answers))
+    except intake.NeedsAnswers as need:
+        # not a failure: a question that only exists after an earlier answer. Ask it, add the answer, run confirm again.
+        _out({"needs_answers": need.questions, "message": str(need),
+              "next": "ask these questions as multiple choice, add the answers to the same answers file, then run confirm again"})
+        return 3
     # what confirm itself had to leave out (a dimension no link reaches) comes first: the workspace check cannot see it
     _out({**out, "problems": [*out.get("problems", []), *all_problems(Workspace(a.workspace))]})
 

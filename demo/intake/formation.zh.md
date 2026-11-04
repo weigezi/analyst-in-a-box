@@ -9,7 +9,7 @@
 | 类 | 数量 |
 |---|---|
 | 机器从数据推出（再经选择题确认） | 45 |
-| 选择题（问了 / 答了） | 46 / 37 |
+| 选择题（问了 / 答了） | 29 / 28 |
 | 从文档抽出、待确认（收下 / 拒收） | 3 / 0 |
 | 只有人能补、目前空着 | 6 |
 
@@ -47,35 +47,18 @@
 | `link:traffic.channel>orders.channel` | yes | yes |
 | `link:weather.region>cities.region` | yes | yes |
 | `event_text:holidays` | name | name |
-| `role:market.market_sales` | — | skip |
-| `market_compares:market` | none | revenue (改了建议) |
 | `event_text:price_changes` | reason | reason |
 | `event_kind:price_changes` | internal | internal |
 | `event_text:promotions` | campaign | campaign |
 | `event_kind:promotions` | internal | internal |
-| `role:traffic.visits` | — | visits |
-| `role:weather.rainfall_mm` | — | skip |
-| `market_compares:weather` | none | none |
 | `date_column` | order_date | order_date |
-| `role:revenue` | — | amount |
-| `role:gross_profit` | — | profit |
+| `measure_columns` | — | revenue, gross_profit |
 | `order_id` | — | order_id |
 | `template` | — | orders |
 | `north_star` | — | gross_profit |
 | `dimensions` | — | channel, category, region, city, delivery, customer_type |
-| `belongs:sku>category` | — | no |
-| `belongs:city>region` | — | yes |
-| `belongs:name>category` | — | no |
 | `single_point_share` | — | 0.5 |
 | `reversal_column` | none | — |
-| `reversal_values:sku` | — | — |
-| `reversal_values:channel` | — | — |
-| `reversal_values:city` | — | — |
-| `reversal_values:delivery` | — | — |
-| `reversal_values:customer_type` | — | — |
-| `reversal_values:category` | — | — |
-| `reversal_values:name` | — | — |
-| `reversal_values:region` | — | — |
 
 靠用户指认含义才有的指标（金额、毛利、访问量、订单数）：revenue, gross_profit, visits, id_count
 

@@ -28,9 +28,8 @@ role:market.market_sales: skip
 market_compares:market: revenue
 market_compares:weather: none
 date_column: order_date
-role:revenue: amount
-role:gross_profit: profit
-role:list_price: skip                # a price list, not money in
+measure_columns: [revenue, gross_profit]   # list_price is a price list, not money in: not selected
+measure_roles: {revenue: amount, gross_profit: profit}
 order_id: order_id
 template: orders
 north_star: gross_profit

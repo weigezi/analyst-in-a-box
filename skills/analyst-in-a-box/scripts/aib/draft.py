@@ -371,12 +371,12 @@ def build_metrics(specs: list, id_spec: dict | None, template: str, said: dict, 
                         "role": sp["role"], "source": said, "status": "confirmed"}
         by_role.setdefault(sp["role"], col)
     tpl = yaml.safe_load((TEMPLATES / f"{template}.yaml").read_text(encoding="utf-8"))
-    names = dict(tpl["names"])
+    tnames = dict(tpl["names"])
     rows_only = bool(id_spec and id_spec.get("rows_only"))
     if rows_only:
         # no column identifies a record: what can be counted is rows, and what a row is stays for the user to say
-        names["id_count"] = {"en": "Rows", "zh": "行数"}
-        names["per_id"] = {"en": "Amount per row", "zh": "每行金额"}
+        tnames["id_count"] = {"en": "Rows", "zh": "行数"}
+        tnames["per_id"] = {"en": "Amount per row", "zh": "每行金额"}
     if id_spec:
         d = list(id_spec["dimensions"])
         measures["m_count"] = ({"source": id_spec["source"], "agg": "count", "date": id_spec["date"], "dimensions": d}
@@ -388,14 +388,14 @@ def build_metrics(specs: list, id_spec: dict | None, template: str, said: dict, 
             # a blank amount means the order has no amount: it is not an order of value, so it leaves the order total
             # that the average is taken over (amount / orders with an amount)
             measures["m_count"]["where_filled"] = amount_col
-        metrics["id_count"] = {"label": names["id_count"], "measure": "m_count", "unit": "count", "source": said, "status": "confirmed"}
+        metrics["id_count"] = {"label": tnames["id_count"], "measure": "m_count", "unit": "count", "source": said, "status": "confirmed"}
         by_role["id_column"] = "id_count"
     for f in tpl["formulas"]:
         if not all(n in by_role for n in f["needs"]):
             continue
         resolve = lambda x: by_role.get(x, x)  # noqa: E731
         num, den = (resolve(x) for x in f["ratio"])
-        metrics[f["metric"]] = {"label": names[f["metric"]], "kind": "ratio", "numerator": num, "denominator": den,
+        metrics[f["metric"]] = {"label": tnames[f["metric"]], "kind": "ratio", "numerator": num, "denominator": den,
                                 "unit": f.get("unit", "currency"),
                                 "source": {"kind": "formula", "ref": f"templates/formulas/{tpl['id']}.yaml"}, "status": "confirmed"}
         identities.append({"id": f"{resolve(f['identity']['left'])}_by_{f['metric']}", "left": resolve(f["identity"]["left"]),
@@ -404,7 +404,10 @@ def build_metrics(specs: list, id_spec: dict | None, template: str, said: dict, 
     if rows_only:
         for col in [c for c, mt in list(metrics.items()) if mt.get("role") == "quantity"]:
             name = f"{col}_per_id"
-            metrics[name] = {"label": {"en": f"{nm(col)['en']} per row", "zh": f"每行{nm(col)['zh']}"}, "kind": "ratio",
+            lab = nm(col)
+            lab = {"en": f"({lab['en']})" if " + " in lab["en"] or " × " in lab["en"] else lab["en"],
+                   "zh": f"（{lab['zh']}）" if "＋" in lab["zh"] or "×" in lab["zh"] else lab["zh"]}
+            metrics[name] = {"label": {"en": f"{lab['en']} per row", "zh": f"每行{lab['zh']}"}, "kind": "ratio",
                              "numerator": col, "denominator": "id_count", "unit": "count",
                              "source": {"kind": "formula"}, "status": "confirmed"}
             identities.append({"id": f"{col}_by_{name}", "left": col, "factors": ["id_count", name], "operator": "multiply",

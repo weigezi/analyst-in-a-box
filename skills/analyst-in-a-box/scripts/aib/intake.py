@@ -114,6 +114,10 @@ def _table_facts(name, path, df):
             facts["start_end"] = [a, b]
         elif small and (db <= da).all():
             facts["start_end"] = [b, a]
+    if dates and not facts.get("start_end") and len(df) < 30 and len(df) >= _param("intake_small_key_min_rows"):
+        # A short dated table (four products, each with a launch date) has keys too. Only whole numbers: with so few rows
+        # any word column is unique by chance. A link to such a key must still pass the id-range test in _links.
+        facts["row_keys"] = [c for c in df.columns if c not in dates and pd.api.types.is_integer_dtype(df[c]) and _is_key(df[c])]
     if len(dates) == 1:
         d = dates[0]
         groups = [c for c in words if c not in keys and shape[c] == "category"]
@@ -394,10 +398,64 @@ def _q(qid, zh, en, options, lang, **extra):
     return {"id": qid, "ask": zh if lang == "zh" else en, "options": options, **extra}
 
 
+def _measure_question(main_qs, prof, joined, exclude, lang):
+    """One multi-select, "which of these numbers do you want to analyse?", in place of one role question per number column.
+    Offered: the columns that look like amounts or counts (draft.measure_columns). The other number columns (identifiers,
+    flags) are listed in `not_analysed` and left out of the model. What each selected column is (amount, cost, ...) is a
+    follow-up that `confirm` asks for the selected columns whose role the other answers do not already give."""
+    zh = lang == "zh"
+    numbers = [p["column"] for p in prof if p["shape"] == "number" and p["column"] not in exclude]
+    offered = draft.measure_columns(joined, numbers)
+    rest = [c for c in numbers if c not in offered]
+    by = {p["column"]: p for p in prof}
+    at = next((k for k, q in enumerate(main_qs) if q["id"].startswith("role:")), len(main_qs))
+    out = [q for q in main_qs if not q["id"].startswith("role:")]
+    for q in out:
+        if q["id"] == "north_star":
+            q["options"] = list(offered)
+    if not offered:
+        return [q for q in out if q["id"] != "north_star"]
+    empty = {c: by[c]["nulls"] / max(by[c]["nulls"] + by[c]["filled"], 1) for c in offered}
+
+    def label(c):
+        ex = ", ".join(by[c]["examples"][:3])
+        if zh:
+            note = f"（有 {empty[c]:.0%} 的格子是空的：空的不当 0 加，但这些单还在订单数里）" if empty[c] else ""
+            return f"{by[c]['name']['zh']}（例：{ex}）{note}"
+        note = (f" ({empty[c]:.0%} of the cells are empty: they are not added as 0, yet those orders still count in the order total)"
+                if empty[c] else "")
+        return f"{by[c]['name']['en']} (e.g. {ex}){note}"
+
+    opts = [{"value": c, "label": label(c)} for c in offered]
+    mq = _q("measure_columns", "这些数里，哪些是你要分析的（金额、数量、成本这类，能加起来的）？没勾的当作不分析。",
+            "Which of these numbers do you want to analyse (amounts, counts, costs: things that add up)? The rest are not analysed.",
+            opts, lang, multi=True, not_analysed=rest, empty_share={c: v for c, v in empty.items() if v})
+    out.insert(min(at, len(out)), mq)
+    return out
+
+
+def _link_id(lk):
+    return f"link:{lk['left_table']}.{lk['left_column']}>{lk['right_table']}.{lk['right_column']}"
+
+
+def _why_not(lk, zh):
+    """One phrase saying why a link is not suggested, from the numbers that decided it."""
+    name = f"{lk['left_table']}.{lk['left_column']} → {lk['right_table']}.{lk['right_column']}"
+    if lk.get("child_not_before_parent") is not None and lk["child_not_before_parent"] < _param("intake_link_order_min"):
+        why = (f"{1 - lk['child_not_before_parent']:.0%} 的行比它指向的那行还早发生" if zh else
+               f"{1 - lk['child_not_before_parent']:.0%} of the rows happen before the row they would point to")
+    elif lk.get("id_range_used") is not None and lk["id_range_used"] < _param("intake_link_range_min"):
+        why = (f"编号只用到对方编号范围的 {lk['id_range_used']:.1%}" if zh else
+               f"its ids use only {lk['id_range_used']:.1%} of the other side's id range")
+    else:
+        why = (f"只有 {lk['coverage']:.1%} 的行对得上" if zh else f"only {lk['coverage']:.1%} of the rows match")
+    return f"{name}（{why}）" if zh else f"{name} ({why})"
+
+
 def _derived_questions(main_qs, t, df, lang):
-    """A rate is never the number to analyse: ask which decimal column is a unit price and what it multiplies, and whether a
-    whole-number column is the sum of two others. Only when the table has both kinds of column. The role question of a
-    decimal column then offers 'a unit price' first."""
+    """A rate is never the number to analyse: ask which decimal column is a unit price, and whether a whole-number column is
+    the sum of two others. Only when the table has both kinds of column. What the unit price multiplies is asked by
+    `confirm` once a unit price is picked (unit_price_times)."""
     zh = lang == "zh"
     decimals = [c for c in t["measure_columns"] if pd.api.types.is_float_dtype(df[c])]
     wholes = [c for c in t["measure_columns"] if pd.api.types.is_integer_dtype(df[c])]
@@ -410,16 +468,9 @@ def _derived_questions(main_qs, t, df, lang):
            + "; ".join(f"\"{c}\" e.g. {ex(c)}" for c in decimals), [*decimals, "none"], lang, suggested="none"),
         _q("sum_columns", "有没有一个数量其实是两列相加（比如周末晚数 + 工作日晚数 = 总晚数）？选两列，没有就不选。",
            "Is a quantity the sum of two columns (weekend nights + week nights = nights)? Pick two, or none.", wholes, lang),
-        _q("unit_price_times", "单价乘以哪一列才是金额？（sum_columns = 上一题选的两列之和）",
-           "Which column does the unit price multiply to give an amount? (sum_columns = the sum picked in the previous question)",
-           ["sum_columns", *wholes], lang),
     ]
     new[1]["multi"] = True
-    for q in main_qs:
-        if q["id"].startswith("role:") and q.get("column") in decimals:
-            q["options"] = [{"value": "unit_price", "label": "单价（每一晚、每一件的价格，要乘上数量才是金额）" if zh else
-                             "A unit price (for one night, one item): multiplied by a quantity to give an amount"}, *q["options"]]
-    i = next((k for k, q in enumerate(main_qs) if q["id"].startswith("role:")), len(main_qs))
+    i = next((k for k, q in enumerate(main_qs) if q["id"] == "measure_columns"), len(main_qs))
     return [*main_qs[:i], *new, *main_qs[i:]]
 
 
@@ -485,6 +536,13 @@ def _derive(paths, workspace, lang="zh", main=None) -> dict:
              "series": ("外部的连续数据（天气之类）", "outside daily data (weather and the like)"),
              "market": ("行业大盘", "a market benchmark"),
              "ignore": ("不用", "not used")}
+    rejected = {}
+    for lk in links:
+        if lk["suggested"] == "no":
+            # not asked: the tool's own suggestion is "no". Said in the evidence of the table it would have joined, and
+            # still in d["links"], so a person can confirm it by answering link:<id> "yes".
+            home = lk["right_table"] if lk["right_table"] != main else lk["left_table"]
+            rejected.setdefault(home, []).append(lk)
     for t in tables.values():
         if t["name"] == main:
             continue
@@ -505,12 +563,19 @@ def _derive(paths, workspace, lang="zh", main=None) -> dict:
                        f"（{s['parent_rows_matching']:.1%} 的行相同），是它的明细，已经加在「{g['parent']}」里了" if zh else
                        f"; its \"{s['child_column']}\" add up per {g['child_link']} to \"{s['parent_column']}\" of \"{g['parent']}\" "
                        f"({s['parent_rows_matching']:.1%} of rows), so it is the detail of \"{g['parent']}\" and already added up there")
+        no = rejected.get(t["name"], [])
+        if no:
+            ev += "；另外找到但不建议连（所以没问）：" if zh else "; also found but not suggested, so not asked: "
+            ev += ("；" if zh else "; ").join(_why_not(lk, zh) for lk in no)
         qs.append({"id": f"kind:{t['name']}", "ask": (f"「{t['name']}」这张表是什么？（{ev}）" if zh else f"What is the table \"{t['name']}\"? ({ev})"),
                    "options": [{"value": k, "label": v[0] if zh else v[1]} for k, v in kinds.items()],
-                   "suggested": t["suggested_kind"], "evidence": ev})
+                   "suggested": t["suggested_kind"], "evidence": ev,
+                   **({"rejected_links": [{"id": _link_id(lk), "reason": _why_not(lk, False)} for lk in no]} if no else {})})
     for lk in links:
+        if lk["suggested"] == "no":
+            continue
         cov = f"{lk['coverage']:.1%}"
-        qs.append(_q(f"link:{lk['left_table']}.{lk['left_column']}>{lk['right_table']}.{lk['right_column']}",
+        qs.append(_q(_link_id(lk),
                      f"「{lk['left_table']}」的「{lk['left_column']}」和「{lk['right_table']}」的「{lk['right_column']}」是同一个东西吗？"
                      f"{lk['matched_rows']:,}/{lk['rows']:,} 行能对上（覆盖 {cov}）。",
                      f"Are \"{lk['left_column']}\" in \"{lk['left_table']}\" and \"{lk['right_column']}\" in \"{lk['right_table']}\" the same thing? "
@@ -527,15 +592,6 @@ def _derive(paths, workspace, lang="zh", main=None) -> dict:
             qs.append(_q(f"event_kind:{t['name']}", f"「{t['name']}」里记的是你们自己做的事，还是外面发生的事？",
                          f"Does \"{t['name']}\" record things you did, or things that happened to you?",
                          ["internal", "external"], lang, suggested="internal"))
-        if t["suggested_kind"] in ("business", "series", "market"):
-            for c in t["number_columns"]:
-                qs.append({"id": f"role:{t['name']}.{c}", "column": c, "table": t["name"],
-                           "ask": (f"「{t['name']}」的「{c}」这一列是什么？" if zh else f"What is the column \"{c}\" of \"{t['name']}\"?"),
-                           "options": [{"value": k, "label": v[lang]} for k, v in draft.ROLES.items()]})
-        if t["suggested_kind"] in ("series", "market"):
-            qs.append(_q(f"market_compares:{t['name']}", f"如果「{t['name']}」是行业大盘，拿它和主表的哪一列比？不是大盘就选 none。",
-                         f"If \"{t['name']}\" is a market benchmark, which main-table column does it compare with? none if it is not one.",
-                         ["none", *tables[main]["number_columns"]], lang, suggested="none"))
     comps = tables[main]["composite_dates"]
     for cd in comps:
         joined[cd["name"]] = derive_dates(joined, cd)
@@ -550,6 +606,8 @@ def _derive(paths, workspace, lang="zh", main=None) -> dict:
     attributes = {c for j in joins for c in j["columns"] if c in joined.columns}
     row_keys = {c for c in ids if joined[c].is_unique and not joined[c].isna().any()}   # asked as "which column identifies one record"
     main_qs = draft.questions(prof, fds, lang, quiet, exclude=parts | row_keys | attributes, id_columns=ids - row_keys | row_keys)
+    main_qs = [q for q in main_qs if not q["id"].startswith("belongs:")]       # asked by confirm, for the pairs both chosen as dimensions
+    main_qs = _measure_question(main_qs, prof, joined, parts | row_keys | attributes, lang)
     dups = tables[main]["duplicate_rows"]
     if dups and not row_keys:
         # asked on its own: a table with copies and no key often has no identifier column to hang the warning on
@@ -568,16 +626,10 @@ def _derive(paths, workspace, lang="zh", main=None) -> dict:
     flag_cols = [p["column"] for p in prof if p["column"] in joined.columns and p["column"] not in parts
                  and ((p["shape"] == "category" and 2 <= p["distinct"] <= 12) or (p["shape"] == "number" and p["distinct"] == 2))]
     if flag_cols:
-        main_qs.append(_q("reversal_column", "有没有一列说明这一行是被取消、退款或作废的？（选了的话，下一步选哪些取值算。）",
-                          "Is there a column that says a row was cancelled, refunded or voided? (If so, the next question lists its values.)",
+        # the values are asked only for the column picked: `confirm` raises NeedsAnswers with reversal_values:<column>
+        main_qs.append(_q("reversal_column", "有没有一列说明这一行是被取消、退款或作废的？（选了的话，下一步只问这一列的取值。）",
+                          "Is there a column that says a row was cancelled, refunded or voided? (If so, the next question lists the values of that column only.)",
                           [*flag_cols, "none"], lang, suggested="none"))
-        for c in flag_cols:
-            vals = [str(v) for v in joined[c].dropna().unique()]
-            q = _q(f"reversal_values:{c}", f"「{c}」的哪些取值表示这一行是被取消、退款或作废的？这些行会从所有数字里去掉。",
-                   f"Which values of \"{c}\" mean the row was cancelled, refunded or voided? Those rows are left out of every number.",
-                   [{"value": v, "label": v} for v in sorted(vals)], lang)
-            q["multi"] = True
-            main_qs.append(q)
     for q in main_qs:
         if q["id"] == "date_column":
             # composite dates are offered as composite:<name>; the single derived column is not offered twice
@@ -648,7 +700,10 @@ def confirm(workspace, answers: dict, today: dt.date | None = None) -> dict:
         joined[date_col] = derive_dates(joined, cd)
     if not date_col:
         raise ValueError("answer 'date_column' first")
-    derived, price_col, per_unit = _derived_specs(answers, frames[main], joined)
+    try:
+        derived, price_col, per_unit = _derived_specs(answers, frames[main], joined)
+    except _NeedsTimes as need:
+        raise _ask_times(ws, d, need.price, joined, lang) from need
     if derived:
         joined = apply_derived_columns(joined, derived)
     wanted = list(answers.get("dimensions") or [])
@@ -656,6 +711,11 @@ def confirm(workspace, answers: dict, today: dt.date | None = None) -> dict:
     problems = [(f"「{x}」不能用来切分：从主表「{main}」出发，没有一条确认过的链接能走到这一列。" if lang == "zh" else
                  f"\"{x}\" cannot be used to cut the numbers: no confirmed link leads from the main table \"{main}\" to a column of that name.")
                 for x in wanted if x not in joined.columns]
+    pending = _pending(d, answers, kind, dims, lang)
+    if pending:
+        ids = ", ".join(x["id"] for x in pending)
+        raise _follow_up(ws, d, pending, (f"这些问题要等前面的回答才知道要不要问：{ids}。回答后再运行 confirm。问题已写进 draft.json。" if lang == "zh" else
+                                          f"These questions exist only because of earlier answers: {ids}. Answer them and run confirm again. They are saved in draft.json."))
     id_col = answers.get("order_id") if answers.get("order_id") not in (None, "none") else None
 
     sources, external = {}, {}
@@ -671,6 +731,11 @@ def confirm(workspace, answers: dict, today: dt.date | None = None) -> dict:
     if copies:
         main_src["exact_copies"] = copies
     rc = answers.get("reversal_column")
+    if rc and rc != "none":
+        if rc not in joined.columns:
+            raise ValueError(f"reversal_column was answered as '{rc}', but the main table has no column of that name")
+        if f"reversal_values:{rc}" not in answers:
+            raise _ask_reversal_values(ws, d, rc, joined, lang)
     rv = answers.get(f"reversal_values:{rc}") if rc and rc != "none" else None
     if rv:
         main_src["exclude_rows"] = {rc: list(rv)}
@@ -686,15 +751,8 @@ def confirm(workspace, answers: dict, today: dt.date | None = None) -> dict:
     if id_col and joined[id_col].notna().all() and joined[id_col].is_unique:
         sources[main]["key"] = id_col
 
-    specs = [{"column": q["column"], "role": answers.get(q["id"]), "source": main, "date": date_col, "dimensions": dims}
-             for q in d["questions"] if q["id"].startswith("role:") and q.get("table") == main and q["column"] in joined.columns]
-    for s_ in specs:
-        if s_["column"] == price_col:
-            s_["role"] = "skip"           # a unit price is multiplied, never added up
-        elif s_["role"] == "unit_price":
-            s_["role"] = "skip"
-        elif per_unit and s_["column"] == per_unit["quantity_source"] and s_["role"] in (None, "skip"):
-            s_["role"] = "quantity"
+    roles = _main_roles(ws, d, answers, main, joined, price_col, per_unit, {x["name"] for x in derived}, lang)
+    specs = [{"column": c, "role": r, "source": main, "date": date_col, "dimensions": dims} for c, r in roles.items()]
     for dc in derived:
         specs.append({"column": dc["name"], "role": "amount" if dc["name"] == (per_unit or {}).get("amount") else "quantity",
                       "source": main, "date": date_col, "dimensions": dims})
@@ -763,6 +821,7 @@ def confirm(workspace, answers: dict, today: dt.date | None = None) -> dict:
                                "status": "proposed"})
     every_column = list(dict.fromkeys([c for f in frames.values() for c in f.columns] + list(joined.columns)))
     names = draft.name_map([{"column": c, "name": draft.readable(c)} for c in every_column], answers)
+    _name_derived(derived, names, answers)
     measures, metrics, identities, by_role = draft.build_metrics(specs, id_spec, answers.get("template", "orders"), said, names,
                                                                  per_unit=per_unit)
     north = answers.get("north_star") if answers.get("north_star") in metrics else by_role.get("amount") or next(iter(metrics), None)
@@ -817,6 +876,152 @@ def confirm(workspace, answers: dict, today: dt.date | None = None) -> dict:
             "first_run": draft.first_run(ws, north)}
 
 
+def _follow_up(ws, d, q, message):
+    """Questions that exist only after earlier answers: saved in draft.json (so the next confirm and the count of
+    questions see them) and returned as the NeedsAnswers to raise. `q` is one question or a list."""
+    qs = q if isinstance(q, list) else [q]
+    ids = {x["id"] for x in qs}
+    d["questions"] = [x for x in d["questions"] if x["id"] not in ids] + qs
+    (ws / "draft.json").write_text(json.dumps(d, ensure_ascii=False, indent=1, default=str), encoding="utf-8")
+    return NeedsAnswers(message, [x["id"] for x in qs], qs)
+
+
+def _pending(d, answers, kind, dims, lang):
+    """The questions that only exist because of earlier answers, and have no answer yet: what a number in a second table is
+    (business tables), which main-table column an outside series is compared with (series, market), and whether a group
+    belongs to another when both were chosen as dimensions."""
+    zh = lang == "zh"
+    main, tables = d["main"], d["tables"]
+    out = []
+    for n, t in tables.items():
+        if kind.get(n) == "business":
+            for c in t["number_columns"]:
+                if f"role:{n}.{c}" not in answers:
+                    out.append({"id": f"role:{n}.{c}", "column": c, "table": n,
+                                "ask": (f"「{n}」的「{c}」这一列是什么？" if zh else f"What is the column \"{c}\" of \"{n}\"?"),
+                                "options": [{"value": k, "label": v[lang]} for k, v in draft.ROLES.items()]})
+        if kind.get(n) in ("series", "market") and f"market_compares:{n}" not in answers:
+            out.append(_q(f"market_compares:{n}", f"如果「{n}」是行业大盘，拿它和主表的哪一列比？不是大盘就选 none。",
+                          f"If \"{n}\" is a market benchmark, which main-table column does it compare with? none if it is not one.",
+                          ["none", *tables[main]["number_columns"]], lang, suggested="none"))
+    for f in d["belongs_to"]:
+        qid = f"belongs:{f['child']}>{f['parent']}"
+        if qid not in answers and f["child"] in dims and f["parent"] in dims:
+            out.append({"id": qid, "ask": (f"数据里每个「{f['child']}」只出现在一个「{f['parent']}」下面。它是不是属于那个「{f['parent']}」？" if zh else
+                                           f"Every \"{f['child']}\" appears under exactly one \"{f['parent']}\". Does it belong to that \"{f['parent']}\"?"),
+                        "options": ["yes", "no"]})
+    return out
+
+
+def _ask_reversal_values(ws, d, column, joined, lang):
+    zh = lang == "zh"
+    vals = sorted(str(v) for v in joined[column].dropna().unique())
+    q = _q(f"reversal_values:{column}", f"「{column}」的哪些取值表示这一行是被取消、退款或作废的？这些行会从所有数字里去掉。",
+           f"Which values of \"{column}\" mean the row was cancelled, refunded or voided? Those rows are left out of every number.",
+           [{"value": v, "label": v} for v in vals], lang)
+    q["multi"] = True
+    return _follow_up(ws, d, q, (f"先回答「{column}」的哪些取值算取消（{q['id']}），再运行 confirm。问题已写进 draft.json。" if zh else
+                                 f"Answer which values of \"{column}\" mean cancelled ({q['id']}), then run confirm again. The question is saved in draft.json."))
+
+
+def _ask_times(ws, d, price, joined, lang):
+    zh = lang == "zh"
+    wholes = [c for c in joined.columns if pd.api.types.is_integer_dtype(joined[c]) and not pd.api.types.is_bool_dtype(joined[c])
+              and c not in d["tables"][d["main"]]["id_columns"] and joined[c].nunique() >= _param("intake_measure_min_distinct")]
+    q = _q("unit_price_times", f"「{price}」是单价，要乘以哪一列才是金额？（sum_columns = 之前选的两列之和）",
+           f"\"{price}\" is a unit price. Which column does it multiply to give an amount? (sum_columns = the sum picked earlier)",
+           ["sum_columns", *wholes], lang)
+    return _follow_up(ws, d, q, (f"「{price}」是单价，但没说它乘以哪一列（unit_price_times）：单价不乘数量不是金额。回答后再运行 confirm。" if zh else
+                                 f"\"{price}\" is a unit price, but the column it multiplies was not named (unit_price_times): a unit price is multiplied by a "
+                                 "quantity, never added up. Answer it and run confirm again."))
+
+
+def _main_roles(ws, d, answers, main, joined, price_col, per_unit, derived_names, lang):
+    """{column: role} for the numbers of the main table that are analysed.
+
+    A column is analysed when the user selected it (measure_columns) or answered the old per-column question
+    (role:<column>). Its role is the old answer, else the answer to measure_roles, else obvious and not asked: a quantity
+    that is part of a sum, or the quantity a unit price multiplies. A unit price itself is never added up. A selected
+    column with no role raises the follow-up measure_roles for those columns only."""
+    legacy = {k[5:]: v for k, v in answers.items() if k.startswith("role:") and "." not in k}
+    if "measure_columns" not in {q["id"] for q in d["questions"]}:
+        # a draft written when every number column had its own question: all of them must be answered
+        old = [q["column"] for q in d["questions"] if q["id"].startswith("role:") and q.get("table") == main
+               and q["column"] in joined.columns and f"role:{q['column']}" not in answers]
+        if old:
+            raise ValueError(f"answer what these columns are first: {', '.join(old)}")
+    elif "measure_columns" not in answers and not legacy:
+        raise ValueError("answer 'measure_columns' first: which of the numbers do you want to analyse (an empty list is an answer)")
+    chosen = [c for c in (answers.get("measure_columns") or []) if c in joined.columns]
+    chosen += [c for c in legacy if c in joined.columns and c not in chosen]
+    given = answers.get("measure_roles") or {}
+    parts = answers.get("sum_columns") or []
+    parts = [c for c in (parts if isinstance(parts, list) else [parts]) if c != "none"]
+    selected = set(answers.get("measure_columns") or [])
+    source = per_unit["quantity_source"] if per_unit and per_unit["quantity_source"] in joined.columns \
+        and per_unit["quantity_source"] not in derived_names else None
+    roles, missing = {}, []
+    for c in dict.fromkeys([*chosen, *([source] if source else [])]):
+        if c == price_col or legacy.get(c) == "unit_price":
+            roles[c] = "skip"
+        elif (c == source or c in parts and c in selected) and legacy.get(c, given.get(c, "skip")) == "skip":
+            roles[c] = "quantity"
+        elif c in legacy:
+            roles[c] = legacy[c]
+        elif c in given:
+            roles[c] = given[c]
+        else:
+            missing.append(c)
+    if missing:
+        zh = lang == "zh"
+        by = {p["column"]: p for p in d.get("joined_profile", [])}
+        q = _q("measure_roles", "你选的这几列分别是什么？每一列选一项：" + "、".join(missing),
+               "What is each of the numbers you selected? Pick one for each column: " + ", ".join(missing),
+               [{"value": k, "label": v[lang]} for k, v in draft.ROLES.items()], lang, columns=missing,
+               examples={c: by[c]["examples"][:3] for c in missing if c in by})
+        raise _follow_up(ws, d, q, (f"先回答这几列分别是什么（measure_roles）：{', '.join(missing)}。答案写成 {{列名: 选项}}，再运行 confirm。" if zh else
+                                    f"Answer what these columns are (measure_roles): {', '.join(missing)}. Give the answer as {{column: option}}, then run confirm again."))
+    return roles
+
+
+class _NeedsTimes(ValueError):
+    """A unit price was named but not the column it multiplies."""
+
+    def __init__(self, price):
+        super().__init__(f"'{price}' is a unit price, but the column it multiplies was not named (unit_price_times): a unit price on its own is not an amount")
+        self.price = price
+
+
+def _short_name(a, b, taken):
+    """An id for a sum of two columns from the words their names end with ("stays_in_weekend_nights" and
+    "stays_in_week_nights" -> "nights"), or None when they share no closing word or the id is already a column.
+    A name made of the user's own words, not a statement about what the sum means."""
+    ta, tb = a.split("_"), b.split("_")
+    k = 0
+    while k < min(len(ta), len(tb)) and ta[-1 - k] == tb[-1 - k]:
+        k += 1
+    name = "_".join(ta[len(ta) - k:]) if k else ""
+    return name if name.isidentifier() and name not in taken and name not in (a, b) else None
+
+
+def _name_derived(derived, names, answers):
+    """Labels for derived columns, added to `names` in order (a later one may use an earlier one): "A + B" and "A × (B)".
+    Chinese uses full-width punctuation. A name the person gave ("name:<id>") stays."""
+    for sp in derived:
+        given = answers.get(f"name:{sp['name']}")
+        if given:
+            names[sp["name"]] = draft._as_name(given)
+            continue
+        a, b = (names.get(c) or draft.readable(c) for c in sp["columns"])
+        if sp["op"] == "add":
+            names[sp["name"]] = {"zh": f"{a['zh']}＋{b['zh']}", "en": f"{a['en']} + {b['en']}"}
+        elif sp["op"] == "mul":
+            names[sp["name"]] = {"zh": f"{a['zh']}×（{b['zh']}）" if "＋" in b["zh"] else f"{a['zh']}×{b['zh']}",
+                                 "en": f"{a['en']} × ({b['en']})" if " + " in b["en"] else f"{a['en']} × {b['en']}"}
+        else:
+            names[sp["name"]] = {"zh": f"{a['zh']}－{b['zh']}", "en": f"{a['en']} - {b['en']}"}
+
+
 def _derived_specs(answers, main_df, joined):
     """derive_columns from the answers: a sum of two columns, and a unit price times a quantity. Returns
     (specs, the unit price column or None, {'amount', 'quantity', 'quantity_source'} for the average price per unit or None)."""
@@ -830,7 +1035,7 @@ def _derived_specs(answers, main_df, joined):
         raise ValueError(f"sum_columns takes exactly two columns, got {len(pair)}: {pair}")
     sum_name = None
     if pair:
-        sum_name = f"{pair[0]}_plus_{pair[1]}"
+        sum_name = _short_name(pair[0], pair[1], set(joined.columns)) or f"{pair[0]}_plus_{pair[1]}"
         specs.append({"name": sum_name, "op": "add", "columns": pair})
     if price:
         if answers.get(f"role:{price}") not in (None, "skip", "unit_price"):
@@ -838,12 +1043,12 @@ def _derived_specs(answers, main_df, joined):
                              "(adding up rates gives a meaningless number)")
         times = answers.get("unit_price_times")
         if times in (None, "none"):
-            raise ValueError(f"'{price}' is a unit price, but the column it multiplies was not named (unit_price_times): a unit price on its own is not an amount")
+            raise _NeedsTimes(price)
         if times == "sum_columns":
             if not sum_name:
                 raise ValueError("unit_price_times is sum_columns, but no two columns were given in sum_columns")
             times = sum_name
-        amount = f"{price}_times_{times}"
+        amount = f"{price}_x_{times}"
         specs.append({"name": amount, "op": "mul", "columns": [price, times]})
         per_unit = {"amount": amount, "quantity": times, "quantity_source": times, "price": price}
     for sp in specs:
@@ -869,7 +1074,7 @@ def _confirm_other_main(ws, d, chosen, answers, today):
         v = answers[q["id"]]
         if not vals or all(x in vals for x in (v if isinstance(v, list) else [v])):
             fit[q["id"]] = v
-    fresh = [q for q in new["questions"] if q["id"] not in fit and q["id"].startswith(("kind:", "link:", "role:", "order_id"))
+    fresh = [q for q in new["questions"] if q["id"] not in fit and q["id"].startswith(("kind:", "link:", "role:", "measure_columns", "order_id"))
              and (q["id"] not in asked_before or q["id"] in answers)]
     stale = [q for q in fresh if q["id"].startswith("link:") and q.get("suggested") != "yes" and q["id"] not in answers]
     fresh = [q for q in fresh if q not in stale]
