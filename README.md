@@ -34,7 +34,7 @@ Revenue fell 43,159. The skill splits that two ways and both add up to it: by fo
 
 <p align="center"><img src="docs/assets/split.en.png" width="460" alt="Breakdown tree from the total change of −43,159 down to the marketplace, with the cause on record and the channel manager's next step."></p>
 
-Scripts do all the arithmetic. They use methods published elsewhere (BEA contributions for sums, LMDI-I and Shapley for products, Kitagawa for ratios, among 12 in all), each with its citation in [`operators.md`](skills/analyst-in-a-box/references/operators.md). A report that fails any of its 12 pre-delivery checks is held back, with the failing check named.
+Scripts do all the arithmetic. They use methods published elsewhere (BEA contributions for sums, LMDI-I and Shapley for products, Kitagawa for ratios, among 12 in all), each with its citation in [`operators.md`](skills/analyst-in-a-box/references/operators.md). Pre-delivery checks are split into 6 "wrong" checks (arithmetic invariants; a failure blocks the report), 3 "data" checks (data quality; a failure flags the report as suspect), and 4 "evidence" checks (informational; each cause carries its evidence tier).
 
 ## A cause is a record, not a restated result
 

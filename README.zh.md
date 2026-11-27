@@ -34,7 +34,7 @@ npx skills add weigezi/analyst-in-a-box
 
 <p align="center"><img src="docs/assets/split.zh.png" width="460" alt="拆解树：从总变化 −43,159 一路拆到电商平台，带原因记录和渠道负责人的下一步。"></p>
 
-所有计算都由脚本完成。用的是公开发表的方法（加法用 BEA 贡献度，乘法用 LMDI-I 和 Shapley，比率用 Kitagawa，一共 12 种），每种的出处写在 [`operators.zh.md`](skills/analyst-in-a-box/references/operators.zh.md)。交付前的 12 项自检有一项不过，报告就不发，并写明是哪一项。
+所有计算都由脚本完成。用的是公开发表的方法（加法用 BEA 贡献度，乘法用 LMDI-I 和 Shapley，比率用 Kitagawa，一共 12 种），每种的出处写在 [`operators.zh.md`](skills/analyst-in-a-box/references/operators.zh.md)。交付前自检分三档：6 项「wrong」档（算术恒等；有一项不过就拦报告）、3 项「data」档（数据质量；有一项不过就标存疑）、4 项「evidence」档（参考性质；每条原因带自己的证据档次）。
 
 ## 原因是一条记录，不是换个说法的结果
 
