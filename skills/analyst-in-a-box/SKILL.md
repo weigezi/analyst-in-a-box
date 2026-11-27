@@ -15,6 +15,18 @@ Answer one question well: **why did this number move, and who should do what nex
 The scripts do every calculation. Your job is to frame the question, run the scripts, talk to the user,
 and record what they teach you so the next answer is better.
 
+## Two phases, six steps
+
+**Input phase** — recognise tables and build the workspace (once, then reused):
+- P0: Understand the question (what metric, what comparison)
+
+**Analysis phase** — run on each question:
+- P1: Data health check for this question (enough data, no obvious issues)
+- P2: Mathematical analysis (which slice of the number changed, computed by scripts)
+- P3: Real-world causes (what happened in reality, hypotheses ranked by evidence)
+- P4: Actions and owners (who should do what)
+- P5: Report and store conclusions
+
 ## Ground rules (read these first)
 
 1. **Never do the arithmetic yourself.** Every number you tell the user comes from a script's output.
@@ -27,6 +39,8 @@ and record what they teach you so the next answer is better.
    The run decides how they may be worded (three checks: timing, affected slice, size).
 5. **Everything the user teaches you goes through `correct`.** That writes it down with their words and makes
    a regression case, so the skill cannot quietly forget it.
+6. **Causes are hypotheses ranked by evidence.** "Where it moved" (P2) is computed by scripts; "why it moved" (P3)
+   is a hypothesis: data-verified, sourced-to-confirm, or AI-inferred. You may propose causes but must label the tier.
 
 ## Running the scripts
 
@@ -83,8 +97,8 @@ Map the question to a run, then call `run`. Details and edge cases: [references/
 | "And inside that, what?" | `followup --from <run_dir> --slot <slot id> [--dimensions d1,d2]` |
 
 If the metric, dimension or comparison does not exist in the workspace, say so and ask; do not approximate
-with a different one. Windows of different length are blocked unless the user wants daily averages
-(`"per_day": true`); a holiday in one period only is reported with two ways out (`"holiday": "exclude"` or
+with a different one. Windows of different length default to daily averages (`per_day: true` is set automatically)
+with a note in the report; a holiday in one period only is reported with two ways out (`"holiday": "exclude"` or
 `"shift_base"`). `followup` keeps the earlier run's filters, periods and path, and records which run it followed.
 
 ## 3. Presenting the result
@@ -99,10 +113,13 @@ Then handle what the run says it is missing:
 - **`gaps`**: the data shows a change nobody has explained. Ask one plain question:
   "New customers' average order fell; do you know why?" Record the answer (section 4) and re-run.
 - **`to_confirm`**: entries that are only proposed, including outside events. Ask whether to confirm them.
-- **`blocked: true`**: a pre-delivery check failed. Show which one; do not present the conclusions.
-- **Data in doubt / data note** (first lines of the conclusion): say this first. "In doubt" stops the report
-  (missing days, repeated ids); a "note" is worth checking, but the conclusions still stand. Never explain a
-  change the data itself may have made.
+- **`blocked: true`**: a "wrong" tier pre-delivery check failed (the arithmetic is broken). Show which one;
+  do not present the conclusions.
+- **`data_suspect: true`**: a "data" tier check failed (data quality, unequal windows, missing base).
+  The report proceeds but the first line flags the issue; conclusions are marked suspect. No cause counts
+  as "data-verified" while data is in doubt.
+- **Data note** (first lines of the conclusion): worth checking, but the conclusions proceed. Never explain
+  a change the data itself may have made.
 - **"Within the usual range"**: say it is normal and do not hunt for a cause, unless the report names one group
   that stands far out from its own swings.
 - **A cited record that "cannot explain this change"** (true in both periods): it does not answer the question.

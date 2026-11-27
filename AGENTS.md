@@ -24,8 +24,20 @@ A senior analyst reading the result would nod, and the public site is worth look
 
 ## Who does what
 
-- **Scripts** compute every number. They read the shape of each table (dates, keys, amounts, how tables point at each other), never what a column is called.
-- **The AI** explains, and proposes. It never makes up a number, a cause, or a column's meaning.
+Two phases, six steps:
+
+**Input phase** — recognise tables and build the workspace (once, then reused):
+- P0: Understand the question (what metric, what comparison)
+
+**Analysis phase** — run on each question:
+- P1: Data health check for this question (enough data, no obvious issues)
+- P2: Mathematical analysis (which slice of the number changed, computed by scripts)
+- P3: Real-world causes (what happened in reality, hypotheses ranked by evidence)
+- P4: Actions and owners (who should do what)
+- P5: Report and store conclusions
+
+- **Scripts** compute every number (P2). They read the shape of each table (dates, keys, amounts, how tables point at each other), never what a column is called.
+- **The AI** explains and proposes (P3). It never makes up a number or a column's meaning; proposed causes are labelled by evidence tier.
 - **The person** only confirms: is what it recognised right? Is this cause real? Everything else runs in one go.
 
 Every claim carries its source and a trust level: a fact (a person said it, a system recorded it, the data shows it), something to confirm (read from a document), or an AI inference. An AI inference is a draft until a person confirms it.
@@ -50,7 +62,7 @@ Public names: "business knowledge graph", with two parts, "metric tree" and "bus
 2. Never add up a rate, a price, an age or a stock. Amounts add; averages are computed from amounts.
 3. A join must not change the row count. A ratio across two tables is computed by summing each side to a shared grain, then dividing.
 4. A distinct count cannot be added across segments.
-5. A cause is a sourced record, not a restated result. "Where it moved" and "why it moved" are two separate layers.
+5. "Where it moved" (P2) is computed by scripts; "why it moved" (P3) is a hypothesis ranked by evidence: data-verified, sourced-to-confirm, or AI-inferred. The AI may propose causes but must label the tier; it never makes up numbers.
 6. Rules that guess from shape (thresholds, row counts) are suggestions the user confirms, and each threshold is a named parameter with its reason.
 7. When a check fails, say so in plain words. A wrong number delivered quietly is worse than no answer.
 

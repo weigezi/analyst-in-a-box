@@ -54,7 +54,9 @@ def test_a_week_loaded_twice_is_reported(tmp_path):
     s = run(Workspace(root), WEEK, write=False)
     assert check(s, "key_unique")["status"] == "fail"
     assert check(s, "daily_volume_steady")["status"] == "fail"
-    assert s["quality"]["suspect"] and s["blocked"]
+    assert s["quality"]["suspect"]
+    assert not s["blocked"]  # data tier doesn't block
+    assert s.get("data_suspect", False)  # but it does flag data_suspect
     assert not any(x["status"] == "explained" for x in s["slots"])
 
 
@@ -88,16 +90,18 @@ def test_one_huge_order_is_named(tmp_path):
 
 # ---------- two levels (maintainer, 2026-10-31) ----------
 
-def test_block_level_stops_the_report(tmp_path):
+def test_block_level_flags_data_suspect(tmp_path):
+    """Data quality issues with 'block' level now flag data_suspect but don't block (data tier)."""
     root = demo_copy(tmp_path, "blk")
     o = pd.read_csv(root / "data" / "orders.csv.gz")
     pd.concat([o, o[o["order_date"] == "2026-10-21"].head(5)]).to_csv(root / "data" / "orders.csv.gz", index=False)
     s = run(Workspace(root), WEEK, out_dir=tmp_path / "out")
     assert check(s, "key_unique")["level"] == "block"
-    assert s["blocked"] and s["quality"]["suspect"]
+    assert not s["blocked"]  # data tier doesn't block
+    assert s.get("data_suspect", False) and s["quality"]["suspect"]  # but it does flag data_suspect
     assert not any(x["status"] == "explained" for x in s["slots"])
     md = (tmp_path / "out" / "report.zh.md").read_text(encoding="utf-8")
-    assert md.split("\n## ")[0].count("交付前自检没通过") == 1 and "数据存疑" in md.split("\n## ")[1]
+    assert "数据存疑" in md  # data in doubt message appears
 
 
 def test_warn_level_reminds_and_still_concludes(tmp_path):

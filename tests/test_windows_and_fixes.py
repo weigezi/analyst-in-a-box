@@ -79,10 +79,13 @@ def test_unequal_months_are_compared_per_day(demo):
     assert s["qualify"]["total_base"] == pytest.approx(full / 30)
 
 
-def test_unequal_windows_without_per_day_are_blocked_with_a_way_out(demo):
+def test_unequal_windows_automatically_use_per_day(demo):
+    """Unequal windows now automatically set per_day=true instead of blocking."""
     s = run(demo, {"metric": "revenue", "current": ["2026-10-19", "2026-10-25"], "base": ["2025-10-20", "2025-10-27"]}, write=False)
     c = next(c for c in s["checks"] if c["check"] == "windows_same_length")
-    assert not c["pass"] and "per_day" in c["detail"]
+    assert c["pass"]  # passes because per_day is automatically set
+    assert s.get("per_day")
+    assert any("automatic" in str(n) for n in s.get("notes", []))
 
 
 def test_single_day_run_notes_the_weekday_alignment(demo):
@@ -124,15 +127,18 @@ def test_flat_history_report_says_flat(tmp_path):
         assert word in report.render(ws, s, lang)
 
 
-def test_second_order_without_a_base_does_not_crash(tmp_path):
+def test_second_order_without_a_base_flags_data_suspect(tmp_path):
+    """Missing base data now flags data_suspect but doesn't block (data tier)."""
     df = synth.orders(seed=2, start="2026-09-01")
     ws = Workspace(synth.workspace(tmp_path, df))
     s = run(ws, {"metric": "revenue", "current": ["2026-10-19", "2026-10-25"], "base": "yoy", "previous": True}, write=False)
-    assert s["blocked"]
+    assert not s["blocked"]  # data tier doesn't block
+    assert s.get("data_suspect", False)  # but it does flag data_suspect
     assert any(c["check"] == "base_has_data" and not c["pass"] for c in s["checks"])
 
 
-def test_new_category_with_no_base_does_not_crash(tmp_path, demo):
+def test_new_category_with_no_base_flags_data_suspect(tmp_path, demo):
+    """New category with no base now flags data_suspect but doesn't block (data tier)."""
     root = tmp_path / "ws"
     shutil.copytree(demo.root, root, ignore=shutil.ignore_patterns("runs", "regressions", "corrections.jsonl", "docs"))
     o = pd.read_csv(root / "data" / "orders.csv.gz")
@@ -142,7 +148,8 @@ def test_new_category_with_no_base_does_not_crash(tmp_path, demo):
     pd.concat([o, new]).to_csv(root / "data" / "orders.csv.gz", index=False)
     s = run(Workspace(root), {"metric": "revenue", "current": ["2026-10-19", "2026-10-25"], "base": "yoy",
                               "compare": "app_vs_web", "filters": {"category": "candle"}}, write=False)
-    assert s["blocked"] and any(c["check"] == "base_has_data" and not c["pass"] for c in s["checks"])
+    assert not s["blocked"]  # data tier doesn't block
+    assert s.get("data_suspect", False) and any(c["check"] == "base_has_data" and not c["pass"] for c in s["checks"])
 
 
 # ---------- 7. metric tree ----------

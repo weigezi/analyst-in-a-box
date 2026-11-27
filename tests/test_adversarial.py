@@ -47,6 +47,8 @@ def judge(s, expect, want=None):
         return s["quality"]["suspect"] and not any(x["status"] == "explained" for x in s["slots"])
     if expect == "blocked":
         return s["blocked"]
+    if expect == "data":
+        return s.get("data_suspect", False) and not s["blocked"] and not any(x["status"] == "explained" for x in s["slots"])
     if expect == "warned":
         return bool(s["quality"]["warned"]) and all(x["status"] != "explained" for x in s["slots"])
     if expect == "unsure":
@@ -120,7 +122,7 @@ def new_product_without_base(tmp):
 @case
 def second_order_with_empty_base(tmp):
     df = synth.orders(seed=35, start="2026-09-20")
-    return ws_for(tmp, df), {"metric": "revenue", "current": WEEK, "base": "yoy", "previous": True}, "blocked", None
+    return ws_for(tmp, df), {"metric": "revenue", "current": WEEK, "base": "yoy", "previous": True}, "data", None
 
 
 @case
@@ -160,8 +162,9 @@ def holiday_in_one_period(tmp):
 
 @case
 def unequal_months(tmp):
+    # With automatic per_day, unequal windows compare daily averages; no longer a data issue
     return (ws_for(tmp, synth.orders(seed=33)),
-            {"metric": "revenue", "current": ["2026-10-01", "2026-10-25"], "base": ["2026-09-01", "2026-09-30"]}, "blocked", None)
+            {"metric": "revenue", "current": ["2026-10-01", "2026-10-25"], "base": ["2026-09-01", "2026-09-30"]}, "quiet", None)
 
 
 @case

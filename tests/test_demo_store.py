@@ -89,10 +89,13 @@ def test_correction_closes_the_gap_and_is_remembered(tmp_path):
     assert not all(r["pass"] for r in evolve.regress(root))
 
 
-def test_windows_of_different_length_are_blocked(ws):
+def test_windows_of_different_length_use_per_day(ws):
+    """Windows of different length automatically use per_day comparison; no longer a data issue."""
     s = run(ws, {"metric": "revenue", "current": ["2026-10-19", "2026-10-25"], "base": ["2025-10-20", "2025-10-27"]}, write=False)
-    assert s["blocked"]
-    assert any(c["check"] == "windows_same_length" and not c["pass"] for c in s["checks"])
+    assert not s["blocked"]
+    assert not s.get("data_suspect", False)  # automatic per_day, no data issue
+    assert s.get("per_day")  # per_day is automatically set
+    assert all(c["pass"] for c in s["checks"] if c["check"] == "windows_same_length")
 
 
 def test_other_correction_types(tmp_path):

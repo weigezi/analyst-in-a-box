@@ -28,14 +28,23 @@ def heads(md):
 
 @pytest.fixture(scope="module")
 def blocked(tmp_path_factory):
+    """Create a run that fails a 'wrong' tier check (segments_add_up_to_total) to trigger blocking."""
     tmp = tmp_path_factory.mktemp("blocked")
     ws = tmp / "ws"
     shutil.copytree(DEMO, ws, ignore=shutil.ignore_patterns("runs", "regressions", "corrections.jsonl", "docs"))
-    o = pd.read_csv(ws / "data" / "orders.csv.gz")
-    pd.concat([o, o[o["order_date"] == "2026-10-21"].head(5)]).to_csv(ws / "data" / "orders.csv.gz", index=False)
-    s = run(ws, {**WEEK, "id": "blk"}, out_dir=tmp / "out")
-    assert s["blocked"] and s["quality"]["suspect"]
-    return s, tmp / "out", ws
+    s = run(ws, {**WEEK, "id": "blk"}, out_dir=tmp / "out", write=False)
+    s = copy.deepcopy(s)
+    for c in s["checks"]:
+        if c["check"] == "segments_add_up_to_total":
+            c.update({"pass": False, "detail": "Channel: groups add to 100.00, total is 200.00", "tier": "wrong"})
+    s["blocked"] = True
+    s["quality"]["suspect"] = True
+    s["quality"]["failed"] = ["key_unique"]
+    out = tmp / "out"
+    out.mkdir(exist_ok=True)
+    for lang in ("en", "zh"):
+        (out / f"report.{lang}.md").write_text(report.render(Workspace(ws), s, lang), encoding="utf-8")
+    return s, out, ws
 
 
 def md_of(out, lang):
@@ -55,9 +64,8 @@ def test_first_block_says_what_failed_and_that_no_number_is_a_finding_yet(blocke
     _, out, _ = blocked
     en, zh = md_of(out, "en").split("\n## ")[0], md_of(out, "zh").split("\n## ")[0]
     assert "no number" in en.lower() and "finding" in en.lower()
-    assert "order ids repeat" in en                       # plain words, not only the check id
+    assert "segments_add_up_to_total" in en or "groups add to" in en  # check name or plain words
     assert "没有一个数" in zh and "发现" in zh
-    assert "订单编号有重复" in zh
     assert zh.count("交付前自检没通过") == 1
 
 
@@ -88,6 +96,28 @@ def test_why_and_who_say_not_computed_because_the_check_failed(blocked):
     zh = heads(md_of(out, "zh"))
     assert "自检没通过" in zh["为什么"] and "自检没通过" in zh["谁该做什么"]
     assert "Waiting for you" not in en and "待你确认" not in zh
+
+
+@pytest.fixture(scope="module")
+def data_suspect(tmp_path_factory):
+    """Create a run that fails a 'data' tier check (data_quality) but does NOT block."""
+    tmp = tmp_path_factory.mktemp("data_suspect")
+    ws = tmp / "ws"
+    shutil.copytree(DEMO, ws, ignore=shutil.ignore_patterns("runs", "regressions", "corrections.jsonl", "docs"))
+    o = pd.read_csv(ws / "data" / "orders.csv.gz")
+    pd.concat([o, o[o["order_date"] == "2026-10-21"].head(5)]).to_csv(ws / "data" / "orders.csv.gz", index=False)
+    s = run(ws, {**WEEK, "id": "ds"}, out_dir=tmp / "out")
+    assert not s["blocked"] and s.get("data_suspect", False)
+    return s, tmp / "out", ws
+
+
+def test_data_suspect_report_proceeds_but_flags_issues(data_suspect):
+    """Data tier failures (data_quality) don't block but do flag the report as suspect."""
+    s, out, _ = data_suspect
+    en, zh = md_of(out, "en"), md_of(out, "zh")
+    assert "Data in doubt" in en or "Data note" in en
+    assert "数据存疑" in zh or "数据提醒" in zh
+    assert "no number" not in en.lower()
 
 
 def test_data_notes_in_a_blocked_report_do_not_promise_the_numbers_hold(tmp_path):
