@@ -109,6 +109,14 @@ PARAMS = {
                                              "identifier (an order, a session, a user), not as an amount: a measure repeats "
                                              "its values far more than that. A heuristic that only decides which tables may be "
                                              "offered as the main one; the user still answers every column. " + EXAMPLE),
+    "measure_id_unique_share": _p(0.95, note="In an event table (one row per event), an integer column is treated as an identifier "
+                                             "(for counting distinct values) when at least 95% of its values are distinct; below that "
+                                             "it may be a quantity that happens to vary. " + EXAMPLE),
+    "measure_id_range_ratio": _p(3.0, note="An identifier column's values should be dense in their range: (max - min + 1) / nunique "
+                                           "at most this value. A sequence 1..N has ratio 1; scattered integers from a larger space "
+                                           "have a higher ratio and are not identifiers. " + EXAMPLE),
+    "ratio_proportion_max": _p(1.0, note="A 'part over whole' ratio (both sides are counts, like conversion rate) cannot exceed 1. "
+                                         "A value above this in any period or segment fails the ratios_within_bounds check. " + EXAMPLE),
     "intake_measure_min_distinct": _p(3, note="A numeric column with fewer than 3 distinct values is a flag or a code (0/1), not an "
                                               "amount to add up. Same limit: it only steers the offered main table. " + EXAMPLE),
     "intake_event_table_max_rows": _p(200, note="Two dates in order on every row make a start and an end (a campaign, a holiday) "

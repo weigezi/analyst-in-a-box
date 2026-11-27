@@ -360,3 +360,24 @@
 **中途走错的地方。** 这一节第一版对每个指标都读 `column`，而按行数计的指标没有这一列；整套测试抓到了（390 个里 1 个失败），现在有回归测试。我第一次验证新测试在去掉改动后会失败时，去掉的是整段代码，这证明不了那一行；之后只关掉那一行重做了一遍。
 
 **没动。** 空白维度值的显示名（另一处改动负责），以及什么时候拦住报告的规则。
+
+---
+
+## 2026-11-27：指标可加性和比率边界检查
+
+决定日期：2026-11-27。决定人：代码评审。
+
+**1. 指标可加性。** 每个指标现在带一个 `additivity` 字段：`additive`（值可以跨行相加）、`distinct_count`（数不重复的值）、`non_additive`（比率、单价）。分类基于表的粒度：
+
+- **per_date** 表（每日期 × 分组一行，通过日期列没有时间分量识别）的列是每日汇总。整数列默认是可加的，不会被当作编号。
+- **per_event** 表（每会话、订单一行；通过时间戳或每日期多行识别）可能有编号。高唯一度且范围密集的整数列是编号；它们的 `additivity` 设为 null，让用户选角色（records/visits/skip）。
+
+这修复了流量表的日访问量被错误识别为编号的 bug，导致转化率显示 10571% 而不是正确的 ~4%。
+
+**2. 比率边界检查。** 添加了第 13 项检查 `ratios_within_bounds`：当一个比率指标的分子和分母都是计数（如转化率这种「部分/整体」的比例），比率不能超过 1。任何期间或分组的值超过 `ratio_proportion_max`（默认 1.0）就会触发检查失败并拦住报告。这从另一个角度捕捉同样的 bug：如果转化率超过 100%，说明分母的聚合方式不对。
+
+**3. 校验。** 校验现在检查 `additivity` 和 `agg` 是否一致。`additivity: additive` 要求 `agg` 是 sum 或 count；`additivity: distinct_count` 要求 `agg: count_distinct`。为了向后兼容，缺少 additivity 是允许的。
+
+**改动的文件。** `draft.py`（带 grain 的 is_identifier、classify_measure）、`intake.py`（带时间检查的粒度检测、带 grain 的 with_count）、`validate.py`（additivity 校验）、`run.py`（ratios_within_bounds 检查）、`workspace.py`（measure_additivity 方法）、`defaults.py`（新参数）。
+
+**测试。** `tests/test_measure_additivity.py` 覆盖粒度检测、classify_measure、带 grain 的 is_identifier、additivity 校验和 workspace 推断。

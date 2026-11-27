@@ -682,6 +682,94 @@ def _reconcile(ws, s):
     return not off, "; ".join(off)
 
 
+def _is_proportion_ratio(ws, metric_name: str) -> bool:
+    """Check if a metric is a 'part over whole' ratio where both numerator and denominator are counts.
+    
+    These ratios (like conversion rate = orders / visits) must stay within [0, 1].
+    Ratios like margin rate (profit / revenue) are not proportions and can exceed 1."""
+    m = ws.metrics.get(metric_name, {})
+    if m.get("kind") != "ratio":
+        return False
+    
+    num_name = m.get("numerator")
+    den_name = m.get("denominator")
+    if not num_name or not den_name:
+        return False
+    
+    num_metric = ws.metrics.get(num_name, {})
+    den_metric = ws.metrics.get(den_name, {})
+    
+    return num_metric.get("unit") == "count" and den_metric.get("unit") == "count"
+
+
+def _check_ratios_within_bounds(ws, s) -> list:
+    """Check that proportion ratios (count / count) stay within [0, 1].
+    
+    Returns a list of issues found. For each proportion ratio computed in this run,
+    checks the total values for both periods and all segment values."""
+    from .defaults import param
+    
+    issues = []
+    max_ratio = param(ws, "ratio_proportion_max")
+    
+    proportion_ratios = []
+    
+    if _is_proportion_ratio(ws, s["metric"]):
+        proportion_ratios.append(s["metric"])
+    
+    for ident in ws.model.get("identities", []):
+        if ident.get("left") == s["metric"]:
+            for factor in ident.get("factors", []):
+                if _is_proportion_ratio(ws, factor):
+                    proportion_ratios.append(factor)
+    
+    proportion_ratios = list(dict.fromkeys(proportion_ratios))
+    
+    for ratio_name in proportion_ratios:
+        m = ws.metrics[ratio_name]
+        ratio_label = m.get("label", {})
+        if isinstance(ratio_label, dict):
+            ratio_label = ratio_label.get(ws.lang, ratio_label.get("en", ratio_name))
+        else:
+            ratio_label = str(ratio_label) if ratio_label else ratio_name
+        
+        try:
+            base_val = ws.total(ratio_name, s["base"], s["filters"])
+            cur_val = ws.total(ratio_name, s["current"], s["filters"])
+        except Exception:
+            continue
+        
+        if base_val < 0 or base_val > max_ratio or cur_val < 0 or cur_val > max_ratio:
+            issues.append(
+                f"{ratio_label}: base {base_val:.2%}, current {cur_val:.2%} - "
+                f"a 'part over whole' proportion cannot exceed {max_ratio:.0%}. "
+                f"The denominator may be aggregated incorrectly (summing identifiers instead of counting)."
+            )
+            continue
+        
+        for c in s["cuts"]:
+            r = c["result"]
+            if r.get("operator") != "divisive":
+                continue
+            for seg in r.get("segments", []):
+                if seg.get("den_base", 0) > 0:
+                    seg_base = seg.get("rate_base", 0)
+                    if seg_base < 0 or seg_base > max_ratio:
+                        issues.append(
+                            f"{ratio_label} in {seg['key']} (base): {seg_base:.2%} - "
+                            f"a proportion cannot exceed {max_ratio:.0%}"
+                        )
+                if seg.get("den_cur", 0) > 0:
+                    seg_cur = seg.get("rate_cur", 0)
+                    if seg_cur < 0 or seg_cur > max_ratio:
+                        issues.append(
+                            f"{ratio_label} in {seg['key']} (current): {seg_cur:.2%} - "
+                            f"a proportion cannot exceed {max_ratio:.0%}"
+                        )
+    
+    return issues
+
+
 def step_checks(ws, s):
     checks = []
 
@@ -704,6 +792,10 @@ def step_checks(ws, s):
         if s["filters"]:
             dp += data_problems(ws, s["current"], s["filters"]) + data_problems(ws, s["base"], s["filters"])
         add("identities_computable", not dp, "; ".join(dp[:5]))
+    
+    ratio_issues = _check_ratios_within_bounds(ws, s)
+    add("ratios_within_bounds", not ratio_issues, "; ".join(ratio_issues[:3]))
+    
     add("segments_add_up_to_total", *_reconcile(ws, s))
     bad = [r.get("label") for r in _results(s) if not r.get("closed")]
     add("every_decomposition_closes", not bad, ", ".join(map(str, bad)))

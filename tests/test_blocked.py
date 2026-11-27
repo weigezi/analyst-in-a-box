@@ -138,4 +138,4 @@ def test_a_clean_report_is_unchanged_and_the_demo_figures_do_not_move(tmp_path):
     en = (tmp_path / "out" / "report.en.md").read_text(encoding="utf-8")
     assert "The main cause is" in en and "What led" in en
     assert "do not use" not in en and "no number" not in en.split("\n## ")[0].lower()
-    assert len(s["checks"]) == 12
+    assert len(s["checks"]) == 13

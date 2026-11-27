@@ -15,6 +15,10 @@ measures:
     - city
     - delivery
     - customer_type
+    additivity: additive
+    additivity_basis:
+      by: shape
+      why: decimal column (floats are amounts, not identifiers)
   m_gross_profit:
     label: &id003
       zh: 毛利
@@ -30,16 +34,24 @@ measures:
     - city
     - delivery
     - customer_type
+    additivity: additive
+    additivity_basis:
+      by: shape
+      why: decimal column (floats are amounts, not identifiers)
   m_visits:
     label: &id005
       zh: 访问量
       en: Visits
     source: traffic
-    agg: count_distinct
-    date: date
-    dimensions: []
+    agg: sum
     column: visits
-    additive_over: []
+    date: date
+    dimensions:
+    - channel
+    additivity: additive
+    additivity_basis:
+      by: shape
+      why: 'table has one row per date and groups: integer columns are daily totals, not identifiers'
   m_count:
     source: orders
     agg: count_distinct
@@ -210,6 +222,15 @@ priorities:
       date: '2026-10-31'
       note: order of the user's selection; not yet a priority, so every layer is chosen by score until the user confirms one
     status: proposed
+  visits:
+    order:
+    - channel
+    mode: drill
+    source:
+      kind: user
+      date: '2026-10-31'
+      note: order of the user's selection; not yet a priority, so every layer is chosen by score until the user confirms one
+    status: proposed
   id_count:
     order:
     - channel
@@ -246,6 +267,15 @@ priorities:
     - city
     - delivery
     - customer_type
+    mode: drill
+    source:
+      kind: user
+      date: '2026-10-31'
+      note: order of the user's selection; not yet a priority, so every layer is chosen by score until the user confirms one
+    status: proposed
+  conversion:
+    order:
+    - channel
     mode: drill
     source:
       kind: user

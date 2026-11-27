@@ -138,7 +138,7 @@ def test_it_counts_the_checks_that_ran_and_the_notes_raised(tmp_path):
     root, _ = build(tmp_path)
     s, md = reports(root, tmp_path)
     ran = len(s["checks"])
-    assert ran == 12
+    assert ran == 13
     assert f"{ran} pre-delivery checks" in part(md["en"], "en")
     assert f"{ran} 项交付前自检" in part(md["zh"], "zh")
 
