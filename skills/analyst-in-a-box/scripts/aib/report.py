@@ -62,12 +62,13 @@ T = {
         "confirm_external": "「{what}」目前是推测（{st}）。你确认后我会把它标成已确认。",
         "confirm_proposed": "「{what}」还没确认。",
         "suspect": "**数据存疑**：{items}。数据核实之前，不把任何原因当成已解释。",
+        "data_tier_failed": "**数据提醒**：{items}。报告照出，结论标存疑。",
         "note_blank_amounts": "{column} 有空白：本期 {blank:,} / {rows:,} 行（{share}）为空，基期 {base_blank:,} / {base_rows:,} 行（{base_share}）为空，空白的行没有计入金额",
         "note_zero_amounts": "{column} 为 0 的行：本期 {zero:,} / {rows:,} 行（{share}）；这些行仍算作一单，会拉低按单计的数",
         "note_looks_like_rate": "{column} 的所有值都在 0 到 1 之间（{min} 到 {max}，{n:,} 行），像是比率而不是金额；比率加总没有意义，请确认它真的是可以相加的量",
         "note_repeats_per_entity": "{column} 对同一个 {entity} 在不同日期上几乎总是同一个值（{entities:,} 个里有 {pct} 如此），像是存量或价目而不是每次发生的金额；加总会把它每期重复算一次，请确认",
-        "data_note": "**数据说明**：{items}。以上不阻止出报告，但会影响怎么读这些数。",
-        "quality_warn": "**数据提醒**：{items}。这些不影响下面的数怎么算，结论照常给出，但值得核一下。",
+        "data_note": "**数据说明**：{items}。这会影响怎么读这些数。",
+        "quality_warn": "**数据提醒**：{items}。这些不影响下面的数怎么算，但值得核一下。",
         "quality_warn_blocked": "**数据提醒**：{items}。这一项单独不会拦住报告，要和上面没通过的自检一起看。",
         "data_note_blocked": "**数据说明**：{items}。这些单独不会拦住报告；没通过的自检处理好之后，它们会影响怎么读这些数。",
         "closed_inferred": "{days}按不营业处理，这是从数据推出来的假设，还没人确认（{note}）。这几天没有数据不算缺数据。",
@@ -212,12 +213,13 @@ T = {
         "confirm_external": "\"{what}\" is a hypothesis ({st}). Confirm it and I will mark it confirmed.",
         "confirm_proposed": "\"{what}\" is not confirmed yet.",
         "suspect": "**Data in doubt**: {items}. No cause counts as explained until the data is checked.",
+        "data_tier_failed": "**Data note**: {items}. The report proceeds; conclusions are marked as uncertain.",
         "note_blank_amounts": "{column} has blank cells: {blank:,} of {rows:,} rows ({share}) in the current period and {base_blank:,} of {base_rows:,} ({base_share}) in the base are blank; blank rows add nothing to the amount",
         "note_zero_amounts": "{column} is exactly 0 on {zero:,} of {rows:,} rows ({share}) in the current period; these rows still count as an order and pull per-order figures down",
         "note_looks_like_rate": "every value of {column} is between 0 and 1 ({min} to {max}, {n:,} rows), which looks like a rate, not an amount; rates cannot be added up, so confirm it is a quantity that adds",
         "note_repeats_per_entity": "{column} carries the same value for the same {entity} on different dates for {pct} of {entities:,} of them, which looks like a level (a balance, a price list) rather than an amount that happens each time; summing counts it again every period, so confirm",
-        "data_note": "**Data note**: {items}. This does not stop the report, but it changes how to read these numbers.",
-        "quality_warn": "**Data note**: {items}. This does not change how the numbers below are computed and the conclusions stand, but it is worth a look.",
+        "data_note": "**Data note**: {items}. This changes how to read these numbers.",
+        "quality_warn": "**Data note**: {items}. This does not change how the numbers are computed, but it is worth a look.",
         "quality_warn_blocked": "**Data note**: {items}. This alone would not stop a report; read it together with the failed check above.",
         "data_note_blocked": "**Data note**: {items}. These alone would not stop a report; they change how to read these numbers once the failed check is fixed.",
         "closed_inferred": "{days} treated as closed: an assumption drawn from the data, not yet confirmed by anyone ({note}). Missing rows on these days are not counted as missing data.",
@@ -909,6 +911,12 @@ def render(ws, s, lang="zh", out_dir: Path | None = None) -> str:
     suspect = s.get("quality", {}).get("suspect")
     if suspect:
         L += [t["suspect"].format(items=_quality_items(s, lang)), ""]
+    data_suspect = s.get("data_suspect", False)
+    if data_suspect and not blocked:
+        failed_data = [c for c in s["checks"] if not c["pass"] and c.get("tier") == "data"]
+        if failed_data:
+            items = "; ".join(c["detail"] or c["check"] for c in failed_data)
+            L += [t["data_tier_failed"].format(items=items), ""]
     warn = [n for n in s.get("quality", {}).get("warned", [])
             if next((c for c in s["quality"]["checks"] if c["check"] == n), {}).get("status") == "fail"]
     if warn:

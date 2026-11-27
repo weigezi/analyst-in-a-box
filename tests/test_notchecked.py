@@ -143,15 +143,17 @@ def test_it_counts_the_checks_that_ran_and_the_notes_raised(tmp_path):
     assert f"{ran} 项交付前自检" in part(md["zh"], "zh")
 
 
-def test_a_blocked_report_still_says_what_it_did_not_check(tmp_path):
+def test_a_data_suspect_report_still_says_what_it_checked(tmp_path):
+    """Data tier failures (data_quality) don't block but do flag data_suspect and list the failed check."""
     ws = tmp_path / "ws"
     shutil.copytree(DEMO, ws, ignore=shutil.ignore_patterns("runs", "regressions", "corrections.jsonl", "docs"))
     o = pd.read_csv(ws / "data" / "orders.csv.gz")
     pd.concat([o, o[o["order_date"] == "2026-10-21"].head(5)]).to_csv(ws / "data" / "orders.csv.gz", index=False)
     s = run(ws, {"metric": "revenue", "current": list(CUR), "base": "yoy", "id": "b"}, out_dir=tmp_path / "out")
-    assert s["blocked"]
+    assert not s["blocked"]  # data tier doesn't block
+    assert s.get("data_suspect", False)  # but it does flag data_suspect
     en = (tmp_path / "out" / "report.en.md").read_text(encoding="utf-8")
-    assert "failed" in part(en, "en")                            # the failed check is listed among what ran
+    assert "failed" in part(en, "en")  # the failed check is listed among what ran
 
 
 def test_nothing_in_the_section_is_a_claim_the_run_cannot_back(tmp_path):

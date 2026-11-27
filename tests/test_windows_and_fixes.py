@@ -124,15 +124,18 @@ def test_flat_history_report_says_flat(tmp_path):
         assert word in report.render(ws, s, lang)
 
 
-def test_second_order_without_a_base_does_not_crash(tmp_path):
+def test_second_order_without_a_base_flags_data_suspect(tmp_path):
+    """Missing base data now flags data_suspect but doesn't block (data tier)."""
     df = synth.orders(seed=2, start="2026-09-01")
     ws = Workspace(synth.workspace(tmp_path, df))
     s = run(ws, {"metric": "revenue", "current": ["2026-10-19", "2026-10-25"], "base": "yoy", "previous": True}, write=False)
-    assert s["blocked"]
+    assert not s["blocked"]  # data tier doesn't block
+    assert s.get("data_suspect", False)  # but it does flag data_suspect
     assert any(c["check"] == "base_has_data" and not c["pass"] for c in s["checks"])
 
 
-def test_new_category_with_no_base_does_not_crash(tmp_path, demo):
+def test_new_category_with_no_base_flags_data_suspect(tmp_path, demo):
+    """New category with no base now flags data_suspect but doesn't block (data tier)."""
     root = tmp_path / "ws"
     shutil.copytree(demo.root, root, ignore=shutil.ignore_patterns("runs", "regressions", "corrections.jsonl", "docs"))
     o = pd.read_csv(root / "data" / "orders.csv.gz")
@@ -142,7 +145,8 @@ def test_new_category_with_no_base_does_not_crash(tmp_path, demo):
     pd.concat([o, new]).to_csv(root / "data" / "orders.csv.gz", index=False)
     s = run(Workspace(root), {"metric": "revenue", "current": ["2026-10-19", "2026-10-25"], "base": "yoy",
                               "compare": "app_vs_web", "filters": {"category": "candle"}}, write=False)
-    assert s["blocked"] and any(c["check"] == "base_has_data" and not c["pass"] for c in s["checks"])
+    assert not s["blocked"]  # data tier doesn't block
+    assert s.get("data_suspect", False) and any(c["check"] == "base_has_data" and not c["pass"] for c in s["checks"])
 
 
 # ---------- 7. metric tree ----------

@@ -381,3 +381,33 @@
 **改动的文件。** `draft.py`（带 grain 的 is_identifier、classify_measure）、`intake.py`（带时间检查的粒度检测、带 grain 的 with_count）、`validate.py`（additivity 校验）、`run.py`（ratios_within_bounds 检查）、`workspace.py`（measure_additivity 方法）、`defaults.py`（新参数）。
 
 **测试。** `tests/test_measure_additivity.py` 覆盖粒度检测、classify_measure、带 grain 的 is_identifier、additivity 校验和 workspace 推断。
+
+---
+
+## 2026-11-27：文档里的六步、运行记录里的阶段标签、自检的三档
+
+决定日期：2026-11-27。决定人：代码评审。
+
+**1. 两阶段六步结构。** 文档现在把流程描述为：
+- 输入阶段：P0（问清楚问题）
+- 解题阶段：P1（本题数据体检）、P2（数学分析）、P3（现实原因）、P4（动作和负责人）、P5（报告和结论沉淀）
+
+`run.py` 里每一步都在运行记录里打上阶段标签（P0–P5）。
+
+**2. 自检分三档。** 交付前自检分成：
+- **wrong**（拦报告）：workspace_valid、identities_computable、segments_add_up_to_total、every_decomposition_closes、contribution_shares_sum_to_100pct、ratios_within_bounds
+- **data**（标 data_suspect，不拦）：data_quality、windows_same_length、base_has_data
+- **evidence**（只供参考）：every_slot_explained_or_flagged、explanations_fit_the_change、outside_events_not_stated_as_fact、every_cut_went_through_a_decision_table
+
+`blocked` 只在 `wrong` 档失败时为真。`data_suspect` 是新字段，在 `data` 档失败时为真。
+
+**3. 原因的证据分档。** 文档现在描述三种证据档次：
+- 数据已验证：`explained` 状态，引用过了所有检查
+- 有出处待确认：`hypothesis` 状态，来源是文档或系统记录
+- AI 推断：在文档里定义，生成留给后续工作
+
+**4. AGENTS.md 第 5 条改写。** 原来的「原因是一条有出处的记录，不是把结果换个说法」改成：「『变在哪』（P2）由脚本算；『为什么变』（P3）是按证据分档的假设。」
+
+**改动的文件。** `AGENTS.md`、`AGENTS.zh.md`（两阶段六步结构、第 5 条改写）、`run.py`（PHASES、CHECK_TIERS、步骤里的 phase 标签、检查里的 tier 字段、blocked/data_suspect 逻辑）、`report.py`（data_tier_failed 消息、去掉「结论照常给出」的说法）。
+
+**测试。** 更新了 `test_adversarial.py`（新的 `data` 预期、judge 函数）、`test_blocked.py`（blocked 和 data_suspect 分开的 fixture），以及多个其他测试文件，把 data 档失败从 blocked 改成 data_suspect。

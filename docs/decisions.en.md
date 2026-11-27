@@ -430,3 +430,33 @@ This fixes the bug where a traffic table's daily visit counts were misidentified
 **Files changed.** `draft.py` (is_identifier with grain, classify_measure), `intake.py` (grain detection with datetime time check, with_count with grain), `validate.py` (additivity validation), `run.py` (ratios_within_bounds check), `workspace.py` (measure_additivity method), `defaults.py` (new parameters).
 
 **Tests.** `tests/test_measure_additivity.py` covers grain detection, classify_measure, is_identifier with grain, additivity validation, and workspace inference.
+
+---
+
+## 2026-11-27: Six steps in the docs, phase labels in the run record, and three tiers of checks
+
+Decision date: 2026-11-27. Decided by: code review.
+
+**1. Two-phase six-step structure.** Documentation now describes the workflow as:
+- Input phase: P0 (understand the question)
+- Analysis phase: P1 (data health check), P2 (mathematical analysis), P3 (real-world causes), P4 (actions and owners), P5 (report and conclusions)
+
+Each step in `run.py` is tagged with its phase (P0–P5) in the run record.
+
+**2. Three tiers of checks.** Pre-delivery checks are split into:
+- **wrong** (blocks report): workspace_valid, identities_computable, segments_add_up_to_total, every_decomposition_closes, contribution_shares_sum_to_100pct, ratios_within_bounds
+- **data** (flags data_suspect but doesn't block): data_quality, windows_same_length, base_has_data
+- **evidence** (informational only): every_slot_explained_or_flagged, explanations_fit_the_change, outside_events_not_stated_as_fact, every_cut_went_through_a_decision_table
+
+The `blocked` flag now only triggers for `wrong` tier failures. `data_suspect` is a new flag for `data` tier failures.
+
+**3. Evidence tiers for causes.** The documentation now describes three evidence tiers:
+- Data-verified: `explained` status with citations that passed all checks
+- Sourced-to-confirm: `hypothesis` status from documents or system records
+- AI-inferred: defined in docs, generation deferred to future work
+
+**4. Changes to AGENTS.md rule 5.** The old rule "A cause is a sourced record, not a restated result" is replaced with: "'Where it moved' (P2) is computed by scripts; 'why it moved' (P3) is a hypothesis ranked by evidence."
+
+**Files changed.** `AGENTS.md`, `AGENTS.zh.md` (two-phase six-step structure, rule 5 rewrite), `run.py` (PHASES, CHECK_TIERS, phase labels in steps, tier field in checks, blocked/data_suspect logic), `report.py` (data_tier_failed message, removed "conclusions stand" phrases).
+
+**Tests.** Updated `test_adversarial.py` (new `data` expectation, judge function), `test_blocked.py` (separate fixtures for blocked vs data_suspect), and multiple other test files to expect data_suspect instead of blocked for data tier failures.

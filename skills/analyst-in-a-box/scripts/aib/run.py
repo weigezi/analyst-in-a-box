@@ -774,7 +774,8 @@ def step_checks(ws, s):
     checks = []
 
     def add(name, ok, detail=""):
-        checks.append({"check": name, "pass": bool(ok), "detail": detail})
+        tier = CHECK_TIERS.get(name, "evidence")
+        checks.append({"check": name, "pass": bool(ok), "detail": detail, "tier": tier})
 
     add("workspace_valid", not s["problems"], "; ".join(s["problems"][:5]))
     q = s["quality"]
@@ -784,10 +785,12 @@ def step_checks(ws, s):
     add("windows_same_length", n_cur == n_base or s.get("per_day"),
         f"current has {n_cur} days, base has {n_base}; a change between windows of different length is not comparable "
         "(re-run with per_day: true to compare daily averages)")
-    add("base_has_data", not s["errors"], "; ".join(f"{e['dimension']}: {e['error']}" for e in s["errors"]))
-    if not s["problems"]:
+    base_ok = not s["errors"]
+    add("base_has_data", base_ok, "; ".join(f"{e['dimension']}: {e['error']}" for e in s["errors"]))
+    if not s["problems"] and base_ok:
         # Ratio metrics are defined as numerator / denominator, so an identity like revenue = orders x AOV holds by
         # construction. This only proves every factor can be computed (no zero denominator, no missing source).
+        # Skip when base_has_data fails (base_ok is False) since the base data isn't reliable.
         dp = data_problems(ws, s["current"]) + data_problems(ws, s["base"])
         if s["filters"]:
             dp += data_problems(ws, s["current"], s["filters"]) + data_problems(ws, s["base"], s["filters"])
@@ -815,13 +818,44 @@ def step_checks(ws, s):
     add("outside_events_not_stated_as_fact", not unproven, ", ".join(unproven))
     add("every_cut_went_through_a_decision_table", all(c.get("decision", {}).get("table") for c in s["cuts"]))
     s["checks"] = checks
-    s["blocked"] = not all(c["pass"] for c in checks)
+    s["blocked"] = any(not c["pass"] and c["tier"] == "wrong" for c in checks)
+    s["data_suspect"] = any(not c["pass"] and c["tier"] == "data" for c in checks)
     return "record"
 
 
 STEPS = {"frame": step_frame, "quality": step_quality, "qualify": step_qualify, "horizontal": step_horizontal, "vertical": step_vertical,
          "second_sides": step_second_sides, "second_time": step_second_time, "explain": step_explain,
          "actions": step_actions, "checks": step_checks}
+
+PHASES = {
+    "frame": "P0",
+    "quality": "P1",
+    "qualify": "P2",
+    "horizontal": "P2",
+    "vertical": "P2",
+    "second_sides": "P2",
+    "second_time": "P2",
+    "explain": "P3",
+    "actions": "P4",
+    "checks": "P5",
+    "record": "P5",
+}
+
+CHECK_TIERS = {
+    "workspace_valid": "wrong",
+    "identities_computable": "wrong",
+    "segments_add_up_to_total": "wrong",
+    "every_decomposition_closes": "wrong",
+    "contribution_shares_sum_to_100pct": "wrong",
+    "ratios_within_bounds": "wrong",
+    "data_quality": "data",
+    "windows_same_length": "data",
+    "base_has_data": "data",
+    "every_slot_explained_or_flagged": "evidence",
+    "explanations_fit_the_change": "evidence",
+    "outside_events_not_stated_as_fact": "evidence",
+    "every_cut_went_through_a_decision_table": "evidence",
+}
 
 
 def _hash(path: Path):
@@ -837,7 +871,7 @@ def run(ws: Workspace | str | Path, config: dict, out_dir: str | Path | None = N
     try:
         while step != "record":
             nxt = STEPS[step](ws, s)
-            s["steps"].append({"step": step, "next": nxt})
+            s["steps"].append({"step": step, "next": nxt, "phase": PHASES.get(step, "P5")})
             step = nxt
     finally:
         # one run's excluded days and per-day scaling must not leak into the next run on the same workspace

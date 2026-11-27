@@ -89,9 +89,11 @@ def test_correction_closes_the_gap_and_is_remembered(tmp_path):
     assert not all(r["pass"] for r in evolve.regress(root))
 
 
-def test_windows_of_different_length_are_blocked(ws):
+def test_windows_of_different_length_are_data_suspect(ws):
+    """Windows of different length now flags data_suspect but doesn't block (it's in the 'data' tier)."""
     s = run(ws, {"metric": "revenue", "current": ["2026-10-19", "2026-10-25"], "base": ["2025-10-20", "2025-10-27"]}, write=False)
-    assert s["blocked"]
+    assert not s["blocked"]  # data tier doesn't block
+    assert s.get("data_suspect", False)  # but it does flag data_suspect
     assert any(c["check"] == "windows_same_length" and not c["pass"] for c in s["checks"])
 
 
