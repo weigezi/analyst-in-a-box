@@ -79,10 +79,13 @@ def test_unequal_months_are_compared_per_day(demo):
     assert s["qualify"]["total_base"] == pytest.approx(full / 30)
 
 
-def test_unequal_windows_without_per_day_are_blocked_with_a_way_out(demo):
+def test_unequal_windows_automatically_use_per_day(demo):
+    """Unequal windows now automatically set per_day=true instead of blocking."""
     s = run(demo, {"metric": "revenue", "current": ["2026-10-19", "2026-10-25"], "base": ["2025-10-20", "2025-10-27"]}, write=False)
     c = next(c for c in s["checks"] if c["check"] == "windows_same_length")
-    assert not c["pass"] and "per_day" in c["detail"]
+    assert c["pass"]  # passes because per_day is automatically set
+    assert s.get("per_day")
+    assert any("automatic" in str(n) for n in s.get("notes", []))
 
 
 def test_single_day_run_notes_the_weekday_alignment(demo):

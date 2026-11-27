@@ -162,8 +162,9 @@ def holiday_in_one_period(tmp):
 
 @case
 def unequal_months(tmp):
+    # With automatic per_day, unequal windows compare daily averages; no longer a data issue
     return (ws_for(tmp, synth.orders(seed=33)),
-            {"metric": "revenue", "current": ["2026-10-01", "2026-10-25"], "base": ["2026-09-01", "2026-09-30"]}, "data", None)
+            {"metric": "revenue", "current": ["2026-10-01", "2026-10-25"], "base": ["2026-09-01", "2026-09-30"]}, "quiet", None)
 
 
 @case

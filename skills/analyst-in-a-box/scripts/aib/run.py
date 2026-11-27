@@ -118,13 +118,14 @@ def step_frame(ws, s):
             s["notes"].append({"holiday": "base moved", "weeks": plans["shift_base"]["weeks"]})
     s["window_days"] = [(cur[1] - cur[0]).days + 1, (base[1] - base[0]).days + 1]
     s["days_compared"] = [ws.days_in(cur), ws.days_in(base)]
-    # Unequal lengths: compare daily averages. Automatic when the rule chose the windows (calendar months differ
-    # in length); for windows the user typed, only when asked (per_day: true), so a typo is not silently rescaled.
-    auto = rule in ("calendar_month", "calendar_month_last_year") and s["days_compared"][0] != s["days_compared"][1]
-    s["per_day"] = bool(c.get("per_day") or auto)
+    n_cur, n_base = s["window_days"]
+    # Unequal lengths: compare daily averages. Automatic when windows differ in length; a note is added to the report.
+    auto_unequal = n_cur != n_base
+    auto_calendar = rule in ("calendar_month", "calendar_month_last_year") and s["days_compared"][0] != s["days_compared"][1]
+    s["per_day"] = bool(c.get("per_day") or auto_unequal or auto_calendar)
     ws.per_day = s["per_day"]
-    if auto:
-        s["notes"].append({"per_day": "automatic: the two calendar months have different lengths"})
+    if auto_unequal and not c.get("per_day"):
+        s["notes"].append({"per_day": f"automatic: current has {n_cur} days, base has {n_base} days; comparing daily averages"})
     if not s["problems"]:
         _ratio_not_a_count(ws, s)
     return "quality"
