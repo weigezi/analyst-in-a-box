@@ -10,6 +10,12 @@ from .sources import AGGS, EXACT_COPIES
 from .workspace import SOURCE_KINDS, STATUSES, Workspace, label
 
 ADDITIVE_AGGS = {"sum", "count"}
+ADDITIVITY_VALUES = {"additive", "distinct_count", "non_additive"}
+ADDITIVITY_AGG_MAP = {
+    "additive": {"sum", "count"},
+    "distinct_count": {"count_distinct"},
+    "non_additive": {"mean", "min", "max"},
+}
 
 
 def _check_source(where, obj, problems):
@@ -41,6 +47,14 @@ def model_problems(ws: Workspace) -> list[str]:
                 p.append(f"{w}: unknown dimension '{d}'")
         if m.get("agg") not in ADDITIVE_AGGS and "additive_over" not in m:
             p.append(f"{w}: agg '{m.get('agg')}' is not summable in general; list the dimensions it can be added over in additive_over")
+        if m.get("additivity") is not None:
+            if m["additivity"] not in ADDITIVITY_VALUES:
+                p.append(f"{w}: additivity must be one of {', '.join(sorted(ADDITIVITY_VALUES))}, not '{m['additivity']}'")
+            else:
+                expected_aggs = ADDITIVITY_AGG_MAP.get(m["additivity"], set())
+                if m.get("agg") not in expected_aggs:
+                    p.append(f"{w}: additivity '{m['additivity']}' does not match agg '{m.get('agg')}' "
+                             f"(expected agg in {', '.join(sorted(expected_aggs))})")
     for name, m in ws.metrics.items():
         w = f"metric {name}"
         if m.get("kind") == "ratio":

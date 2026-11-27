@@ -321,6 +321,29 @@ params:
         which tables may be offered as the main one; the user still answers every column. example default, waiting for the
         user to confirm'
     status: proposed
+  measure_id_unique_share:
+    value: 0.95
+    source:
+      kind: demo_setting
+      note: In an event table (one row per event), an integer column is treated as an identifier (for counting distinct values)
+        when at least 95% of its values are distinct; below that it may be a quantity that happens to vary. example default,
+        waiting for the user to confirm
+    status: proposed
+  measure_id_range_ratio:
+    value: 3.0
+    source:
+      kind: demo_setting
+      note: 'An identifier column''s values should be dense in their range: (max - min + 1) / nunique at most this value.
+        A sequence 1..N has ratio 1; scattered integers from a larger space have a higher ratio and are not identifiers. example
+        default, waiting for the user to confirm'
+    status: proposed
+  ratio_proportion_max:
+    value: 1.0
+    source:
+      kind: demo_setting
+      note: A 'part over whole' ratio (both sides are counts, like conversion rate) cannot exceed 1. A value above this in
+        any period or segment fails the ratios_within_bounds check. example default, waiting for the user to confirm
+    status: proposed
   intake_measure_min_distinct:
     value: 3
     source:

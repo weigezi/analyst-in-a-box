@@ -99,9 +99,9 @@ def _table_facts(name, path, df):
     # A dated table also has keys of its own (a session id, an order id): a child table can point at them. Only
     # whole numbers and words, never a measured amount, and only when the table is big enough for "unique" to mean something.
     row_keys = [c for c in df.columns if dates and c not in dates and len(df) >= 30 and _is_key(df[c])]
+    
     facts = {"name": name, "path": str(path), "rows": len(df), "profile": prof, "date_columns": dates,
              "composite_dates": comps, "number_columns": nums, "measure_columns": draft.measure_columns(df, nums),
-             "id_columns": [c for c in nums if draft.is_identifier(df[c])],
              "duplicate_rows": int(df.duplicated().sum()), "row_keys": row_keys,
              "word_columns": words, "keys": keys}
     if len(dates) >= 2:
@@ -118,13 +118,31 @@ def _table_facts(name, path, df):
         # A short dated table (four products, each with a launch date) has keys too. Only whole numbers: with so few rows
         # any word column is unique by chance. A link to such a key must still pass the id-range test in _links.
         facts["row_keys"] = [c for c in df.columns if c not in dates and pd.api.types.is_integer_dtype(df[c]) and _is_key(df[c])]
+    has_datetime_with_time = False
     if len(dates) == 1:
         d = dates[0]
-        groups = [c for c in words if c not in keys and shape[c] == "category"]
-        for g in ([], *[[c] for c in groups]):
-            if not df.duplicated([d, *g]).any():
-                facts["per_date"] = g
-                break
+        col = df[d]
+        try:
+            ts = pd.to_datetime(col)
+            has_datetime_with_time = not ((ts.dt.hour == 0) & (ts.dt.minute == 0) & (ts.dt.second == 0)).all()
+        except (ValueError, TypeError):
+            pass
+        if not has_datetime_with_time:
+            groups = [c for c in words if c not in keys and shape[c] == "category"]
+            for g in ([], *[[c] for c in groups]):
+                if not df.duplicated([d, *g]).any():
+                    facts["per_date"] = g
+                    break
+    
+    if "per_date" in facts and not has_datetime_with_time:
+        facts["grain"] = "per_date"
+    elif dates and not facts.get("start_end"):
+        facts["grain"] = "per_event"
+    else:
+        facts["grain"] = "undated"
+    
+    facts["id_columns"] = [c for c in nums if draft.is_identifier(df[c], grain=facts["grain"])]
+    
     return facts
 
 
@@ -756,11 +774,21 @@ def confirm(workspace, answers: dict, today: dt.date | None = None) -> dict:
         sources[main]["key"] = id_col
 
     roles = _main_roles(ws, d, answers, main, joined, price_col, per_unit, {x["name"] for x in derived}, lang)
-    specs = [draft.with_count({"column": c, "role": r, "source": main, "date": date_col, "dimensions": dims}, joined,
-                              sources[main].get("key")) for c, r in roles.items()]
+    main_grain = mt.get("grain", "per_event")
+    specs = []
+    for c, r in roles.items():
+        sp = draft.with_count({"column": c, "role": r, "source": main, "date": date_col, "dimensions": dims}, joined,
+                              sources[main].get("key"), grain=main_grain)
+        if c in joined.columns:
+            cls = draft.classify_measure(joined, c, main_grain, links)
+            if cls["confidence"] == "sure" and cls["additivity"]:
+                sp["additivity"] = cls["additivity"]
+                sp["additivity_basis"] = {"by": "shape", "why": cls["why"]}
+        specs.append(sp)
     for dc in derived:
         specs.append({"column": dc["name"], "role": "amount" if dc["name"] == (per_unit or {}).get("amount") else "quantity",
-                      "source": main, "date": date_col, "dimensions": dims})
+                      "source": main, "date": date_col, "dimensions": dims,
+                      "additivity": "additive", "additivity_basis": {"by": "shape", "why": "derived column (product or sum)"}})
     missing = [s["column"] for s in specs if s["role"] is None]
     if missing:
         raise ValueError(f"answer what these columns are first: {', '.join(missing)}")
@@ -789,10 +817,16 @@ def confirm(workspace, answers: dict, today: dt.date | None = None) -> dict:
                 src["key"] = [date, *t["per_date"]]
             sources[n] = src
             key = src["key"] if isinstance(src.get("key"), str) else None
+            table_grain = t.get("grain", "per_event")
             for c in t["number_columns"]:
-                specs.append(draft.with_count(
+                sp = draft.with_count(
                     {"column": c, "role": answers.get(f"role:{n}.{c}") or "skip", "source": n, "date": date,
-                     "dimensions": list(cols), "columns": {dm: lc for dm, lc in cols.items() if dm != lc}}, df, key))
+                     "dimensions": list(cols), "columns": {dm: lc for dm, lc in cols.items() if dm != lc}}, df, key, grain=table_grain)
+                cls = draft.classify_measure(df, c, table_grain, links)
+                if cls["confidence"] == "sure" and cls["additivity"]:
+                    sp["additivity"] = cls["additivity"]
+                    sp["additivity_basis"] = {"by": "shape", "why": cls["why"]}
+                specs.append(sp)
             if not t["number_columns"] and answers.get(f"records:{n}") == "yes":
                 # nothing to add up here: the table is a list of records, and the records are what is counted
                 specs.append({"column": f"{n}_records", "role": "records", "source": n, "date": date, "dimensions": list(cols),

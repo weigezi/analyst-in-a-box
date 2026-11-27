@@ -409,3 +409,24 @@ Two outside reviewers ran the published tool and found five places where a repor
 **What went wrong on the way.** The first version of the section read `column` from every measure, and a row-count measure has none; the full suite caught it (one failure out of 390), and a regression test now covers it. My first check that the new test failed without the change removed the whole section, which proves nothing about that line; I repeated it with only the one line switched off.
 
 **Not changed.** The label of a blank dimension value (another change owns it) and the rule that decides when a check blocks.
+
+---
+
+## 2026-11-27: Measure additivity and ratio bounds check
+
+Decision date: 2026-11-27. Decided by: code review.
+
+**1. Measure additivity.** Each measure now carries an `additivity` field: `additive` (values can be summed across rows), `distinct_count` (count distinct values), or `non_additive` (rates, prices). Classification is based on table grain:
+
+- A **per_date** table (one row per date × groups, detected by date column without time component) has columns that are daily totals. Integer columns are additive by default, never identifiers.
+- A **per_event** table (one row per session, order; detected by timestamps or multiple rows per date) may have identifiers. High-uniqueness integer columns with dense range are identifiers; they get `additivity: null` so the user picks the role (records/visits/skip).
+
+This fixes the bug where a traffic table's daily visit counts were misidentified as identifiers, producing 10571% conversion rates instead of ~4%.
+
+**2. Ratio bounds check.** Added check #13 `ratios_within_bounds`: when both numerator and denominator of a ratio metric are counts (a "part over whole" proportion like conversion rate), the ratio cannot exceed 1. A value above `ratio_proportion_max` (default 1.0) in any period or segment fails the check and blocks the report. This catches the same bug from a different angle: if conversion rate exceeds 100%, the denominator is aggregated incorrectly.
+
+**3. Validation.** Validation now checks that `additivity` and `agg` agree. `additivity: additive` requires `agg` in {sum, count}; `additivity: distinct_count` requires `agg: count_distinct`. Missing additivity is allowed for backward compatibility.
+
+**Files changed.** `draft.py` (is_identifier with grain, classify_measure), `intake.py` (grain detection with datetime time check, with_count with grain), `validate.py` (additivity validation), `run.py` (ratios_within_bounds check), `workspace.py` (measure_additivity method), `defaults.py` (new parameters).
+
+**Tests.** `tests/test_measure_additivity.py` covers grain detection, classify_measure, is_identifier with grain, additivity validation, and workspace inference.

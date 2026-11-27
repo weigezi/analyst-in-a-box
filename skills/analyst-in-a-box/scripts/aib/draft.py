@@ -37,11 +37,17 @@ MONTH_NAMES = {"january", "february", "march", "april", "may", "june", "july", "
 MONTH_NAMES |= {m[:3] for m in MONTH_NAMES}
 
 
-def is_identifier(s: pd.Series, share: float | None = None) -> bool:
+def is_identifier(s: pd.Series, share: float | None = None, grain: str | None = None) -> bool:
     """A whole-number column (integer type) with mostly distinct values: an order, session or user number.
-    Decimals are never identifiers; a column of a few distinct values is never one either."""
+    Decimals are never identifiers; a column of a few distinct values is never one either.
+    
+    When `grain` is 'per_date', the column is not treated as an identifier: a table aggregated by date has
+    numeric columns that are daily totals (visits, revenue), and high uniqueness is natural for continuously
+    varying numbers, not evidence of an identifier."""
     share = defaults.PARAMS["intake_id_distinct_share"]["value"] if share is None else share
     if not pd.api.types.is_integer_dtype(s) or pd.api.types.is_bool_dtype(s) or len(s) == 0:
+        return False
+    if grain == "per_date":
         return False
     return s.nunique(dropna=True) / len(s) >= share
 
@@ -49,6 +55,76 @@ def is_identifier(s: pd.Series, share: float | None = None) -> bool:
 ID_NEVER_ADDED = {"en": "A column of identifiers (a session, an order, a user number) is never added up: choose \"visits\" or \"records\" "
                         "to count its distinct values, or skip it.",
                   "zh": "编号类的列（会话号、订单号、用户号）不会被加起来：选「访问量」或「记录」就是数不重复的编号个数，不分析就选忽略。"}
+
+
+def classify_measure(df: pd.DataFrame, column: str, grain: str, links: list | None = None) -> dict:
+    """Classify how a numeric column should be aggregated based on table grain and column characteristics.
+    
+    Returns {"additivity": str, "confidence": "sure"|"unsure", "why": str} where additivity is one of:
+    - "additive": values can be summed across rows
+    - "distinct_count": count distinct values (identifier-like)
+    - "non_additive": cannot be meaningfully summed (rates, prices, etc.)
+    
+    The classification is based on the table's grain:
+    - per_date: a table with one row per date (or date × groups) has columns that are daily totals → additive
+    - per_event: a table with multiple rows per date (orders, sessions) may have identifiers → check further
+    - undated: lookup tables without dates
+    
+    Args:
+        df: The DataFrame containing the column
+        column: The column name to classify
+        grain: The table's grain: "per_date", "per_event", or "undated"
+        links: List of confirmed links, to check if this column is a foreign key
+    """
+    s = df[column]
+    n = len(s)
+    nunique = s.nunique(dropna=True)
+    
+    if n == 0:
+        return {"additivity": "additive", "confidence": "sure", "why": "empty column"}
+    
+    if pd.api.types.is_float_dtype(s) and not pd.api.types.is_integer_dtype(s):
+        return {"additivity": "additive", "confidence": "sure", 
+                "why": "decimal column (floats are amounts, not identifiers)"}
+    
+    if grain == "per_date":
+        return {"additivity": "additive", "confidence": "sure",
+                "why": f"table has one row per date and groups: integer columns are daily totals, not identifiers"}
+    
+    if grain == "per_event" and pd.api.types.is_integer_dtype(s) and not pd.api.types.is_bool_dtype(s):
+        unique_share = nunique / n
+        unique_threshold = defaults.PARAMS["measure_id_unique_share"]["value"]
+        range_ratio_threshold = defaults.PARAMS["measure_id_range_ratio"]["value"]
+        
+        smin, smax = int(s.min()), int(s.max())
+        range_span = smax - smin + 1
+        range_ratio = range_span / nunique if nunique > 0 else float("inf")
+        
+        if unique_share >= unique_threshold and range_ratio <= range_ratio_threshold:
+            # This looks like an identifier (dense sequence). The user will choose its role
+            # (records/visits/skip), so we do not pre-set additivity here. The role determines
+            # whether it becomes count_distinct or gets skipped entirely.
+            return {"additivity": None, "confidence": "sure",
+                    "why": f"{nunique:,} distinct values in {n:,} rows ({unique_share:.1%}), "
+                           f"range {smin}..{smax} (ratio {range_ratio:.2f}): dense sequence, likely an identifier"}
+        
+        if links:
+            for lk in links:
+                if (lk.get("left_column") == column or lk.get("right_column") == column) and lk.get("suggested") == "yes":
+                    if lk.get("right_is_key"):
+                        # Foreign key reference - same as above, role determines aggregation
+                        return {"additivity": None, "confidence": "sure",
+                                "why": f"column is a key reference in a confirmed link to {lk.get('right_table')}"}
+        
+        id_threshold = defaults.PARAMS["intake_id_distinct_share"]["value"]
+        if unique_share >= id_threshold:
+            return {"additivity": None, "confidence": "unsure",
+                    "why": f"{nunique:,} distinct values in {n:,} rows ({unique_share:.1%}), "
+                           f"range {smin}..{smax} (ratio {range_ratio:.2f}): "
+                           f"not dense enough for a certain identifier, but too unique for a typical measure"}
+    
+    return {"additivity": "additive", "confidence": "sure",
+            "why": "integer column with repeated values: a typical measure"}
 
 
 def count_basis(role: str, column: str, identifier: bool, key: str | None) -> dict | None:
@@ -64,11 +140,11 @@ def count_basis(role: str, column: str, identifier: bool, key: str | None) -> di
     return None
 
 
-def with_count(spec: dict, df: pd.DataFrame, key: str | None = None) -> dict:
+def with_count(spec: dict, df: pd.DataFrame, key: str | None = None, grain: str | None = None) -> dict:
     """`spec` with `count` set by `count_basis` and its dimensions cut to those a count can be added over: distinct keys
     add across a dimension only when each key has one value on it (a session has one channel). `spec["columns"]` maps a
     dimension to the column that holds it in `df`."""
-    basis = count_basis(spec["role"], spec["column"], spec["column"] in df.columns and is_identifier(df[spec["column"]]), key)
+    basis = count_basis(spec["role"], spec["column"], spec["column"] in df.columns and is_identifier(df[spec["column"]], grain=grain), key)
     if basis is None:
         return spec
     spec = {**spec, "count": basis}
@@ -407,6 +483,10 @@ def build_metrics(specs: list, id_spec: dict | None, template: str, said: dict, 
                  **({"column": by, "additive_over": list(sp["dimensions"])} if by else {})}
         if sp.get("columns"):
             m["columns"] = dict(sp["columns"])
+        if sp.get("additivity"):
+            m["additivity"] = sp["additivity"]
+        if sp.get("additivity_basis"):
+            m["additivity_basis"] = sp["additivity_basis"]
         measures[f"m_{col}"] = m
         metrics[col] = {"label": sp.get("label") or nm(col), "measure": f"m_{col}",
                         "unit": "count" if sp["role"] in ("quantity", "visits", "records") else "currency",

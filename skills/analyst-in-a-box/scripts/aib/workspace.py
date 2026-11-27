@@ -69,6 +69,24 @@ class Workspace:
     def measures(self):
         return self.model.get("measures", {})
 
+    def measure_additivity(self, name: str) -> str:
+        """The additivity of a measure: 'additive', 'distinct_count', or 'non_additive'.
+        
+        If the measure has an explicit 'additivity' field, use it. Otherwise, infer from 'agg':
+        - sum, count → additive
+        - count_distinct → distinct_count
+        - mean, min, max → non_additive
+        """
+        m = self.measures.get(name, {})
+        if m.get("additivity"):
+            return m["additivity"]
+        agg = m.get("agg")
+        if agg in ("sum", "count"):
+            return "additive"
+        if agg == "count_distinct":
+            return "distinct_count"
+        return "non_additive"
+
     @property
     def metrics(self):
         return self.model.get("metrics", {})
